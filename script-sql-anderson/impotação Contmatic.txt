@@ -1,0 +1,75 @@
+SELECT 
+CASE WHEN CLICGC = ''
+	THEN CLICPF
+	ELSE CLICGC
+END AS 'CNPJ/CPF',				-- CNPJ do Participante 										
+RTRIM(LTRIM(CLINOM)) AS 'NOME',				-- Razão Social do Participante									
+RTRIM(LTRIM(CLIIES)) AS 'IE',					-- Inscrição Estadual do Participante							
+CLIIMU AS 'IM',					-- Inscrição Municipal do Participante							
+RTRIM(LTRIM(CLIEND)) AS 'END',				-- Endereço do Participante
+case when isnumeric(subString(Ltrim(replace(replace(replace(replace(replace(replace(CLINUM,'S/',''),'S/N',''),'KM',''),'N.',''),'Nº',''),'N','')),1,charindex(' ',Ltrim(replace(replace(replace(replace(replace(replace(CLINUM,'S/',''),'S/N',''),'KM',''),'N.',''),'Nº',''),'N','')))))=1
+	then subString(Ltrim(replace(replace(replace(replace(replace(replace(CLINUM,'S/',''),'S/N',''),'KM',''),'N.',''),'Nº',''),'N','')),1,charindex(' ',Ltrim(replace(replace(replace(replace(replace(CLINUM,'S/',''),'S/N',''),'KM',''),'N',''),'º',''))))
+    else '0'
+end  AS 'NUM',				-- Número do endereço do Participante (substring até 10)
+CLINUM AS 'COMPL',				-- Complemento do endereço do Participante (substring >10)
+RTRIM(LTRIM(CLIBAI)) AS 'BAIRRO',				-- Bairro do Participante
+CLICEP AS 'CEP',				-- CEP do Participante	(Na formatação da célula utilize a categoria TEXTO.É necessário formatar a digitação com ponto, ex: 12345-678.)
+REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(CLITEL,' ',''),'(',''),')',''),'-',''),'.','') AS TEL,				-- Telefone do Participante	
+MUNCOD AS COD_MUN,			-- Código do município do Participante (Cód. Federal)
+RTRIM(LTRIM(CLICID)) AS CIDADE,				-- Cidade do Participante
+UFESIG AS UF,					-- Unidade de Federação do Participante
+CASE WHEN CLISUFRAMA <> 0 
+	THEN SUBSTRING(RTRIM(LTRIM(STR(CLISUFRAMA))),1,2)+'.'+SUBSTRING(RTRIM(LTRIM(STR(CLISUFRAMA))),3,4)+'.'+
+		 SUBSTRING(RTRIM(LTRIM(STR(CLISUFRAMA))),7,2)+'-'+SUBSTRING(RTRIM(LTRIM(STR(CLISUFRAMA))),9,1) 
+	ELSE ''
+END AS SUFRAMA,			-- Inscrição SUFRAMA do Participante
+105 AS COD_PAIS,			-- País do Participante
+RTRIM(LTRIM(CLIEMAIL)) AS EMAIL,				-- E-Mail do Participante
+'' AS CONTACLIENTE,		-- Conta Contábil do Cliente
+'' AS CONTAFORNECEDOR,	-- Conta Contábil do Fornecedor
+'' AS CONTACLIENTEPP,		-- Conta Contábil do Cliente por Plano
+'' AS CONTAFORNECEDORPP,	-- Conta Contábil do Fornecedor por Plano
+'NÃO' AS INTERDEPENDENCIA	-- Marcação da opção da tela “Relação de Interdependência”
+
+FROM TBS002 NOLOCK 
+
+WHERE 
+CLIUCPDAT >= '20160701'
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+UNION
+
+SELECT 
+CASE WHEN FORCGC = ''
+	THEN FORCPF
+	ELSE FORCGC
+END AS 'CNPJ/CPF',				-- CNPJ do Participante 										
+RTRIM(LTRIM(FORNOM)) AS 'NOME',				-- Razão Social do Participante									
+RTRIM(LTRIM(FORIES)) AS 'IE',					-- Inscrição Estadual do Participante							
+FORIMU AS 'IM',					-- Inscrição Municipal do Participante							
+RTRIM(LTRIM(FOREND)) AS 'END',				-- Endereço do Participante
+case when isnumeric(subString(Ltrim(replace(replace(replace(replace(replace(replace(FORNUM,'S/',''),'S/N',''),'KM',''),'N.',''),'Nº',''),'N','')),1,charindex(' ',Ltrim(replace(replace(replace(replace(replace(replace(FORNUM,'S/',''),'S/N',''),'KM',''),'N.',''),'Nº',''),'N','')))))=1
+	then subString(Ltrim(replace(replace(replace(replace(replace(replace(FORNUM,'S/',''),'S/N',''),'KM',''),'N.',''),'Nº',''),'N','')),1,charindex(' ',Ltrim(replace(replace(replace(replace(replace(FORNUM,'S/',''),'S/N',''),'KM',''),'N',''),'º',''))))
+    else '0'
+end  AS 'NUM',				-- Número do endereço do Participante (substring até 10)
+FORNUM AS 'COMPL',				-- Complemento do endereço do Participante (substring >10)
+RTRIM(LTRIM(FORBAI)) AS 'BAIRRO',				-- Bairro do Participante
+FORCEP AS 'CEP',				-- CEP do Participante	(Na formatação da célula utilize a categoria TEXTO.É necessário formatar a digitação com ponto, ex: 12345-678.)
+REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(FORTEL,' ',''),'(',''),')',''),'-',''),'.','') AS TEL,				-- Telefone do Participante	
+MUNCOD AS COD_MUN,			-- Código do município do Participante (Cód. Federal)
+RTRIM(LTRIM(FORCID)) AS CIDADE,				-- Cidade do Participante
+UFESIG AS UF,					-- Unidade de Federação do Participante
+'' AS SUFRAMA,			-- Inscrição SUFRAMA do Participante
+105 AS COD_PAIS,			-- País do Participante
+RTRIM(LTRIM(FOREMAIL)) AS EMAIL,				-- E-Mail do Participante
+'' AS CONTACLIENTE,		-- Conta Contábil do Cliente
+'' AS CONTAFORNECEDOR,	-- Conta Contábil do Fornecedor
+'' AS CONTACLIENTEPP,		-- Conta Contábil do Cliente por Plano
+'' AS CONTAFORNECEDORPP,	-- Conta Contábil do Fornecedor por Plano
+'NÃO' AS INTERDEPENDENCIA	-- Marcação da opção da tela “Relação de Interdependência”
+
+FROM TBS006 NOLOCK 
+
+WHERE 
+FORUCPDAT >= '20160701'

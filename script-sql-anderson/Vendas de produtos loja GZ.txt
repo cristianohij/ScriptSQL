@@ -1,0 +1,157 @@
+DECLARE 
+@datade datetime ,@dataate datetime, @marcod smallint , @marcanom char(30), @PRODES VARCHAR(60),
+@comando1 varchar(max) , @PROCOD CHAR(15) , @PROLOCFIS CHAR(20)
+   
+SET @datade ='20170301'
+SET @dataate ='20170331'
+set @marcod = ''
+set @marcanom = '' 
+SET @PRODES = ''
+SET @PROCOD = ''
+SET @PROLOCFIS = ''
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- VENDAS DA LOJA 1° PERIODO
+
+SET @comando1 = 'EXECUTE(''
+select 
+cdprod AS PROCOD, 
+sum(quant) as QTD, 
+sum(valortot-desccupom+acrescupom) as VAL
+
+FROM movcaixa
+where
+data between "'+convert(char(8), @datade ,112)+'" and "'+convert(char(8), @dataate,112)+'"  and 
+status = 01 and 
+cancelado <> "S"
+group by cdprod '') at MYSQLGZ' 
+ 
+if object_id('TempDB.dbo.#LOJA1') is not null
+   drop table #LOJA1
+    
+create table #LOJA1 (PROCOD INT, QTD decimal(10,4), VAL decimal(10,3))
+INSERT INTO #LOJA1
+exec(@comando1)
+
+----------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- GRUPO DE CLIENTES DO GRUPO, NÃO CONTABIIZAR 
+
+if object_id('TempDB.dbo.#GRUPOCLI') is not null
+   begin
+      drop table #GRUPOCLI
+   end
+
+select 
+CLICOD into #GRUPOCLI 
+
+FROM 
+TBS002 (nolock) 
+
+WHERE CLICGC Like('65069593%') or CLICGC Like('05118717%') or CLICGC Like('52080207%') or CLICGC Like('44125185%');
+
+----------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- NOTAS DE ENTRADA, CONTABILIZAR O CUSTO MÊS A MÊS 
+
+if object_id('TempDB.dbo.#CUSTO') is not null
+   drop table #CUSTO
+
+SELECT
+PROCOD,
+sum(ROUND(NFETOTOPEITE,2)) / SUM(NFEQTD*NFEQTDEMB) as NFEPREMED
+
+INTO #CUSTO
+
+FROM
+TBS0591 A (NOLOCK) 
+LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND 
+A.NFENUM = B.NFENUM AND A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND A.SEREMPCOD = B.SEREMPCOD
+		
+WHERE 
+NFEDATEFE between @datade - 120 and @dataate and 
+A.NFETIP = 'N' and 
+(NFENOSFOR = 'N' OR NFENOSFOR = '') AND 
+(B.NFECAN = 'N' OR B.NFECAN = '') AND 
+NFEDATEFE <> '' AND
+A.NFECFOP IN ('1.102','1.403','2.102','2.202','2.403','1.252','1.202','2.411','1.411','1.653') AND
+B.NFECOD NOT IN (SELECT CLICOD FROM #GRUPOCLI) 
+		
+GROUP BY 
+PROCOD
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+IF OBJECT_ID('TempDB.dbo.#SALDO') IS NOT NULL
+DROP TABLE #SALDO
+
+SELECT 
+PROCOD,
+(SELECT ESTQTDATU - ESTQTDRES FROM TBS032 B (NOLOCK) WHERE ESTLOC = 1 AND A.PROCOD = B.PROCOD ) AS EST1,
+(SELECT ESTQTDATU - ESTQTDRES FROM TBS032 B (NOLOCK) WHERE ESTLOC = 2 AND A.PROCOD = B.PROCOD ) AS EST2,
+SUM(ESTQTDRES) AS ESTQTDRES,
+SUM(ESTQTDCMP) AS ESTQTDCMP,
+SUM(ESTQTDPEN) AS ESTQTDPEN
+
+INTO #SALDO
+FROM 
+TBS032 A (NOLOCK)
+
+WHERE 
+ESTLOC IN (1,2) AND
+(ESTQTDATU <> 0 OR ESTQTDPEN <> 0 OR ESTQTDCMP <> 0 )
+
+GROUP BY 
+PROCOD
+
+--------------------------------------------------------------------------------------------------------------------------------------
+
+IF OBJECT_ID('TempDB.dbo.#TBS010') IS NOT NULL
+DROP TABLE #TBS010
+
+SELECT 
+CASE WHEN len(A.MARCOD) = 4 
+	then rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) 
+	else right(('00' + ltrim(str(A.MARCOD))),3) + ' - ' + rtrim(A.MARNOM) 
+end as 'MARCA',
+A.PROCOD,
+PRODES,
+PROUM1,
+PROCODBAR1,
+PROCODBAR2
+
+INTO #TBS010
+FROM TBS010 A (NOLOCK)
+WHERE 
+A.PROCOD = CASE WHEN @PROCOD = '' THEN A.PROCOD ELSE RTRIM(@PROCOD) END AND
+A.MARCOD =(CASE WHEN @marcod = 0 THEN A.MARCOD ELSE Upper(RTRIM(@marcod)) END) AND 
+A.MARNOM LIKE(CASE WHEN @marcanom = '' THEN '% %' ELSE Upper(RTRIM(@marcanom))+'%' END) AND 
+A.PRODES LIKE (CASE WHEN @PRODES = '' THEN '% %' ELSE UPPER(RTRIM(@PRODES))+'%' END)
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+ 
+select 
+MARCA,
+A.PROCOD,
+PRODES,
+PROUM1,
+ISNULL(QTD,0) AS VENQTD,
+CONVERT(DECIMAL(10,4),ROUND(ISNULL(VAL,0)/ CASE WHEN ISNULL(QTD,0) = 0 THEN 1 ELSE ISNULL(QTD,0) END ,4)) AS VALMED,
+ISNULL(VAL,0) AS VENVAL,
+isnull(NFEPREMED,(SELECT TDPCUSREA FROM TBS031 D (NOLOCK) WHERE A.PROCOD = D.TDPPROCOD)) AS CUSTO,
+isnull(NFEPREMED,(SELECT TDPCUSREA FROM TBS031 D (NOLOCK) WHERE A.PROCOD = D.TDPPROCOD)) * ISNULL(QTD,0) as CUSVAL,
+ISNULL(VAL,0) - (isnull(NFEPREMED,(SELECT TDPCUSREA FROM TBS031 D (NOLOCK) WHERE A.PROCOD = D.TDPPROCOD)) * ISNULL(QTD,0)) AS LUCVAL,
+ISNULL(EST2,0) AS EST2
+
+FROM #TBS010 A (NOLOCK)
+LEFT JOIN #SALDO B ON A.PROCOD = B.PROCOD
+LEFT JOIN #LOJA1 C ON CONVERT(NUMERIC,A.PROCOD) = C.PROCOD
+LEFT JOIN #CUSTO E ON A.PROCOD = E.PROCOD
+
+WHERE 
+ISNULL(QTD,0) <> 0 OR ISNULL(EST2,0) <> 0 OR ISNULL(ESTQTDCMP,0) <> 0 
+
+ORDER BY 
+ISNULL(VAL,0) - (isnull(NFEPREMED,(SELECT TDPCUSREA FROM TBS031 D (NOLOCK) WHERE A.PROCOD = D.TDPPROCOD)) * ISNULL(QTD,0)) DESC 
+ 

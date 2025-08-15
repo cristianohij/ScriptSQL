@@ -1,0 +1,716 @@
+-- VERIFICAR QUANTAS VEZES O ITEM ENTROU NA PENDENCIA 
+
+DECLARE @dataDe datetime, @dataAte datetime
+set @dataDe = '20170401'
+set @dataAte = '20170525'
+
+
+-- CLIENTES DO GRUPO
+
+if object_id('TempDB.dbo.#GRUPOCLI') is not null
+   begin
+      drop table #GRUPOCLI
+   end
+
+select 
+CLICOD into #GRUPOCLI 
+
+FROM 
+TBS002 (nolock) 
+
+WHERE CLICGC Like('65069593%') or CLICGC Like('05118717%') or CLICGC Like('52080207%') or CLICGC Like('44125185%');
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- SALDO DO PERIODO NO CD 
+
+if object_id('TempDB.dbo.#SALCD') is not null
+   drop table #SALCD
+
+SELECT
+ESTDATSAL AS DATA,
+PROCOD,
+ESTQTDATU - ESTQTDRES AS ESTQTDDIS
+/*ESTQTDRES,
+ESTQTDCMP,
+ESTQTDPEN*/
+
+INTO #SALCD
+FROM cd.SIBD.dbo.SALDODIARIO
+
+WHERE 
+ESTDATSAL BETWEEN @dataDe and @dataAte AND
+ESTLOC = 1 AND
+ESTQTDATU - ESTQTDRES <> 0
+
+ORDER BY 
+PROCOD, ESTDATSAL
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- PRODUTOS QUE COMPRARAM/DEVOLVERAM NO MESMO PERIODO NO CD 
+
+if object_id('TempDB.dbo.#TBS059CD') is not null
+   drop table #TBS059CD
+
+SELECT 
+PROCOD,
+SUM(NFEQTD*NFEQTDEMB) AS QUANT,
+NFEDATEFE AS DATA
+
+
+INTO #TBS059CD
+FROM
+cd.SIBD.dbo.TBS0591 A (NOLOCK) 
+LEFT JOIN cd.SIBD.dbo.TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND 
+A.NFENUM = B.NFENUM AND A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND A.SEREMPCOD = B.SEREMPCOD
+LEFT JOIN TBS080 D (NOLOCK) ON A.NFENUM = D.ENFNUM AND A.NFECOD = D.ENFCODDES
+
+WHERE 
+NFEDATEFE between @dataDe and @dataAte and 
+A.NFETIP in ('N','D') AND
+((D.ENFSIT = 6 AND D.ENFFINEMI = 4 AND D.ENFTIPDOC = 0) OR ((NFENOSFOR = 'N' OR NFENOSFOR = '') AND (B.NFECAN = 'N' OR B.NFECAN = '') AND NFEDATEFE <> '' )) 
+
+GROUP BY 
+PROCOD,
+NFEDATEFE
+
+ORDER BY 
+PROCOD, NFEDATEFE
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- SALDO DO PERIODO NO ND 
+
+if object_id('TempDB.dbo.#SALND') is not null
+   drop table #SALND
+
+SELECT
+ESTDATSAL AS DATA,
+PROCOD,
+ESTQTDATU - ESTQTDRES AS ESTQTDDIS,
+ESTQTDRES,
+ESTQTDCMP,
+ESTQTDPEN
+
+INTO #SALND
+FROM SALDODIARIO
+
+WHERE 
+ESTDATSAL BETWEEN @dataDe and @dataAte AND
+ESTLOC = 1 AND
+(ESTQTDATU <> 0 OR ESTQTDPEN <> 0 OR ESTQTDCMP <>0)
+
+ORDER BY 
+PROCOD, ESTDATSAL
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- SALDO DO PERIODO NO ND LOJA 
+
+if object_id('TempDB.dbo.#SALNDLOJ') is not null
+   drop table #SALNDLOJ
+
+SELECT
+ESTDATSAL AS DATA,
+PROCOD,
+ESTQTDATU - ESTQTDRES AS ESTQTDDIS,
+ESTQTDRES,
+ESTQTDCMP,
+ESTQTDPEN
+
+INTO #SALNDLOJ
+FROM SALDODIARIO
+
+WHERE 
+ESTDATSAL BETWEEN @dataDe and @dataAte AND
+ESTLOC = 2 AND
+(ESTQTDATU <> 0 OR ESTQTDPEN <> 0 OR ESTQTDCMP <>0)
+
+ORDER BY 
+PROCOD, ESTDATSAL
+
+--SELECT * FROM #SALNDLOJ WHERE ESTDATSAL = '20170519' AND PROCOD ='0040005'
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- PRODUTOS QUE COMPRARAM/DEVOLVERAM NO MESMO PERIODO NA ND 
+
+if object_id('TempDB.dbo.#TBS059ND') is not null
+   drop table #TBS059ND
+
+SELECT 
+PROCOD,
+SUM(NFEQTD*NFEQTDEMB) AS QUANT,
+NFEDATEFE AS DATA
+
+INTO #TBS059ND
+FROM
+TBS0591 A (NOLOCK) 
+LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND 
+A.NFENUM = B.NFENUM AND A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND A.SEREMPCOD = B.SEREMPCOD
+LEFT JOIN TBS080 D (NOLOCK) ON A.NFENUM = D.ENFNUM AND A.NFECOD = D.ENFCODDES
+
+WHERE 
+NFEDATEFE between @dataDe and @dataAte and 
+A.NFETIP in ('N','D') AND
+((D.ENFSIT = 6 AND D.ENFFINEMI = 4 AND D.ENFTIPDOC = 0) OR ((NFENOSFOR = 'N' OR NFENOSFOR = '') AND (B.NFECAN = 'N' OR B.NFECAN = '') AND NFEDATEFE <> '' )) 
+
+GROUP BY 
+PROCOD, NFEDATEFE
+
+ORDER BY 
+PROCOD, NFEDATEFE
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA FINAL DE SALDO E ENTRADA 
+
+if object_id('TempDB.dbo.#SALDO') is not null
+   drop table #SALDO
+
+SELECT 
+ISNULL(ISNULL(ISNULL(ISNULL(A.DATA,B.DATA),C.DATA),D.DATA),E.DATA) AS DATA,
+ISNULL(ISNULL(ISNULL(ISNULL(A.PROCOD,B.PROCOD),C.PROCOD),D.PROCOD),E.PROCOD) AS PROCOD,
+ISNULL(B.QUANT,0) + ISNULL(D.QUANT,0) AS ENT,
+ISNULL(A.ESTQTDDIS,0) AS SALDOCD,
+--ISNULL(A.ESTQTDCMP,0) AS CMPCD,
+--ISNULL(A.ESTQTDPEN,0) AS PENCD,
+--ISNULL(A.ESTQTDRES,0) AS RESCD,
+--ISNULL(D.QUANT,0) AS ENTND,
+ISNULL(C.ESTQTDDIS,0) AS SALDOND,
+ISNULL(E.ESTQTDDIS,0) AS SALDLOJ,
+ISNULL(C.ESTQTDCMP,0) + ISNULL(E.ESTQTDCMP,0) AS CMP,
+--ISNULL(E.ESTQTDCMP,0) AS CMPLOJ,
+ISNULL(C.ESTQTDPEN,0) AS PENND,
+ISNULL(C.ESTQTDRES,0) AS RESND
+
+INTO #SALDO
+FROM 
+#SALCD A
+FULL OUTER JOIN #TBS059CD B ON A.PROCOD = B.PROCOD AND A.DATA = B.DATA
+FULL OUTER JOIN #SALND C	ON ISNULL(A.PROCOD,B.PROCOD) COLLATE DATABASE_DEFAULT = C.PROCOD AND ISNULL(A.DATA,B.DATA) = C.DATA
+FULL OUTER JOIN #TBS059ND D	ON ISNULL(ISNULL(A.PROCOD,B.PROCOD),C.PROCOD) COLLATE DATABASE_DEFAULT = D.PROCOD AND ISNULL(ISNULL(A.DATA,B.DATA),C.DATA) = D.DATA
+FULL OUTER JOIN #SALNDLOJ E	ON ISNULL(ISNULL(ISNULL(A.PROCOD,B.PROCOD),C.PROCOD),D.PROCOD) COLLATE DATABASE_DEFAULT = E.PROCOD AND 
+							   ISNULL(ISNULL(ISNULL(A.DATA,B.DATA),C.DATA),D.DATA) = CONVERT(DATE,E.DATA)
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- CONTABILIZANDO AS NOTAS DE SAIDA , SEM LOJA
+
+if object_id('TempDB.dbo.#NFS') is not null
+   drop table #NFS
+ 
+SELECT 
+NFSDATEMI AS DATA,
+PROCOD,
+SUM(NFSQTD * NFSQTDEMB) AS QUANT
+
+INTO #NFS
+FROM 
+TBS0671 B (nolock)
+LEFT JOIN TBS067 A (nolock) ON A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+LEFT JOIN TBS080 D (NOLOCK) ON B.NFSNUM = D.ENFNUM AND B.SNEEMPCOD = D.SNEEMPCOD AND B.SNESER = D.SNESER
+	  
+WHERE 
+NFSDATEMI between @dataDe and @dataAte and 
+NFSTIP IN('N','C') and 
+D.ENFSIT = 6 AND 
+D.ENFTIPDOC = 1 AND
+A.NFSCLICOD NOT IN (SELECT CLICOD FROM #GRUPOCLI) 
+		
+GROUP BY 
+NFSDATEMI,PROCOD
+
+order BY 
+PROCOD, NFSDATEMI
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- VENDAS DE LOJA
+
+DECLARE @comando varchar (max)
+
+SET @comando = 'EXECUTE(''
+select
+cdprod,
+data,
+SUM(quant) AS quant
+
+FROM movcaixa
+where
+data between "'+convert(char(8), @dataDe, 112)+'" and "'+convert(char(8), @dataAte, 112)+'"  and 
+status IN(01,02) and 
+cancelado <> "S"
+
+group by 
+cdprod,data 
+'') at MYSQLGZ' 
+
+if object_id('TempDB.dbo.#MSLAUX') is not null
+   drop table #MSLAUX
+    
+create table #MSLAUX (M2_PROCOD INT, DATA DATE, QUANT DECIMAL(10,4))
+INSERT INTO #MSLAUX
+exec(@comando)
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA FINAL VENDAS DA LOJA
+
+if object_id('TempDB.dbo.#MSL') is not null
+   drop table #MSL
+   
+SELECT 
+PROCOD,
+DATA,
+QUANT
+
+INTO #MSL
+FROM #MSLAUX A 
+INNER JOIN TBS010 B ON M2_PROCOD = CONVERT(INT,B.PROCOD)
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- QTD PENDENTE NO PERIODO
+
+if object_id('TempDB.dbo.#PEN') is not null
+   drop table #PEN
+
+SELECT 
+CONVERT(CHAR(10),LMEDATHOR,103) AS DATA,
+PROCOD,
+SUM(LMEQTDMOV) as QUANT
+
+INTO #PEN
+FROM TBS051 NOLOCK 
+
+WHERE 
+CONVERT(DATE,LMEDATHOR) BETWEEN @dataDe and @dataAte AND
+LMEACA = 'E' AND 
+LMEINFALT = 'P' AND 
+LMELOCEST IN (1,2) AND
+LMEROT NOT IN ('PVEN032')
+
+GROUP BY 
+CONVERT(CHAR(10),LMEDATHOR,103) ,
+PROCOD
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- QTD DE X PENDENTE NO PERIODO 
+
+if object_id('TempDB.dbo.#PENQTD') is not null
+	drop table #PENQTD   
+ 
+SELECT 
+CONVERT(CHAR(10),LMEDATHOR,103) AS DATA,
+PROCOD,
+COUNT(PROCOD) AS QTD
+
+INTO #PENQTD
+FROM 
+TBS051 NOLOCK 
+
+WHERE 
+CONVERT(DATE,LMEDATHOR) BETWEEN @dataDe AND @dataAte AND
+LMEACA = 'E' AND 
+LMEINFALT = 'P' AND 
+LMELOCEST IN (1,2) AND
+LMEROT NOT IN ('PVEN032')
+
+GROUP BY 
+CONVERT(CHAR(10),LMEDATHOR,103),
+PROCOD
+
+ORDER BY 
+CONVERT(CHAR(10),LMEDATHOR,103),
+PROCOD
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- QTD PENDENTE ESTORNADO NO PERDIODO
+
+if object_id('TempDB.dbo.#PENEST') is not null
+   drop table #PENEST
+
+SELECT 
+CONVERT(CHAR(10),LMEDATHOR,103) AS DATA,
+PROCOD,
+SUM(LMEQTDMOV) as QUANT
+
+INTO #PENEST
+FROM TBS051 NOLOCK 
+
+WHERE 
+CONVERT(DATE,LMEDATHOR) BETWEEN @dataDe and @dataAte AND
+LMEACA = 'E' AND 
+LMEINFALT = 'P' AND 
+LMELOCEST IN (1,2) AND
+LMEROT IN ('PVEN032')
+
+GROUP BY 
+CONVERT(CHAR(10),LMEDATHOR,103) ,
+PROCOD
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- QTD DE X PENDENTE NO PERIODO ESTORNO DE RESERVA, PODE SER ESTOQUE FURADO
+
+if object_id('TempDB.dbo.#PENESTQTD') is not null
+   drop table #PENESTQTD
+
+SELECT 
+CONVERT(CHAR(10),LMEDATHOR,103) AS DATA,
+PROCOD,
+COUNT(PROCOD) as QTD
+
+INTO #PENESTQTD
+FROM TBS051 NOLOCK 
+
+WHERE 
+CONVERT(DATE,LMEDATHOR) BETWEEN @dataDe and @dataAte AND
+LMEACA = 'E' AND 
+LMEINFALT = 'P' AND 
+LMELOCEST IN (1,2) AND
+LMEROT IN ('PVEN032')
+
+GROUP BY 
+CONVERT(CHAR(10),LMEDATHOR,103) ,
+PROCOD
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- QTD ORÇADA NO PERIODO
+
+if object_id('TempDB.dbo.#ORC') is not null 
+	drop table #ORC
+
+SELECT 
+ORCDATCAD AS DATA,
+PROCOD, 
+SUM(ORCQTD*ORCQTDEMB) AS QUANT
+
+INTO #ORC
+FROM TBS043 A (NOLOCK) 
+INNER JOIN TBS0431 B (NOLOCK) ON A.ORCEMPCOD = B.ORCEMPCOD AND A.ORCNUM = B.ORCNUM
+
+WHERE 
+ORCDATCAD BETWEEN @dataDe AND @dataAte AND
+ORCCLI NOT IN (SELECT CLICOD FROM #GRUPOCLI) 
+
+GROUP BY 
+ORCDATCAD,
+PROCOD
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- QUANTIDADE DE X QUE O ITEM GEROU ORÇAMENTO
+
+if object_id('TempDB.dbo.#ORCQTD') is not null
+	drop table #ORCQTD   
+ 
+SELECT 
+ORCDATCAD AS DATA,
+PROCOD, 
+COUNT(PROCOD) AS QTD
+
+INTO #ORCQTD
+FROM TBS043 A (NOLOCK) 
+INNER JOIN TBS0431 B (NOLOCK) ON A.ORCEMPCOD = B.ORCEMPCOD AND A.ORCNUM = B.ORCNUM
+
+WHERE 
+ORCDATCAD BETWEEN @dataDe AND @dataAte AND
+ORCCLI NOT IN (SELECT CLICOD FROM #GRUPOCLI) 
+
+GROUP BY 
+ORCDATCAD,
+PROCOD
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA FINAL DE QUANTIDADES
+
+if object_id('TempDB.dbo.#QTD') is not null
+	drop table #QTD  
+
+SELECT 
+ISNULL(ISNULL(ISNULL(ISNULL(ISNULL(ISNULL(ISNULL(A.DATA,B.DATA),C.DATA),D.DATA),E.DATA),F.DATA),G.DATA),H.DATA) AS DATA,
+ISNULL(ISNULL(ISNULL(ISNULL(ISNULL(ISNULL(ISNULL(A.PROCOD,B.PROCOD),C.PROCOD),D.PROCOD),E.PROCOD),F.PROCOD),G.PROCOD),H.PROCOD) AS PROCOD,
+ISNULL(A.QUANT,0) 	AS NFSQUANT,
+ISNULL(B.QUANT,0) 	AS LOJQUANT,
+ISNULL(C.QUANT,0) 	AS PENQUANT,
+ISNULL(D.QTD,0) 	AS PENQTD,
+ISNULL(E.QUANT,0) 	AS PENESTQUANT,
+ISNULL(F.QTD,0) 	AS PENESTQTD,
+ISNULL(G.QUANT,0)	AS ORCQUANT,
+ISNULL(H.QTD,0) 	AS ORCQTD
+
+INTO #QTD
+FROM 
+#NFS A
+FULL OUTER JOIN #MSL B 		ON A.PROCOD = B.PROCOD AND A.DATA = B.DATA
+FULL OUTER JOIN #PEN C		ON ISNULL(A.PROCOD,B.PROCOD) COLLATE DATABASE_DEFAULT = C.PROCOD AND ISNULL(A.DATA,B.DATA) = C.DATA
+FULL OUTER JOIN #PENQTD D	ON ISNULL(ISNULL(A.PROCOD,B.PROCOD),C.PROCOD) COLLATE DATABASE_DEFAULT = D.PROCOD AND ISNULL(ISNULL(A.DATA,B.DATA),C.DATA) = D.DATA
+FULL OUTER JOIN #PENEST E	ON ISNULL(ISNULL(ISNULL(A.PROCOD,B.PROCOD),C.PROCOD),D.PROCOD) COLLATE DATABASE_DEFAULT = E.PROCOD AND 
+							   ISNULL(ISNULL(ISNULL(A.DATA,B.DATA),C.DATA),D.DATA) = E.DATA
+FULL OUTER JOIN #PENESTQTD F ON ISNULL(ISNULL(ISNULL(ISNULL(A.PROCOD,B.PROCOD),C.PROCOD),D.PROCOD),E.PROCOD) COLLATE DATABASE_DEFAULT = F.PROCOD AND 
+							   ISNULL(ISNULL(ISNULL(ISNULL(A.DATA,B.DATA),C.DATA),D.DATA),E.DATA) = F.DATA
+FULL OUTER JOIN #ORC G 		ON ISNULL(ISNULL(ISNULL(ISNULL(ISNULL(A.PROCOD,B.PROCOD),C.PROCOD),D.PROCOD),E.PROCOD),F.PROCOD) COLLATE DATABASE_DEFAULT = G.PROCOD AND 
+							   ISNULL(ISNULL(ISNULL(ISNULL(ISNULL(A.DATA,B.DATA),C.DATA),D.DATA),E.DATA),F.DATA) = G.DATA
+FULL OUTER JOIN #ORCQTD H ON ISNULL(ISNULL(ISNULL(ISNULL(ISNULL(ISNULL(A.PROCOD,B.PROCOD),C.PROCOD),D.PROCOD),E.PROCOD),F.PROCOD),G.PROCOD) COLLATE DATABASE_DEFAULT = 
+								H.PROCOD AND 
+							   ISNULL(ISNULL(ISNULL(ISNULL(ISNULL(ISNULL(A.DATA,B.DATA),C.DATA),D.DATA),E.DATA),F.DATA),G.DATA) = H.DATA
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA FINAL 
+
+SELECT 
+ROW_NUMBER ( ) OVER (ORDER BY ISNULL(A.PROCOD,B.PROCOD),ISNULL(A.DATA,B.DATA)) AS ORDEM,
+CASE WHEN ROW_NUMBER ( ) OVER (ORDER BY ISNULL(A.PROCOD,B.PROCOD),ISNULL(A.DATA,B.DATA)) BETWEEN 1 AND 65000
+	THEN 1 
+	ELSE 
+		CASE WHEN ROW_NUMBER ( ) OVER (ORDER BY ISNULL(A.PROCOD,B.PROCOD),ISNULL(A.DATA,B.DATA)) BETWEEN 65001 AND 130001
+			THEN 2
+			ELSE 
+				CASE WHEN ROW_NUMBER ( ) OVER (ORDER BY ISNULL(A.PROCOD,B.PROCOD),ISNULL(A.DATA,B.DATA)) BETWEEN 130002 AND 195002
+					THEN 3
+					ELSE 
+						CASE WHEN ROW_NUMBER ( ) OVER (ORDER BY ISNULL(A.PROCOD,B.PROCOD),ISNULL(A.DATA,B.DATA)) BETWEEN 195003 AND 260003
+							THEN 4
+							ELSE
+								CASE WHEN ROW_NUMBER ( ) OVER (ORDER BY ISNULL(A.PROCOD,B.PROCOD),ISNULL(A.DATA,B.DATA)) BETWEEN 260004 AND 325004
+									THEN 5
+									ELSE
+										CASE WHEN ROW_NUMBER ( ) OVER (ORDER BY ISNULL(A.PROCOD,B.PROCOD),ISNULL(A.DATA,B.DATA)) BETWEEN 325005 AND 390005
+											THEN 6
+											ELSE 7
+										END
+								END
+						END
+				END
+		END
+END AS RANK,
+ISNULL(A.DATA,B.DATA) AS DATA,
+ISNULL(A.PROCOD,B.PROCOD) AS PROCOD,
+ISNULL(C.PRODES,'PRODUTO SEM CADASTRO') as PRODES,
+ISNULL(
+CASE WHEN len(C.MARCOD) = 4
+	THEN rtrim(C.MARCOD) + ' - ' + rtrim(C.MARNOM) 
+	else right(('00' + ltrim(str(C.MARCOD))),3) + ' - ' + rtrim(C.MARNOM) 
+end, '000 - SEM MARCA') as MARCOD,
+ISNULL(ENT,0) AS ENT ,
+ISNULL(SALDOCD,0) AS SALDOCD,
+ISNULL(SALDOND,0) AS SALDOND,
+ISNULL(SALDLOJ,0) AS SALDLOJ,
+ISNULL(CMP,0)  AS CMP,
+ISNULL(PENND,0) AS PENND,
+ISNULL(RESND,0) AS RESND,
+ISNULL(NFSQUANT,0) 	AS NFSQUANT,
+ISNULL(LOJQUANT,0) 	AS LOJQUANT,
+ISNULL(PENQUANT,0) 	AS PENQUANT,
+ISNULL(PENQTD,0) 	AS PENQTD,
+ISNULL(PENESTQUANT,0) AS PENESTQUANT,
+ISNULL(PENESTQTD,0) AS PENESTQTD,
+ISNULL(ORCQUANT,0)	AS ORCQUANT,
+ISNULL(ORCQTD,0) 	AS ORCQTD,
+SUM(ISNULL(PENQTD,0) + ISNULL(ORCQTD,0)) OVER (PARTITION BY ISNULL(A.PROCOD,B.PROCOD)) AS VALOR
+
+FROM 
+#SALDO A
+FULL OUTER JOIN #QTD B ON A.PROCOD COLLATE DATABASE_DEFAULT = B.PROCOD AND A.DATA = B.DATA
+LEFT JOIN TBS010 C (NOLOCK) ON ISNULL(A.PROCOD,B.PROCOD) COLLATE DATABASE_DEFAULT = C.PROCOD
+
+
+							   
+							   
+							   
+	
+
+
+
+
+
+
+	 
+							   
+							   
+							   
+	
+
+
+
+
+
+
+	 
+								   
+							   
+							   
+							   
+							   
+							   
+							   
+							   
+							   
+							   
+							   
+
+
+
+
+SELECT * from TBS051 NOLOCK WHERE  LMEDATHOR > '20170510' AND PROCOD = '2540001' AND LMEROT = 'PVEN032'
+
+
+SELECT * from TBS051 NOLOCK WHERE  LMEDATHOR > '20170523' AND PROCOD = '9330045'
+
+
+
+
+
+
+
+
+
+
+SELECT
+ISNULL(A.PROCOD,B.PROCOD) AS PROCOD,
+ISNULL(A.NFEDATEFE,B.ESTDATSAL) AS DATA,
+ISNULL(A.NFEQTD,0) AS QTDREC
+
+
+FROM 
+#TBS059CD A 
+FULL OUTER JOIN #SALCD B ON A.NFEDATEFE = B.ESTDATSAL AND A.PROCOD = B.PROCOD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	 
+	 
+SELECT PROCOD , ESTQTDATU - BETWEEN
+
+
+-- PEGAR OS ITENS QUE GERARAM PENDENCIA NA TBS051 E VERIFICAR QUANTAS VEZES ENTROU NA PENDENCIA NO MES
+
+if object_id('TempDB.dbo.#TBS051') is not null
+	drop table #TBS051   
+ 
+SELECT 
+YEAR(CONVERT(DATE,LMEDATHOR)) AS ANO,
+SUBSTRING(CONVERT(CHAR(10),LMEDATHOR,103),4,7) AS MES,
+PROCOD,
+COUNT(PROCOD) AS X
+
+INTO #TBS051
+FROM 
+TBS051 NOLOCK 
+
+WHERE 
+CONVERT(DATE,LMEDATHOR) BETWEEN @dataDe AND @dataAte AND
+LMEACA = 'E' AND 
+LMEINFALT = 'P' AND 
+LMELOCEST IN (1,2)
+
+GROUP BY 
+YEAR(CONVERT(DATE,LMEDATHOR)) ,
+SUBSTRING(CONVERT(CHAR(10),LMEDATHOR,103),4,7),
+PROCOD
+
+ORDER BY 
+YEAR(CONVERT(DATE,LMEDATHOR)),
+SUBSTRING(CONVERT(CHAR(10),LMEDATHOR,103),4,7),
+PROCOD
+
+----------------------------------------------------------------------------------------------------------------------
+
+-- VERIFICAR QUANTAS VEZES O ITEM ENTROU NA PENDENCIA 
+
+DECLARE @dataDe datetime, @dataAte datetime
+set @dataDe = '20170101'
+set @dataAte = '20170330'
+
+-- PEGAR OS ITENS QUE GERARAM PENDENCIA NA TBS051 E VERIFICAR QUANTAS VEZES ENTROU NA PENDENCIA NO MES
+
+if object_id('TempDB.dbo.#TBS051') is not null
+	drop table #TBS051   
+ 
+SELECT 
+YEAR(CONVERT(DATE,LMEDATHOR)) AS ANO,
+SUBSTRING(CONVERT(CHAR(10),LMEDATHOR,103),4,7) AS MES,
+PROCOD,
+COUNT(PROCOD) AS X
+
+INTO #TBS051
+FROM 
+TBS051 NOLOCK 
+
+WHERE 
+CONVERT(DATE,LMEDATHOR) BETWEEN @dataDe AND @dataAte AND
+LMEACA = 'E' AND 
+LMEINFALT = 'P' AND 
+LMELOCEST IN (1,2)
+
+GROUP BY 
+YEAR(CONVERT(DATE,LMEDATHOR)) ,
+SUBSTRING(CONVERT(CHAR(10),LMEDATHOR,103),4,7),
+PROCOD
+
+ORDER BY 
+YEAR(CONVERT(DATE,LMEDATHOR)),
+SUBSTRING(CONVERT(CHAR(10),LMEDATHOR,103),4,7),
+PROCOD
+
+----------------------------------------------------------------------------------------------------------------------
+
+-- UNIR OS ITENS PENDENTES COM A TBS010 PARA COMPLEMENTAR AS INFORMAÇÕES
+
+SELECT 
+ANO,
+MES,
+CASE SUBSTRING(MES,1,2) 
+	WHEN '01' THEN 'JAN'
+	WHEN '02' THEN 'FEV'
+	WHEN '03' THEN 'MAR'
+	WHEN '04' THEN 'ABR'
+	WHEN '05' THEN 'MAI'
+	WHEN '06' THEN 'JUN'
+	WHEN '07' THEN 'JUL'
+	WHEN '08' THEN 'AGO'
+	WHEN '09' THEN 'SET'
+	WHEN '10' THEN 'OUT'
+	WHEN '11' THEN 'NOV'
+	WHEN '12' THEN 'DEZ'
+END + '/' + LTRIM(STR(ANO)) AS MES1,
+X,
+A.PROCOD,
+rtrim(PRODES) AS PRODES,
+CASE WHEN len(A.MARCOD) = 4 
+	then rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) 
+	else right(('00' + ltrim(str(A.MARCOD))),3) + ' - ' + rtrim(A.MARNOM) 
+end as MARNOM
+
+FROM TBS010 A (NOLOCK) 
+INNER JOIN #TBS051 B ON A.PROCOD = B.PROCOD
+
+
+
+SELECT * FROM SALDODIARIO WHERE ESTDATSAL ='20161231'

@@ -1,0 +1,61 @@
+select
+rtrim(ltrim(A.PROCOD)) as 'Código', 
+PROLOCFIS as 'Localização', 
+PROSTATUS as 'Status', 
+PROCOD as 'Código', 
+PRODES as 'Descrição', 
+rtrim(MARCOD) + ' - ' + rtrim(MARNOM) as 'MARCA', 
+PROUM1 as 'Unid. Medida',
+replace(str(isnull(SaldoEstND.SDISEST,0),10,4),'.',',') as 'Saldo Disponivel Estoque ND',
+
+replace(str(isnull(SDISLOJA,0),10,4),'.',',') as 'Saldo Disponivel Loja'
+from TBS010 P
+
+left join (select A.PROCOD as PRO, sum(A.ESTQTDATU-A.ESTQTDRES) as SDISLOJA, A.ESTQTDRES as SRESLOJA
+from TBS032 A join TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+group by A.PROCOD, A.ESTQTDRES) as SaldoLoja on P.PROCOD = SaldoLoja.PRO
+
+left join (select A.PROCOD as PRO, sum(A.ESTQTDATU-A.ESTQTDRES) as SDISEST
+from TBS032 A join TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (1) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+group by A.PROCOD) as SaldoEstND on P.PROCOD = SaldoEstND.PRO
+
+
+order by PROCOD
+
+
+
+
+
+
+
+--- saldo dispo, loja, pende , compras.
+
+select
+RTRIM(LTRIM(PROCOD)) as 'Código', 
+PROLOCFIS as 'Localização', 
+PROSTATUS as 'Status',  
+PRODES as 'Descrição', 
+rtrim(MARCOD) + ' - ' + rtrim(MARNOM) as 'MARCA', 
+PROUM1 as 'Unid. Medida',
+replace(str(isnull(SaldoEstND.SDISEST,0),10,4),'.',',') as 'Saldo Disponivel Estoque ND',
+
+replace(str(isnull(SDISLOJA,0),10,4),'.',',') as 'Saldo Disponivel Loja',
+replace(str(isnull(SaldoEstND.ESTQTDPEN,0),10,4),'.',',') PENDEN,
+replace(str(isnull(SaldoEstND.ESTQTDCMP,0),10,4),'.',',') COMPRAS 
+from TBS010 P (nolock)
+
+left join (select A.PROCOD as PRO, sum(A.ESTQTDATU-A.ESTQTDRES) as SDISLOJA, A.ESTQTDRES as SRESLOJA
+from TBS032 A (nolock) join TBS010 B (nolock)on A.PROCOD = B.PROCOD
+where A.ESTLOC in (2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+group by A.PROCOD, A.ESTQTDRES) as SaldoLoja on P.PROCOD = SaldoLoja.PRO
+
+left join (select A.PROCOD as PRO, sum(A.ESTQTDATU-A.ESTQTDRES) as SDISEST,A.ESTQTDRES as SRESEST,
+A.ESTQTDPEN,A.ESTQTDCMP
+from TBS032 A (nolock) join TBS010 B (nolock) on A.PROCOD = B.PROCOD
+where A.ESTLOC in (1) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+group by A.PROCOD, A.ESTQTDRES,A.ESTQTDPEN,A.ESTQTDCMP) as SaldoEstND on P.PROCOD = SaldoEstND.PRO
+
+
+order by PROCOD

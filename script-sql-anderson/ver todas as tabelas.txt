@@ -1,0 +1,99 @@
+SELECT t.name AS tablename, c.name AS columnname
+FROM sys.tables AS t
+
+INNER JOIN sys.columns AS c ON t.object_id = c.object_id
+
+ORDER BY tablename, columnname
+
+
+
+-- TABELA ESPECIFICA 
+
+
+SELECT t.name AS tablename, c.name AS columnname
+FROM sys.tables AS t
+
+INNER JOIN sys.columns AS c ON t.object_id = c.object_id
+
+WHERE t.name = 'TBS032'
+
+ORDER BY tablename, columnname
+
+
+
+-- MAIS FACIL 
+
+select
+
+so.Name As "Nome da Tabela",
+
+sc.Name As "Nome do Campo"
+
+from sys.syscolumns sc inner join sys.sysobjects so
+
+on sc.id = so.id
+where
+
+so.Name='TBS014'
+
+
+
+--- PARA VERIFICAR OS COLLATE
+
+DECLARE @TAB CHAR (10)
+SET @TAB = 'tbs015'
+
+SELECT CASE WHEN ISNULL(B.CONSTRAINT_NAME,'') <> '' THEN 'PK' ELSE 'SK' END AS CH , 
+A.COLUMN_NAME, A.IS_NULLABLE, A.DATA_TYPE, A.CHARACTER_MAXIMUM_LENGTH , A.COLLATION_NAME,
+CASE WHEN A.COLLATION_NAME <> '' 
+	THEN A.COLUMN_NAME + ' COLLATE Latin1_General_CI_AS AS ' + A.COLUMN_NAME + ','  
+	ELSE A.COLUMN_NAME + ' , '
+	END, *
+
+
+ FROM INFORMATION_SCHEMA.COLUMNS A LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE B
+  ON A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME = B.COLUMN_NAME
+ 
+  WHERE A.table_name = UPPER(@TAB) ;
+
+
+
+
+
+--- AMARRAÇOES 
+
+if object_id('TempDB.dbo.#TBL1') is not null
+   drop table #TBL1
+
+
+if object_id('TempDB.dbo.#TBL2') is not null
+   drop table #TBL2
+
+DECLARE @TAB1 CHAR (10)
+SET @TAB1 = 'TBS080'
+  
+SELECT 
+A.TABLE_NAME, 
+CASE WHEN ISNULL(B.CONSTRAINT_NAME,'') <> '' THEN 'PK' ELSE 'SK' END AS CH , 
+A.COLUMN_NAME
+INTO #TBL1
+FROM INFORMATION_SCHEMA.COLUMNS A 
+LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE B ON A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME = B.COLUMN_NAME
+WHERE 
+A.table_name = UPPER(@TAB1)
+
+
+DECLARE @TAB2 CHAR (10)
+SET @TAB2 = 'TBS067'
+
+SELECT 
+A.TABLE_NAME, 
+CASE WHEN ISNULL(B.CONSTRAINT_NAME,'') <> '' THEN 'PK' ELSE 'SK' END AS CH , 
+A.COLUMN_NAME
+INTO #TBL2
+FROM INFORMATION_SCHEMA.COLUMNS A 
+LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE B ON A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME = B.COLUMN_NAME
+WHERE 
+A.table_name = UPPER(@TAB2)
+
+SELECT A.* FROM #TBL1 A ,#TBL2 B WHERE A.COLUMN_NAME = B.COLUMN_NAME

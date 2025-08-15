@@ -1,0 +1,101 @@
+if object_id('TempDB.dbo.#TBS0591') is not null
+   drop table #TBS0591
+   
+SELECT 
+A.NFEEMPCOD,
+A.NFETIP,
+A.NFENUM,
+A.NFECOD,
+A.SEREMPCOD,
+A.SERCOD,
+A.NFEITE,
+A.PROCOD,
+A.NFEQTDEMB, 
+B.NFEPEDNUM 
+
+INTO #TBS0591
+FROM TBS0591 A (NOLOCK) 
+LEFT JOIN TBS0592 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND A.NFENUM = B.NFENUM AND A.NFETIP = B.NFETIP AND 
+	A.SERCOD = B.SERCOD AND A.SEREMPCOD = B.SEREMPCOD AND A.NFEITE = B.NFEITE
+
+WHERE B.NFETIPPED = 'C'
+
+-- FAZER TABELA CUSTOENTRADA EM CADA UNIDADE (ND , CD E TTE)
+
+;WITH ENTRS AS (
+
+	SELECT 
+	D.PROCOD AS COD,
+	convert(int,subString(convert(char(6),NFEDATEFE,112),1,4)) AS ANO,
+	convert(int,subString(convert(char(6),NFEDATEFE,112),5,2)) AS MES ,
+	
+	CASE WHEN SUM(PDCQTDENT*D.PDCQTDEMB) - isnull(SUM(C.NFENFDQTD*A.NFEQTDEMB),0)  > 0 
+		THEN round(AVG(convert(decimal(10,4),(dbo.PDCTOTITE(D.PDCEMPCOD,D.PDCNUM,PDCITE) / PDCQTD )/ PDCQTDEMB)),2)
+		ELSE 0 
+	END AS VALORMD
+	/*SUM(PDCQTDENT) AS QTDPDC,
+	SUM(C.NFENFDQTD) AS QTDDEV*/
+	
+--	D.PDCNUM AS PEDCOMPRAS,
+--	A.NFENUM ,
+--	C.NFENFDQTD
+	
+	-- INTO CUSTOENTRADA2015 --USEI ESSE
+	FROM #TBS0591 A (NOLOCK) 
+	LEFT JOIN TBS0451 D (nolock) ON A.PROCOD = D.PROCOD AND A.NFEPEDNUM = D.PDCNUM
+	LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND A.NFENUM = B.NFENUM AND A.NFETIP = B.NFETIP AND 
+	A.SERCOD = B.SERCOD AND A.SEREMPCOD = B.SEREMPCOD
+	LEFT JOIN TBS0597 C (NOLOCK) ON A.NFEEMPCOD = C.NFEEMPCOD AND A.NFECOD = C.NFECOD AND A.NFENUM = C.NFENUM AND A.NFETIP = C.NFETIP AND 
+	A.SERCOD = C.SERCOD AND A.SEREMPCOD = C.SEREMPCOD
+	
+	WHERE 
+	A.NFETIP = 'N' and 
+	NFEDATEFE between '20160101' and '20161231' and
+	NFENOM not like('BEST BAG%') and 
+	NFENOM not like('BEST OFFICE%') and 
+	NFENOM not like('MISASPEL%') and 
+	NFENOM not like('%PAPELYNA%') and 
+	NFENOM not like('TANBY%') AND 
+	B.NFECAN = 'N'  AND 
+	D.PDCNUM > 0 -- AND PROCOD IS NULL
+	
+	GROUP BY 
+	convert(char(6),NFEDATEFE,112), D.PROCOD  --, PDCNUM, A.NFENUM, C.NFENFDQTD
+	
+	)--,PDCNUM)
+ 
+
+SELECT 
+'ND' AS UNIDADE, 
+RTRIM(LTRIM(PROCOD)) AS COD,
+--A.PRODES AS DES,
+--CASE WHEN len(A.MARCOD) = 4 
+--	THEN rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) 
+--	ELSE RIGHT(('00' + ltrim(str(A.MARCOD))), 3) + ' - ' + rtrim(A.MARNOM) 
+--END AS MARCA,		
+--A.PROUM1 AS  UNI1,
+ANO,
+MES,
+VALORMD
+--PEDCOMPRAS
+
+-- into CUSTOENTRADA2016
+FROM TBS010 A 
+JOIN ENTRS B ON A.PROCOD = B.COD
+
+WHERE 
+VALORMD > 0
+
+ORDER BY MES,PROCOD
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+-- SALDO FINAL DO MES (SALDODIARIO)
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+-- UNIR TODOS OS CUSTOS (ND,CD E TTE)
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+-- MONTAR A TABELA DE ACORDO COM A PLANILHA FECHAMENTO_DEZ_16

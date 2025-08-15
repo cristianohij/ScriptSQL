@@ -1,0 +1,202 @@
+declare @marca int, @periodoDe datetime, @periodoAte datetime, @divMes int, @divSem int, @divDia int, @dirCasaDec int, @esqCasaDec int
+
+-- Paremetros
+select @esqCasaDec = 10 --Apenas numero inteiro
+select @dirCasaDec = 4 --Apenas numero inteiro
+select @divMes = 6 --Casa decimal separada por . (ponto)
+select @divSem = 4.35 --Casa decimal separada por . (ponto)
+select @divDia =  6 --Casa decimal separada por . (ponto)
+set @periodoDe = '20141001' --Padrão AAAAMMDD
+set @periodoAte = '20150422' --Padrão AAAAMMDD
+set @marca = '' --Apenas numero inteiro
+
+-- Obs. Todos devem ser preenchidos
+
+select
+PROSTATUS as 'Status', 
+P.PROCOD as 'Codigo do Produto', 
+PRODES as 'Descricao', 
+rtrim(MARCOD) + ' - ' + rtrim(MARNOM) as 'MARCA',
+PROUM1 as 'UNID. MEDIDA',
+replace(str(isnull(G.QTDE,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Venda GZ', 
+replace(str(isnull(I.QTDE,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Venda Integros',
+replace(str(isnull(G.QTDE,0) + isnull(I.QTDE,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Venda Integros + GZ',
+replace(str((isnull(G.QTDE,0) + isnull(I.QTDE,0))/@divMes,@esqCasaDec,@dirCasaDec),'.',',') as 'Venda Integros + GZ (Media Mensal)',
+replace(str(((isnull(G.QTDE,0) + isnull(I.QTDE,0))/@divMes)/@divSem,@esqCasaDec,@dirCasaDec),'.',',') as 'Venda Integros + GZ (Media Semanal)',
+replace(str((((isnull(G.QTDE,0) + isnull(I.QTDE,0))/@divMes)/@divSem)/@divDia,@esqCasaDec,@dirCasaDec),'.',',') as 'Venda Integros + GZ (Media Diaria)',
+replace(str(isnull(SDISEST,0) + isnull(SDISLOJA,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Saldo Disponivel Estoque + Loja',
+replace(str(isnull(SDISEST,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Saldo Disponivel Estoque',
+replace(str(isnull(SDISLOJA,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Saldo Disponivel Loja'
+from TBS010 P
+
+left join
+(select M2_PROCOD as PRO, sum(M2_QTD) as QTDE
+from MSL002 A join TBS010 B on M2_PROCOD = B.PROCOD 
+where M2_TIPREG = '01' and M2_REGCAN = 'F'
+and (M2_DAT between @periodoDe and @periodoAte or (@periodoDe = '' and @periodoAte = ''))
+and (MARCOD = @marca or (@marca = ''))
+group by M2_PROCOD) as G on PROCOD = G.PRO
+left join
+(select A.PROCOD as PRO, sum(NFSQTD * NFSQTDEMB) as QTDE
+from TBS0671 A join TBS067 B on A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+join TBS042 C on C.TESCOD = A.TESCOD
+join TBS010 D on A.PROCOD = D.PROCOD
+where NFSTIP = 'N' and NFSCAN = 'N' and TESCNTVEN = 'S'
+and (NFSDATEMI between @periodoDe and @periodoAte or (@periodoDe = '' and @periodoAte = '')) 
+and (MARCOD = @marca or (@marca = ''))
+group by A.PROCOD) as I on P.PROCOD = I.PRO
+left join
+(select A.PROCOD as PRO, sum(A.ESTQTDATU-A.ESTQTDRES) as SDISLOJA
+from TBS032 A join TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0) and (B.MARCOD = @marca or (@marca = ''))
+group by A.PROCOD) as SaldoLoja on P.PROCOD = SaldoLoja.PRO
+left join
+(select A.PROCOD as PRO, sum(A.ESTQTDATU-A.ESTQTDRES) as SDISEST
+from TBS032 A join TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (1) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0) and (B.MARCOD = @marca or (@marca = ''))
+group by A.PROCOD) as SaldoEst on P.PROCOD = SaldoEst.PRO
+where (MARCOD = @marca or (@marca = ''))
+order by PROCOD
+
+
+
+
+
+
+
+
+
+--- GIRO TRIMESNTRAL ANO ANTERIOR/ANO VIGENTE / GIRO VOLTAS AULAS ANTERIOR X VIGNTE - SÓ MUDAR DATA.
+
+
+declare @marca int, @periodoDe datetime, @periodoAte datetime, @divMes int, @divSem int, @divDia int, @dirCasaDec int, @esqCasaDec int
+
+-- Paremetros
+select @esqCasaDec = 10 --Apenas numero inteiro
+select @dirCasaDec = 4 --Apenas numero inteiro
+select @divMes = 3 --Casa decimal separada por . (ponto)
+select @divSem = 4.35 --Casa decimal separada por . (ponto)
+select @divDia =  6 --Casa decimal separada por . (ponto)
+set @periodoDe = '20150401' --Padrão AAAAMMDD
+set @periodoAte = '20150630' --Padrão AAAAMMDD
+set @marca = '' --Apenas numero inteiro
+
+-- Obs. Todos devem ser preenchidos
+
+select
+PROLOCFIS as 'Localização',
+PROSTATUS as 'Status', 
+P.PROCOD as 'Codigo do Produto', 
+PRODES as 'Descricao', 
+rtrim(MARCOD) + ' - ' + rtrim(MARNOM) as 'MARCA',
+PROUM1 as 'UNID. MEDIDA',
+replace(str(isnull(SDISEST,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Saldo Disponivel Estoque',
+replace(str(isnull(SDISLOJA,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Saldo Disponivel Loja',
+replace(str(isnull(SDISEST,0) + isnull(SDISLOJA,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Saldo Disponivel Estoque + Loja',
+replace(str(isnull(G.QTDE,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Venda GZ', 
+replace(str(isnull(I.QTDE,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Venda Integros',
+replace(str(isnull(G.QTDE,0) + isnull(I.QTDE,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Venda Integros + GZ',
+replace(str((isnull(G.QTDE,0) + isnull(I.QTDE,0))/@divMes,@esqCasaDec,@dirCasaDec),'.',',') as 'Venda Integros + GZ (Media Mensal)',
+replace(str(((isnull(G.QTDE,0) + isnull(I.QTDE,0))/@divMes)/@divSem,@esqCasaDec,@dirCasaDec),'.',',') as 'Venda Integros + GZ (Media Semanal)',
+replace(str((((isnull(G.QTDE,0) + isnull(I.QTDE,0))/@divMes)/@divSem)/@divDia,@esqCasaDec,@dirCasaDec),'.',',') as 'Venda Integros + GZ (Media Diaria)'
+
+from TBS010 P
+left join
+(select M2_PROCOD as PRO, sum(M2_QTD) as QTDE
+from MSL002 A join TBS010 B on M2_PROCOD = B.PROCOD 
+where M2_TIPREG = '01' and M2_REGCAN = 'F'
+and (M2_DAT between @periodoDe and @periodoAte or (@periodoDe = '' and @periodoAte = ''))
+and (MARCOD = @marca or (@marca = ''))
+group by M2_PROCOD) as G on PROCOD = G.PRO
+left join
+(select A.PROCOD as PRO, sum(NFSQTD * NFSQTDEMB) as QTDE
+from TBS0671 A join TBS067 B on A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+join TBS042 C on C.TESCOD = A.TESCOD
+join TBS010 D on A.PROCOD = D.PROCOD
+where NFSTIP = 'N' and NFSCAN = 'N' and TESCNTVEN = 'S'
+and (NFSDATEMI between @periodoDe and @periodoAte or (@periodoDe = '' and @periodoAte = '')) 
+and (MARCOD = @marca or (@marca = ''))
+group by A.PROCOD) as I on P.PROCOD = I.PRO
+left join
+(select A.PROCOD as PRO, sum(A.ESTQTDATU-A.ESTQTDRES) as SDISLOJA
+from TBS032 A join TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0) and (B.MARCOD = @marca or (@marca = ''))
+group by A.PROCOD) as SaldoLoja on P.PROCOD = SaldoLoja.PRO
+left join
+(select A.PROCOD as PRO, sum(A.ESTQTDATU-A.ESTQTDRES) as SDISEST
+from TBS032 A join TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (1) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0) and (B.MARCOD = @marca or (@marca = ''))
+group by A.PROCOD) as SaldoEst on P.PROCOD = SaldoEst.PRO
+where (MARCOD = @marca or (@marca = ''))
+order by PROCOD
+
+
+
+
+
+
+
+
+=-==== CD AS VENDAS CONTAM TBM COMO TRANSFERENCIA 
+
+declare @marca int, @periodoDe datetime, @periodoAte datetime, @divMes int, @divSem int, @divDia int, @dirCasaDec int, @esqCasaDec int
+
+-- Paremetros
+select @esqCasaDec = 10 --Apenas numero inteiro
+select @dirCasaDec = 4 --Apenas numero inteiro
+select @divMes = 3 --Casa decimal separada por . (ponto)
+select @divSem = 4.35 --Casa decimal separada por . (ponto)
+select @divDia =  6 --Casa decimal separada por . (ponto)
+set @periodoDe = '20150401' --Padrão AAAAMMDD
+set @periodoAte = '20150630' --Padrão AAAAMMDD
+set @marca = '' --Apenas numero inteiro
+
+-- Obs. Todos devem ser preenchidos
+
+select
+PROLOCFIS as 'Localização',
+PROSTATUS as 'Status', 
+P.PROCOD as 'Codigo do Produto', 
+PRODES as 'Descricao', 
+rtrim(MARCOD) + ' - ' + rtrim(MARNOM) as 'MARCA',
+PROUM1 as 'UNID. MEDIDA',
+
+replace(str(isnull(SDISEST,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Saldo Disponivel Estoque',
+replace(str(isnull(SDISLOJA,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Saldo Disponivel Loja',
+replace(str(isnull(SDISEST,0) + isnull(SDISLOJA,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Saldo Disponivel Estoque + Loja',
+replace(str(isnull(G.QTDE,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Venda GZ', 
+replace(str(isnull(I.QTDE,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Venda Integros',
+replace(str(isnull(G.QTDE,0) + isnull(I.QTDE,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Venda Integros + GZ',
+replace(str((isnull(G.QTDE,0) + isnull(I.QTDE,0))/@divMes,@esqCasaDec,@dirCasaDec),'.',',') as 'Venda Integros + GZ (Media Mensal)',
+replace(str(((isnull(G.QTDE,0) + isnull(I.QTDE,0))/@divMes)/@divSem,@esqCasaDec,@dirCasaDec),'.',',') as 'Venda Integros + GZ (Media Semanal)',
+replace(str((((isnull(G.QTDE,0) + isnull(I.QTDE,0))/@divMes)/@divSem)/@divDia,@esqCasaDec,@dirCasaDec),'.',',') as 'Venda Integros + GZ (Media Diaria)'
+
+from TBS010 P
+left join
+(select M2_PROCOD as PRO, sum(M2_QTD) as QTDE
+from MSL002 A join TBS010 B on M2_PROCOD = B.PROCOD 
+where M2_TIPREG = '01' and M2_REGCAN = 'F'
+and (M2_DAT between @periodoDe and @periodoAte or (@periodoDe = '' and @periodoAte = ''))
+and (MARCOD = @marca or (@marca = ''))
+group by M2_PROCOD) as G on PROCOD = G.PRO
+left join
+(select A.PROCOD as PRO, sum(NFSQTD * NFSQTDEMB) as QTDE
+from TBS0671 A join TBS067 B on A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+join TBS042 C on C.TESCOD = A.TESCOD
+join TBS010 D on A.PROCOD = D.PROCOD
+where NFSTIP = 'N' and NFSCAN = 'N' 
+and (NFSDATEMI between @periodoDe and @periodoAte or (@periodoDe = '' and @periodoAte = '')) 
+and (MARCOD = @marca or (@marca = ''))
+group by A.PROCOD) as I on P.PROCOD = I.PRO
+left join
+(select A.PROCOD as PRO, sum(A.ESTQTDATU-A.ESTQTDRES) as SDISLOJA
+from TBS032 A join TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0) and (B.MARCOD = @marca or (@marca = ''))
+group by A.PROCOD) as SaldoLoja on P.PROCOD = SaldoLoja.PRO
+left join
+(select A.PROCOD as PRO, sum(A.ESTQTDATU-A.ESTQTDRES) as SDISEST
+from TBS032 A join TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (1) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0) and (B.MARCOD = @marca or (@marca = ''))
+group by A.PROCOD) as SaldoEst on P.PROCOD = SaldoEst.PRO
+where (MARCOD = @marca or (@marca = ''))
+order by PROCOD

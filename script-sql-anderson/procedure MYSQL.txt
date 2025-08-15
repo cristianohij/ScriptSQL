@@ -1,0 +1,23 @@
+DELIMITER $$
+
+CREATE PROCEDURE Selecionar_Produtos (IN @anoDe char(4), in @mesDe char(2), in @anoAte char(4), in @mesAte char (2) )
+BEGIN
+	select 
+	cdprod , 
+	sum(quant) as quant,
+	MIN(data) AS datini,
+	max(data) as datfim
+	
+	FROM MYSQLGZ...movcaixa
+	
+	where
+	CAST(data AS CHAR(7)) between @anoDe+'-'+@mesDe and @anoAte+'-'+@mesAte and 
+	status = 01 and 
+	cancelado <> 'S'
+	group by cdprod 
+	
+;
+END $$
+DELIMITER ;
+
+execute ('CALL Selecionar_Produtos(2);') at MYSQLGZ

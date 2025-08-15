@@ -1,0 +1,75 @@
+declare @dataDe datetime, @dataAte datetime, @caixa int, @comando varchar(max)
+
+set @datade = '20170315'
+set @dataate = '20170315'
+SET @caixa = 0
+
+
+
+if object_id('TempDB.dbo.#TBS051') is not null
+   drop table #TBS051 
+   
+SELECT 
+LMEDOC AS DOC,
+LMECUPCOO AS COO ,
+LMECUPCXA AS CXA  ,
+LMECUPECF AS ECF,
+LMECUPHOR AS HOR,
+LMECUPDAT AS DAT,
+PROCOD,
+LMEQTDMOV AS QTD 
+
+into #TBS051
+FROM 
+TBS051 NOLOCK 
+
+WHERE 
+LMEDATHOR between @datade and @dataate+1 AND 
+LMELOCEST = 2 AND
+-- LMECUPCXA IN ( CASE WHEN @caixa = 0 THEN LMECUPCXA ELSE @caixa END ) AND
+LMEROT IN('PMSL033', 'PMSL065')
+
+
+
+
+-- VENDAS DA LOJA 1° PERIODO
+
+SET @comando = 'EXECUTE(''
+select
+cupom,
+coo,
+ecf,
+caixa,
+cdprod,
+quant,
+data,
+hora 
+
+FROM movcaixa
+where
+data between "'+convert(char(8), @datade ,112)+'" and "'+convert(char(8), @dataate,112)+'"  and 
+status = "01" and 
+cancelado <> "S"
+'') at MYSQLGZ' 
+
+if object_id('TempDB.dbo.#MSL002') is not null
+   drop table #MSL002
+    
+create table #MSL002 (M2_NUMDOC INT, M2_COO INT, M2_ECF INT, M2_CXA INT, M2_PROCOD INT, M2_QTD DECIMAL(10,4), M2_DAT DATE, M2_HOR CHAR(10))
+INSERT INTO #MSL002
+exec(@comando)
+
+
+
+SELECT A.* , B.*
+
+FROM 
+#MSL002 A 
+LEFT JOIN #TBS051 B ON A.M2_PROCOD = CONVERT(INT,B.PROCOD) AND A.M2_NUMDOC = B.DOC AND A.M2_COO = B.COO AND A.M2_CXA = B.CXA AND A.M2_ECF = ECF
+WHERE
+B.DOC IS NULL OR B.COO IS NULL OR B.CXA IS NULL OR B.PROCOD IS NULL OR B.ECF IS NULL 
+
+
+
+-- SELECT * FROM TBS051 NOLOCK WHERE PROCOD ='3251290' AND LMEDATHOR > '20170312'
+

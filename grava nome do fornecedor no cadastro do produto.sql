@@ -1,0 +1,14 @@
+select * from TBS010 where FORCOD > 0 and FORNOM='' is null
+
+begin tran
+update TBS010 set FORNOM='' where FORCOD=0 and FORNOM is null
+commit tran
+
+select PROCOD,TBS010.FORCOD,TBS010.FORNOM,TBS006.FORCOD,TBS006.FORNOM
+  from TBS010 join TBS006 on TBS010.FORCOD=TBS006.FORCOD 
+ where TBS010.FORCOD > 0 and TBS010.FORNOM=''
+
+begin tran
+update TBS010 set FORNOM=TBS006.FORNOM from TBS010 join TBS006 on TBS010.FORCOD=TBS006.FORCOD 
+ where TBS010.FORCOD > 0 and TBS010.FORNOM=''
+commit tran

@@ -1,0 +1,15 @@
+select NFSDATEMI,TBS0671.SNESER,TESCNTVEN,NFSROPCNTVEN,
+       sum(dbo.NFSTOTITE(2,TBS0671.NFSNUM,0,TBS0671.SNESER,TBS0671.NFSITE)) --,
+       --case when TESCOMVEN='S' or NFSROPCNTVEN='S' then sum(dbo.NFSTOTITE(2,TBS0671.NFSNUM,0,TBS0671.SNESER,TBS0671.NFSITE)) end
+  from TBS0671 (nolock) inner join TBS067 (nolock) on TBS067.SNESER=TBS0671.SNESER and TBS067.NFSNUM=TBS0671.NFSNUM
+                        inner join TBS080 (nolock) on TBS080.SNESER=TBS067.SNESER and TBS080.ENFNUM=TBS067.NFSNUM
+                        full outer join TBS042 (nolock) on TBS0671.TESCOD=TBS042.TESCOD
+ where NFSDATEMI between '20170501' and '20170531' and ENFSIT=6 and ENFTIPDOC=1
+ group by NFSDATEMI,TBS0671.SNESER,TESCNTVEN,NFSROPCNTVEN
+ order by NFSDATEMI
+
+--select * from TBS067 (nolock) where NFSDATEMI='20170502'
+
+select top 10 * from TBS0671 (nolock)
+
+select * from TBS042 (nolock)

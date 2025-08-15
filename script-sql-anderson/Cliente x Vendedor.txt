@@ -1,0 +1,79 @@
+-- Vendas por Cliente-Vendedor
+declare @dateDe datetime, @dateAte datetime , @req char(35) , @codreq smallint , @nomecli char (50), @codcli smallint,
+@vencod smallint, @vennom char (50), @cligru char (1)
+
+set @dateDe = '20160320'
+set @dateAte = getdate ()
+set @codcli = 0
+set @nomecli = ''
+set @vencod = 2
+set @vennom = ''
+set @cligru = 2
+
+-- SEM OS CLIENTES DO GRUPO
+IF @cligru = 1
+select
+NFSDATEMI AS EMI,
+NFSCLICOD AS 'COD CLIENTE',
+NFSCLINOM AS 'NOME CLIENTE',
+B.NFSNUM AS NF,
+A.PROCOD AS COD,
+A.NFSPRODES AS DESCRICAO,
+C.PROUM1 AS UNI,
+(A.NFSQTD * A.NFSQTDEMB) - A.NFSQTDDEV AS QTD,
+dbo.NFSTOTITE(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE) AS VALITE,
+SUBSTRING(CONVERT(CHAR(11),NFSDATEMI, 106),4,8) AS MES,
+SUBSTRING(CONVERT(CHAR(11),NFSDATEMI, 106),8,4) AS ANO,
+B.VENCOD AS VENCOD,
+D.VENNOM AS VENNOM
+
+FROM TBS0671 A (nolock) 
+LEFT JOIN TBS067 B (NOLOCK) ON A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+LEFT JOIN TBS010 C (NOLOCK) ON A.PROCOD = C.PROCOD
+LEFT JOIN TBS004 D (NOLOCK) ON B.VENCOD = D.VENCOD
+						
+WHERE 
+NFSTIP IN ('N','L') and NFSCAN = 'N' and NFSDEV='N' and
+NFSCLINOM not Like('%BEST BAG%') and NFSCLINOM not Like('%BEST OFFICE%') and
+NFSCLINOM not Like('%MISASPEL%') and NFSCLINOM not Like('%PAPELYNA%') and
+NFSCLINOM not Like('%TANBY%')and
+NFSDATEMI between @dateDe and @dateAte and
+NFSCLINOM LIKE(CASE WHEN @nomecli = '' THEN '% %' ELSE rtrim(ltrim(upper(@nomecli)))+'%' END) and
+NFSCLICOD =(CASE WHEN @codcli = 0 THEN NFSCLICOD ELSE rtrim(ltrim(@codcli)) END) and
+D.VENNOM LIKE(CASE WHEN @vennom = '' THEN '% %' ELSE rtrim(ltrim(upper(@vennom)))+'%' END) and
+B.VENCOD  =(CASE WHEN @vencod = 0 THEN B.VENCOD ELSE rtrim(ltrim(@vencod)) END)						
+
+ORDER BY B.NFSNUM
+
+-- COM OS CLIENTES DO GRUPO
+IF @cligru = 2
+select
+NFSDATEMI AS EMI,
+NFSCLICOD AS 'COD CLIENTE',
+NFSCLINOM AS 'NOME CLIENTE',
+B.NFSNUM AS NF,
+A.PROCOD AS COD,
+A.NFSPRODES AS DESCRICAO,
+C.PROUM1 AS UNI,
+(A.NFSQTD * A.NFSQTDEMB) - A.NFSQTDDEV AS QTD,
+dbo.NFSTOTITE(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE) AS VALITE,
+SUBSTRING(CONVERT(CHAR(11),NFSDATEMI, 106),4,8) AS MES,
+SUBSTRING(CONVERT(CHAR(11),NFSDATEMI, 106),8,4) AS ANO,
+B.VENCOD AS VENCOD,
+D.VENNOM AS VENNOM
+
+FROM TBS0671 A (nolock) 
+LEFT JOIN TBS067 B (NOLOCK) ON A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+LEFT JOIN TBS010 C (NOLOCK) ON A.PROCOD = C.PROCOD
+LEFT JOIN TBS004 D (NOLOCK) ON B.VENCOD = D.VENCOD
+						
+WHERE 
+NFSTIP IN ('N','L') and NFSCAN = 'N' and NFSDEV='N' and
+NFSDATEMI between @dateDe and @dateAte and
+NFSCLINOM LIKE(CASE WHEN @nomecli = '' THEN '% %' ELSE rtrim(ltrim(upper(@nomecli)))+'%' END) and
+NFSCLICOD =(CASE WHEN @codcli = 0 THEN NFSCLICOD ELSE rtrim(ltrim(@codcli)) END) and
+D.VENNOM LIKE(CASE WHEN @vennom = '' THEN '% %' ELSE rtrim(ltrim(upper(@vennom)))+'%' END) and
+B.VENCOD  =(CASE WHEN @vencod = 0 THEN B.VENCOD ELSE rtrim(ltrim(@vencod)) END)						
+
+
+ORDER BY B.NFSNUM

@@ -1,0 +1,26 @@
+
+BEGIN TRAN ;
+
+	MERGE TBS014 AS Destino
+	
+	USING nd.SIBD.dbo.TBS014 AS Origem
+	
+	ON Destino.MARCOD  = Origem.MARCOD
+	
+	-- Há registro no destino e na origem
+	
+	WHEN MATCHED AND (Destino.MARNOM COLLATE Latin1_General_CI_AS <> Origem.MARNOM OR Destino.MAREMPCOD <> Origem.MAREMPCOD OR Destino.MARSEQPRO <> Origem.MARSEQPRO)
+	
+	THEN UPDATE SET Destino.MAREMPCOD = Origem.MAREMPCOD , Destino.MARCOD = Origem.MARCOD , Destino.MARNOM= Origem.MARNOM , Destino.MARSEQPRO = Origem.MARSEQPRO,
+	Destino.MARDATCAD = Origem.MARDATCAD 
+	
+	-- Quando não há registro no destino e há na origem
+	
+	WHEN NOT MATCHED
+	
+	THEN INSERT (MAREMPCOD,MARCOD,MARNOM,MARSEQPRO,MARDATCAD) VALUES (Origem.MAREMPCOD, Origem.MARCOD,Origem.MARNOM,Origem.MARSEQPRO,getdate())
+	
+	OUTPUT INSERTED.*, $action, DELETED.* ;	
+
+
+

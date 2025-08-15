@@ -1,0 +1,928 @@
+-- http://tdn.totvs.com/pages/releaseview.action?pageId=179701340
+
+if object_id('sp_PISCOFINS') is not null
+   drop procedure sp_PISCOFINS
+go
+
+create procedure sp_PISCOFINS @mes varchar (2), @ano varchar (4)
+
+as
+
+begin
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#CFOP') is not null
+   drop table #CFOP
+   
+create table #CFOP (TIPO CHAR (1), CFOP CHAR(5) , PAGAR CHAR(1))
+-- ENTRADAS '1.102','1.403','2.102','2.202','2.403','1.202','2.411','1.411','1.653', '1.922' , '2.922' , PAGAR '1.252','1.352','2.352'
+INSERT INTO #CFOP VALUES ('E','1.102','N')
+INSERT INTO #CFOP VALUES ('E','1.202','N')
+INSERT INTO #CFOP VALUES ('E','1.252','S')
+INSERT INTO #CFOP VALUES ('E','1.253','S')
+INSERT INTO #CFOP VALUES ('E','1.352','S')
+INSERT INTO #CFOP VALUES ('E','1.403','N')
+INSERT INTO #CFOP VALUES ('E','1.411','N')
+INSERT INTO #CFOP VALUES ('E','1.653','N')
+INSERT INTO #CFOP VALUES ('E','1.922','N')
+INSERT INTO #CFOP VALUES ('E','2.102','N')
+INSERT INTO #CFOP VALUES ('E','2.202','N')
+INSERT INTO #CFOP VALUES ('E','2.352','S')
+INSERT INTO #CFOP VALUES ('E','2.403','N')
+INSERT INTO #CFOP VALUES ('E','2.411','N')
+INSERT INTO #CFOP VALUES ('E','2.653','N')
+INSERT INTO #CFOP VALUES ('E','2.922','N')
+
+-- SAIDAS ('5.102','5.405','5.929','5.411','5.202','6.102','6.108','6.404')
+INSERT INTO #CFOP VALUES ('S','5.102','N')
+INSERT INTO #CFOP VALUES ('S','5.202','N')
+INSERT INTO #CFOP VALUES ('S','5.405','N')
+INSERT INTO #CFOP VALUES ('S','5.411','N')
+INSERT INTO #CFOP VALUES ('S','5.922','N')
+INSERT INTO #CFOP VALUES ('S','5.929','N')
+INSERT INTO #CFOP VALUES ('S','6.102','N')
+INSERT INTO #CFOP VALUES ('S','6.202','N')
+INSERT INTO #CFOP VALUES ('S','6.108','N')
+INSERT INTO #CFOP VALUES ('S','6.404','N')
+INSERT INTO #CFOP VALUES ('S','6.411','N')
+INSERT INTO #CFOP VALUES ('S','6.922','N')
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABLEA TBS129
+
+DELETE TBS129
+WHERE LPCANO = @ano AND LPCMES = @mes
+
+INSERT INTO TBS129 (LPCEMPCOD,LPCANO,LPCMES)
+VALUES (0,@ano,@mes)
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA TBS1291
+
+DECLARE @ultimoDiaMes date
+set @ultimoDiaMes = convert(date,DATEADD(ms, -3, DATEADD(mm, DATEDIFF(mm, 0, convert(date,@ano+'/'+@mes+'/'+'01')) + 1, 0)))
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#NFS') is not null
+   drop table #NFS
+
+SELECT 
+A.NFSCFOP AS CFOP, 
+SUM(round(dbo.NFSTOTPRO(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE),2)) AS NFSTOTPRO,  			-- TOTAL DOS PRODUTOS
+SUM(round(dbo.NFSTOTITEST(A.NFSEMPCOD, A.NFSNUM, A.SNEEMPCOD, A.SNESER, A.NFSITE),2)) AS NFSTOTITEST 	-- TOTAL DA NOTA  -- NÃO TEM IPI
+
+
+INTO #NFS
+FROM 
+TBS0671 A (NOLOCK)
+LEFT JOIN TBS067 B (NOLOCK) ON A.NFSEMPCOD = B.NFSEMPCOD AND A.NFSNUM = B.NFSNUM AND A.SNEEMPCOD = B.SNEEMPCOD AND A.SNESER = B.SNESER
+LEFT JOIN TBS080 D (NOLOCK) ON A.NFSNUM = D.ENFNUM AND A.SNEEMPCOD = D.SNEEMPCOD AND A.SNESER = D.SNESER 
+
+WHERE
+B.NFSDATEMI BETWEEN convert(date,@ano+'/'+@mes+'/'+'01') AND @ultimoDiaMes AND 
+NFSTIP IN('N','C') and 
+D.ENFSIT = 6 AND
+D.ENFTIPDOC = 1 AND
+A.NFSCFOP COLLATE DATABASE_DEFAULT IN (SELECT CFOP FROM #CFOP WHERE TIPO = 'S' AND PAGAR = 'N')
+
+GROUP BY 
+A.NFSCFOP , A.NFSCST 
+
+----------------------------------------------------------------------\\------------------------------------------------------------------------------------------
+
+-- CRIANDO TABELA DE DEVOLUÇÃO
+
+if object_id('TempDB.dbo.#NFD') is not null
+   drop table #NFD
+   
+SELECT 
+A.NFDCFOP AS CFOP,
+SUM(round(dbo.NFDTOTPROITE(A.NFDEMPCOD,A.SNEEMPCOD,A.SNESER,A.NFDNUM,A.NFDITE),2)) AS NFSTOTPRO, -- TOTAL DOS PRODUTOS 
+SUM(round(dbo.NFDTOTITEST(A.NFDEMPCOD,A.SNEEMPCOD,A.SNESER,A.NFDNUM,A.NFDITE),2)) + -- NOVA FORMULA NÃO CONTABILIZA O IPI, POR ISSO PRECISO SOMAR COM IPI
+SUM(round(NFDVALIPI,2)) AS NFSTOTITEST, 	  -- TOTAL DA NOTA
+SUM(ROUND(NFDVALIPI,2)) AS NFSVALIPI,
+SUM(round(dbo.NFDTOTITEST(A.NFDEMPCOD,A.SNEEMPCOD,A.SNESER,A.NFDNUM,A.NFDITE),2)) AS NFSBASCAL
+
+INTO #NFD
+FROM
+TBS1172 A (NOLOCK)
+LEFT JOIN TBS117 B (NOLOCK) ON A.NFDEMPCOD = B.NFDEMPCOD AND A.NFDNUM = B.NFDNUM AND A.SNEEMPCOD = B.SNEEMPCOD AND A.SNESER = B.SNESER
+LEFT JOIN TBS080 D (NOLOCK) ON A.NFDNUM = D.ENFNUM AND A.SNEEMPCOD = D.SNEEMPCOD AND A.SNESER = D.SNESER
+
+WHERE
+B.NFDDATEMI BETWEEN convert(date,@ano+'/'+@mes+'/'+'01') AND @ultimoDiaMes and --- @Data_de AND @Data_ate AND 
+D.ENFSIT = 6 AND
+D.ENFFINEMI = 4 AND
+D.ENFTIPDOC = 1 AND
+A.NFDCFOP COLLATE DATABASE_DEFAULT IN (SELECT CFOP FROM #CFOP WHERE TIPO = 'S' AND PAGAR = 'N')
+
+GROUP BY 
+A.NFDCFOP, A.NFDCSTCSOSN 
+
+------------------------------------------------------------------------------------------------//-------------------------------------------------------------------
+
+	-- AGRUPANDO A TABELA DE VENDAS, TENHO QUE AGRUPAR 1° AS VENDAS, PARA DEPOIS UNIR COM A TBL DE DEVOLUÇÃO
+	
+	if object_id('TempDB.dbo.#NFSPIS') is not null
+	   drop table #NFSPIS
+	
+	SELECT 
+	CFOP, 
+	SUM(NFSTOTPRO) 						AS NFSTOTPRO, 		-- TOTAL DOS PRODUTOS
+	SUM(NFSTOTITEST)					AS NFSTOTITEST, 	-- TOTAL DA NOTA
+	SUM(NFSTOTITEST)					AS NFSBASCAL, 		-- BASE CALCULO
+	ROUND(SUM(NFSTOTITEST)* 0.0165,2) 	AS PIS, 			-- VALOR PIS
+	ROUND(SUM(NFSTOTITEST)* 0.076 ,2) 	AS COFINS			-- VALOR COFINS
+	
+	INTO #NFSPIS
+	FROM #NFS
+	
+	GROUP BY 
+	CFOP
+
+-- SELECT * FROM #NFSPIS
+
+------------------------------------------------------------------------------------------------//-------------------------------------------------------------------
+
+-- AGRUPANDO A TABELA DE DEVOLUÇÃO
+	
+if object_id('TempDB.dbo.#NFDPIS') is not null
+	  Drop table #NFDPIS
+	
+SELECT 
+CFOP, 
+SUM(NFSTOTPRO) 						AS NFSTOTPRO, 		-- TOTAL DOS PRODUTOS
+SUM(NFSTOTITEST)					AS NFSTOTITEST, 	-- TOTAL DA NOTA
+SUM(NFSVALIPI)						AS NFSVALIPI,		-- TOTAL IPI
+SUM(NFSBASCAL)						AS NFSBASCAL, 		-- BASE CALCULO
+ROUND(SUM(NFSTOTITEST)* 0.0165,2) 	AS PIS, 			-- VALOR PIS
+ROUND(SUM(NFSTOTITEST)* 0.076 ,2) 	AS COFINS			-- VALOR COFINS
+	
+INTO #NFDPIS
+FROM #NFD
+	
+GROUP BY 
+CFOP
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+DECLARE @comando varchar (MAX)
+
+-- PEGANDO OS DADOS DO GZ, STATUS IN (01,02)
+
+SET @comando = 'EXECUTE(''
+select
+status, 
+loja,
+cupom,
+coo,
+ecf,
+caixa,
+item,
+case when cdprod = 0 then 0 else cdprod end as cdprod,
+desccupom,
+acrescupom,
+valortot,
+abatpgto,
+banco,
+tributacao
+
+FROM movcaixa
+where
+data between "'+@ano+@mes+'01'+'" and "'+convert(char(8), @ultimoDiaMes, 112)+'"  and 
+status IN(01,02) and 
+cancelado <> "S" 
+'') at MYSQLGZ' 
+
+-- data between "'+convert(char(8), @ano+'/'@mes+'/'+'01', 112)+'" and "'+convert(char(8), @ultimoDiaMes, 112)+'"  and 
+-- exec(@comando)
+
+if object_id('TempDB.dbo.#MSLAUX') is not null
+BEGIN 
+   drop table #MSLAUX
+END
+    
+create table #MSLAUX (M2_STATUS INT, M2_LOJ INT, M2_CUP INT, M2_COO INT, M2_ECF INT, M2_CXA INT ,M2_ITE INT, M2_PROCOD INT, M2_DESCUP DECIMAL(10,4),
+					  M2_ACRCUP DECIMAL(10,4), M2_VALBRU DECIMAL(10,4), M2_ABT DECIMAL(10,4), M2_CST CHAR(3), M2_TRI VARCHAR(6))
+INSERT INTO #MSLAUX
+exec(@comando)
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- CRIANDO TABELA TEMP COM OS VALORES REAIS DE DESCONTO
+if object_id('TempDB.dbo.#TMP') is not null
+BEGIN 
+   drop table #TMP
+END
+   
+	select
+	'5.929' AS M2_CFOP,	
+	A.M2_TRI,
+	A.M2_CST,
+	A.M2_ITE,
+	A.M2_LOJ, 
+	A.M2_CUP, 
+	A.M2_COO, 
+	A.M2_ECF, 
+	A.M2_CXA ,
+	M2_PROCOD,
+	M2_VALBRU,
+	M2_VALBRU - M2_ABT + M2_ACRCUP - 
+	CASE WHEN  A.DESCONTO <> ISNULL(B.DESCONTO,0) AND M2_ITE = (SELECT TOP 1 M2_ITE 
+																FROM #MSLAUX E 
+																
+																WHERE 
+																A.M2_COO = E.M2_COO and A.M2_ECF = E.M2_ECF AND A.M2_CUP = E.M2_CUP 
+																
+																ORDER BY 
+																M2_DESCUP DESC)
+		THEN
+			CASE WHEN A.DESCONTO > ISNULL(B.DESCONTO,0) 
+				THEN ROUND(M2_DESCUP,2) - (A.DESCONTO - ISNULL(B.DESCONTO,0))
+				ELSE ROUND(M2_DESCUP,2) + (ISNULL(B.DESCONTO,0) - A.DESCONTO)
+			END
+		ELSE ROUND(M2_DESCUP,2)
+	END AS M2_LIQUIDO
+	
+	INTO #TMP	
+	FROM (
+		SELECT 
+		M2_ITE,M2_PROCOD,M2_TRI,M2_CST,
+		M2_LOJ, M2_CUP, M2_COO, M2_ECF, M2_CXA , 
+		M2_DESCUP ,
+		M2_ACRCUP,
+		M2_ABT ,
+		M2_VALBRU,
+		SUM(ISNULL(ROUND(M2_DESCUP,2),0)) OVER (PARTITION BY M2_LOJ, M2_CUP, M2_COO, M2_ECF, M2_CXA ) AS DESCONTO
+					
+		FROM 
+		#MSLAUX 
+					
+		WHERE
+		M2_STATUS = 1 ) AS A 
+			
+		LEFT JOIN (
+		SELECT 
+		M2_LOJ, M2_CUP, M2_COO, M2_ECF, M2_CXA , M2_VALBRU AS DESCONTO 
+					
+		FROM 
+		#MSLAUX 
+					
+		WHERE
+		M2_STATUS = 2 ) AS B ON A.M2_LOJ = B.M2_LOJ AND A.M2_CUP = B.M2_CUP AND A.M2_COO= B.M2_COO AND 
+														A.M2_ECF = B.M2_ECF AND A.M2_CXA = B.M2_CXA  
+
+	
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- CRIANDO TABELA DE ITENS COM OS TRIBUTOS NECESSARIOS
+
+if object_id('TempDB.dbo.#LIQUIDO') is not null
+BEGIN
+   drop table #LIQUIDO
+END
+
+		SELECT
+		C.M2_CFOP AS CFOP,
+		C.M2_VALBRU AS NFSTOTPRO ,				-- TOTAL DOS PRODUTOS,		
+		C.M2_LIQUIDO AS NFSTOTITEST				-- TOTAL DAS NOTAS, NO CASO DOS CUPONS NÃO TEM NOTA, MAS COLQUEI LQUIDO
+		
+		INTO #LIQUIDO
+		FROM #TMP C 
+		LEFT JOIN TBS010 B (NOLOCK) ON C.M2_PROCOD = CONVERT(INT,B.PROCOD)
+		
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#CUP') is not null
+BEGIN
+   drop table #CUP
+END
+
+		SELECT 
+		CFOP, 
+		SUM(NFSTOTPRO) 						AS NFSTOTPRO, 		-- TOTAL DOS PRODUTOS
+		SUM(NFSTOTITEST)					AS NFSTOTITEST, 	-- TOTAL DA NOTA
+		SUM(NFSTOTITEST)					AS NFSBASCAL, 		-- BASE CALCULO
+		ROUND(SUM(NFSTOTITEST)* 0.0165,2) 	AS PIS, 			-- VALOR PIS
+		ROUND(SUM(NFSTOTITEST)* 0.076 ,2) 	AS COFINS			-- VALOR COFINS
+	
+		INTO #CUP
+		FROM #LIQUIDO
+		
+		GROUP BY
+		CFOP
+
+------------------------------------------------------------------------------------------------------------------------------------------ 
+
+if object_id('TempDB.dbo.#PISSAI') is not null
+   drop table #PISSAI
+
+SELECT 
+0 AS EMP ,
+@ano AS ANO,
+@mes AS MES, 
+REPLACE(CFOP,'.','') COLLATE Latin1_General_BIN AS CFOP,
+NFSTOTPRO, 		-- TOTAL DOS PRODUTOS
+NFSTOTITEST, 	-- TOTAL DA NOTA
+0 AS NFSVALIPI, -- TOTAL IPI
+NFSBASCAL, 		-- BASE CALCULO
+PIS, 			-- VALOR PIS
+COFINS			-- VALOR COFINS
+
+INTO #PISSAI
+FROM #NFSPIS
+
+UNION 
+
+SELECT
+0 AS EMP ,
+@ano AS ANO,
+@mes AS MES, 
+REPLACE(CFOP,'.','') COLLATE Latin1_General_BIN AS CFOP, 
+NFSTOTPRO, 		-- TOTAL DOS PRODUTOS
+NFSTOTITEST, 	-- TOTAL DA NOTA
+NFSVALIPI,		-- TOTAL IPI
+NFSBASCAL, 		-- BASE CALCULO
+PIS, 			-- VALOR PIS
+COFINS			-- VALOR COFINS
+
+FROM #NFDPIS
+
+UNION 
+
+SELECT 
+0 AS EMP ,
+@ano AS ANO,
+@mes AS MES, 
+REPLACE(CFOP,'.','') COLLATE Latin1_General_BIN AS CFOP,  
+NFSTOTPRO, 		-- TOTAL DOS PRODUTOS
+NFSTOTITEST, 	-- TOTAL DA NOTA
+0 AS NFSVALIPI, -- TOTAL IPI
+NFSBASCAL, 		-- BASE CALCULO
+PIS,			-- VALOR PIS 
+COFINS			-- VALOR COFINS
+
+FROM #CUP
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+-- APURAÇÃO DE ICMS DE ENTRADA 
+
+if object_id('TempDB.dbo.#NFE') is not null
+   drop table #NFE
+
+SELECT
+A.NFECFOP AS CFOP,
+SUM(ROUND(dbo.NFETOTITE(A.NFEEMPCOD, A.NFETIP, A.NFENUM, A.NFECOD, A.SEREMPCOD, A.SERCOD, A.NFEITE),2)) AS NFETOTITE,
+SUM(ROUND(NFETOTOPEITE,2)) AS NFETOTOPEITE,
+SUM(ROUND(NFEVALIPI,2)) AS NFEVALIPI,
+SUM(ROUND(NFETOTOPEITE,2)) - SUM(ROUND(NFEVALIPI,2)) AS NFEBASCAL,
+ROUND((SUM(ROUND(NFETOTOPEITE,2)) - SUM(ROUND(NFEVALIPI,2))) * 0.0165,2) AS PIS, -- TOTAL NOTA - IPI * 0.0165 = PIS
+ROUND((SUM(ROUND(NFETOTOPEITE,2)) - SUM(ROUND(NFEVALIPI,2))) * 0.076,2)  AS COFINS
+
+INTO #NFE
+FROM TBS0591 A (NOLOCK)
+LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND A.NFENUM = B.NFENUM AND 
+A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND  A.SEREMPCOD = B.SEREMPCOD
+LEFT JOIN TBS080 D (NOLOCK) ON A.NFENUM = D.ENFNUM AND A.NFECOD = D.ENFCODDES
+
+WHERE 
+((D.ENFSIT = 6 AND D.ENFFINEMI = 4 AND D.ENFTIPDOC = 0) OR ((NFENOSFOR = 'N' OR NFENOSFOR = '') AND (B.NFECAN = 'N' OR B.NFECAN = '') AND NFEDATEFE <> '' )) AND
+B.NFEDATEFE BETWEEN convert(date,@ano+'/'+@mes+'/'+'01') AND @ultimoDiaMes AND  -- @Data_de AND @Data_ate AND
+A.NFECFOP COLLATE DATABASE_DEFAULT IN (SELECT CFOP FROM #CFOP WHERE TIPO = 'E' AND PAGAR = 'N')  -- TIRAR 1.252 PARA NÃO DUPLICAR NO CONTAS A PAGAR '1.252',
+
+GROUP BY 
+A.NFECFOP, A.NFECST
+
+ORDER BY 
+A.NFECFOP, A.NFECST
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+-- BUSCAR VALORES NO CONTAS A PAGAR
+-- quando fazer o frete observar a base de calculo
+
+if object_id('TempDB.dbo.#TBS057') is not null
+   drop table #TBS057
+
+SELECT 
+CPACFOP AS CFOP,
+SUM(ROUND(CPAVAL,2)) AS NFETOTITE,
+SUM(ROUND(CPAVAL,2)) AS NFETOTOPEITE,
+0 AS NFEVALIPI,
+SUM(ROUND(CPAVAL,2)) AS NFEBASCAL,
+-- SUM(ROUND(CPABASCAL,2)) AS NFEBASCAL,
+ROUND(SUM(ROUND(CPABASCAL,2)) *  CPAALIPIS / 100 ,2) AS PIS, 
+ROUND(SUM(ROUND(CPABASCAL,2)) *  CPAALICOFINS  / 100 ,2) AS COFINS
+
+INTO #TBS057
+FROM 
+TBS057 NOLOCK 
+
+WHERE 
+CPAREFMES = @mes and  
+CPAREFANO = @ano and  
+CPACFOP COLLATE DATABASE_DEFAULT IN (SELECT CFOP FROM #CFOP WHERE TIPO = 'E' AND PAGAR = 'S')
+
+GROUP BY 
+CPACFOP, 
+CPAALIPIS,
+CPAALICOFINS
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#PISENT') is not null
+   drop table #PISENT
+
+SELECT
+0 AS EMP ,
+@ano AS ANO,
+@mes AS MES, 
+REPLACE(CFOP,'.','') COLLATE Latin1_General_BIN AS CFOP,
+sum(NFETOTITE) 				AS NFETOTITE,		-- TOTAL DOS PRODUTOS
+SUM(NFETOTOPEITE) 			AS NFETOTOPEITE, 	-- TOTAL NOTA
+SUM(NFEVALIPI)				AS NFEVALIPI,		-- TOTAL IPI
+SUM(NFEBASCAL) 				AS NFEBASCAL, 		-- BASE CALCULO PIS/COFINS
+SUM(PIS) 					AS PIS,				-- VALOR PIS
+SUM(COFINS) 				AS COFINS			-- VALOR COFINS
+
+INTO #PISENT
+FROM #NFE
+
+GROUP BY CFOP 
+
+UNION
+
+SELECT
+0 AS EMP ,
+@ano AS ANO,
+@mes AS MES, 
+REPLACE(CFOP,'.','') COLLATE Latin1_General_BIN AS CFOP,
+sum(NFETOTITE) 				AS NFETOTITE,		-- TOTAL DOS PRODUTOS
+SUM(NFETOTOPEITE) 			AS NFETOTOPEITE, 	-- TOTAL NOTA
+SUM(NFEVALIPI)				AS NFEVALIPI,		-- TOTAL IPI
+SUM(NFEBASCAL) 				AS NFEBASCAL, 		-- BASE CALCULO PIS/COFINS
+SUM(PIS) 					AS PIS,				-- VALOR PIS
+SUM(COFINS) 				AS COFINS			-- VALOR COFINS
+
+FROM #TBS057
+
+GROUP BY CFOP 
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA FINAL DE APURAÇÃO PIS-COFINS
+
+BEGIN 
+DELETE TBS1291
+WHERE 
+LPCANO = @ano AND LPCMES = @mes
+END
+
+BEGIN 
+INSERT INTO TBS1291
+
+SELECT
+*
+
+FROM #PISSAI
+
+UNION
+
+SELECT 
+*
+
+FROM #PISENT
+END
+
+END
+
+
+--EXEC sp_PISCOFINS '10','2017'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- TANBY CD E PAPAELYNA
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+if object_id('sp_PISCOFINS') is not null
+   drop procedure sp_PISCOFINS
+go
+
+create procedure sp_PISCOFINS @mes varchar (2), @ano varchar (4)
+
+as
+
+begin
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#CFOP') is not null
+   drop table #CFOP
+   
+create table #CFOP (TIPO CHAR (1), CFOP CHAR(5) , PAGAR CHAR(1))
+-- ENTRADAS '1.102','1.403','2.102','2.202','2.403','1.202','2.411','1.411','1.653', '1.922' , '2.922' , PAGAR '1.252','1.352','2.352'
+INSERT INTO #CFOP VALUES ('E','1.102','N')
+INSERT INTO #CFOP VALUES ('E','1.202','N')
+INSERT INTO #CFOP VALUES ('E','1.252','S')
+INSERT INTO #CFOP VALUES ('E','1.253','S')
+INSERT INTO #CFOP VALUES ('E','1.352','S')
+INSERT INTO #CFOP VALUES ('E','1.403','N')
+INSERT INTO #CFOP VALUES ('E','1.411','N')
+INSERT INTO #CFOP VALUES ('E','1.653','N')
+INSERT INTO #CFOP VALUES ('E','1.922','N')
+INSERT INTO #CFOP VALUES ('E','2.102','N')
+INSERT INTO #CFOP VALUES ('E','2.202','N')
+INSERT INTO #CFOP VALUES ('E','2.352','S')
+INSERT INTO #CFOP VALUES ('E','2.403','N')
+INSERT INTO #CFOP VALUES ('E','2.411','N')
+INSERT INTO #CFOP VALUES ('E','2.653','N')
+INSERT INTO #CFOP VALUES ('E','2.922','N')
+
+-- SAIDAS ('5.102','5.405','5.929','5.411','5.202','6.102','6.108','6.404')
+INSERT INTO #CFOP VALUES ('S','5.102','N')
+INSERT INTO #CFOP VALUES ('S','5.202','N')
+INSERT INTO #CFOP VALUES ('S','5.405','N')
+INSERT INTO #CFOP VALUES ('S','5.411','N')
+INSERT INTO #CFOP VALUES ('S','5.922','N')
+INSERT INTO #CFOP VALUES ('S','5.929','N')
+INSERT INTO #CFOP VALUES ('S','6.102','N')
+INSERT INTO #CFOP VALUES ('S','6.202','N')
+INSERT INTO #CFOP VALUES ('S','6.108','N')
+INSERT INTO #CFOP VALUES ('S','6.404','N')
+INSERT INTO #CFOP VALUES ('S','6.411','N')
+INSERT INTO #CFOP VALUES ('S','6.922','N')
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+-- TABLEA TBS129
+
+DELETE TBS129
+WHERE LPCANO = @ano AND LPCMES = @mes
+
+INSERT INTO TBS129 (LPCEMPCOD,LPCANO,LPCMES)
+VALUES (0,@ano,@mes)
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA TBS1291
+
+DECLARE @ultimoDiaMes date
+set @ultimoDiaMes = convert(date,DATEADD(ms, -3, DATEADD(mm, DATEDIFF(mm, 0, convert(date,@ano+'/'+@mes+'/'+'01')) + 1, 0)))
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#NFS') is not null
+   drop table #NFS
+
+SELECT 
+A.NFSCFOP AS CFOP, 
+SUM(round(dbo.NFSTOTPRO(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE),2)) AS NFSTOTPRO,  			-- TOTAL DOS PRODUTOS
+SUM(round(dbo.NFSTOTITEST(A.NFSEMPCOD, A.NFSNUM, A.SNEEMPCOD, A.SNESER, A.NFSITE),2)) AS NFSTOTITEST 	-- TOTAL DA NOTA  -- NÃO TEM IPI
+
+
+INTO #NFS
+FROM 
+TBS0671 A (NOLOCK)
+LEFT JOIN TBS067 B (NOLOCK) ON A.NFSEMPCOD = B.NFSEMPCOD AND A.NFSNUM = B.NFSNUM AND A.SNEEMPCOD = B.SNEEMPCOD AND A.SNESER = B.SNESER
+LEFT JOIN TBS080 D (NOLOCK) ON A.NFSNUM = D.ENFNUM AND A.SNEEMPCOD = D.SNEEMPCOD AND A.SNESER = D.SNESER 
+
+WHERE
+B.NFSDATEMI BETWEEN convert(date,@ano+'/'+@mes+'/'+'01') AND @ultimoDiaMes AND 
+NFSTIP IN('N','C') and 
+D.ENFSIT = 6 AND
+D.ENFTIPDOC = 1 AND
+A.NFSCFOP COLLATE DATABASE_DEFAULT IN (SELECT CFOP FROM #CFOP WHERE TIPO = 'S' AND PAGAR = 'N')
+
+GROUP BY 
+A.NFSCFOP , A.NFSCST 
+
+----------------------------------------------------------------------\\------------------------------------------------------------------------------------------
+
+-- CRIANDO TABELA DE DEVOLUÇÃO
+
+if object_id('TempDB.dbo.#NFD') is not null
+   drop table #NFD
+   
+SELECT 
+A.NFDCFOP AS CFOP,
+SUM(round(dbo.NFDTOTPROITE(A.NFDEMPCOD,A.SNEEMPCOD,A.SNESER,A.NFDNUM,A.NFDITE),2)) AS NFSTOTPRO, -- TOTAL DOS PRODUTOS 
+SUM(round(dbo.NFDTOTITEST(A.NFDEMPCOD,A.SNEEMPCOD,A.SNESER,A.NFDNUM,A.NFDITE),2)) + -- NOVA FORMULA NÃO CONTABILIZA O IPI, POR ISSO PRECISO SOMAR COM IPI
+SUM(round(NFDVALIPI,2)) AS NFSTOTITEST, 	  -- TOTAL DA NOTA
+SUM(ROUND(NFDVALIPI,2)) AS NFSVALIPI,
+SUM(round(dbo.NFDTOTITEST(A.NFDEMPCOD,A.SNEEMPCOD,A.SNESER,A.NFDNUM,A.NFDITE),2)) AS NFSBASCAL
+
+INTO #NFD
+FROM
+TBS1172 A (NOLOCK)
+LEFT JOIN TBS117 B (NOLOCK) ON A.NFDEMPCOD = B.NFDEMPCOD AND A.NFDNUM = B.NFDNUM AND A.SNEEMPCOD = B.SNEEMPCOD AND A.SNESER = B.SNESER
+LEFT JOIN TBS080 D (NOLOCK) ON A.NFDNUM = D.ENFNUM AND A.SNEEMPCOD = D.SNEEMPCOD AND A.SNESER = D.SNESER
+
+WHERE
+B.NFDDATEMI BETWEEN convert(date,@ano+'/'+@mes+'/'+'01') AND @ultimoDiaMes and --- @Data_de AND @Data_ate AND 
+D.ENFSIT = 6 AND
+D.ENFFINEMI = 4 AND
+D.ENFTIPDOC = 1 AND
+A.NFDCFOP COLLATE DATABASE_DEFAULT IN (SELECT CFOP FROM #CFOP WHERE TIPO = 'S' AND PAGAR = 'N')
+
+GROUP BY 
+A.NFDCFOP, A.NFDCSTCSOSN 
+
+------------------------------------------------------------------------------------------------//-------------------------------------------------------------------
+
+	-- AGRUPANDO A TABELA DE VENDAS, TENHO QUE AGRUPAR 1° AS VENDAS, PARA DEPOIS UNIR COM A TBL DE DEVOLUÇÃO
+	
+	if object_id('TempDB.dbo.#NFSPIS') is not null
+	   drop table #NFSPIS
+	
+	SELECT 
+	CFOP, 
+	SUM(NFSTOTPRO) 						AS NFSTOTPRO, 		-- TOTAL DOS PRODUTOS
+	SUM(NFSTOTITEST)					AS NFSTOTITEST, 	-- TOTAL DA NOTA
+	SUM(NFSTOTITEST)					AS NFSBASCAL, 		-- BASE CALCULO
+	ROUND(SUM(NFSTOTITEST)* 0.0165,2) 	AS PIS, 			-- VALOR PIS
+	ROUND(SUM(NFSTOTITEST)* 0.076 ,2) 	AS COFINS			-- VALOR COFINS
+	
+	INTO #NFSPIS
+	FROM #NFS
+	
+	GROUP BY 
+	CFOP
+
+-- SELECT * FROM #NFSPIS
+
+------------------------------------------------------------------------------------------------//-------------------------------------------------------------------
+
+-- AGRUPANDO A TABELA DE DEVOLUÇÃO
+	
+if object_id('TempDB.dbo.#NFDPIS') is not null
+	  Drop table #NFDPIS
+	
+SELECT 
+CFOP, 
+SUM(NFSTOTPRO) 						AS NFSTOTPRO, 		-- TOTAL DOS PRODUTOS
+SUM(NFSTOTITEST)					AS NFSTOTITEST, 	-- TOTAL DA NOTA
+SUM(NFSVALIPI)						AS NFSVALIPI,		-- TOTAL IPI
+SUM(NFSBASCAL)						AS NFSBASCAL, 		-- BASE CALCULO
+ROUND(SUM(NFSTOTITEST)* 0.0165,2) 	AS PIS, 			-- VALOR PIS
+ROUND(SUM(NFSTOTITEST)* 0.076 ,2) 	AS COFINS			-- VALOR COFINS
+	
+INTO #NFDPIS
+FROM #NFD
+	
+GROUP BY 
+CFOP
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#PISSAI') is not null
+   drop table #PISSAI
+
+SELECT 
+0 AS EMP ,
+@ano AS ANO,
+@mes AS MES, 
+REPLACE(CFOP,'.','') COLLATE Latin1_General_BIN AS CFOP,
+NFSTOTPRO, 		-- TOTAL DOS PRODUTOS
+NFSTOTITEST, 	-- TOTAL DA NOTA
+0 AS NFSVALIPI, -- TOTAL IPI
+NFSBASCAL, 		-- BASE CALCULO
+PIS, 			-- VALOR PIS
+COFINS			-- VALOR COFINS
+
+INTO #PISSAI
+FROM #NFSPIS
+
+UNION 
+
+SELECT
+0 AS EMP ,
+@ano AS ANO,
+@mes AS MES, 
+REPLACE(CFOP,'.','') COLLATE Latin1_General_BIN AS CFOP, 
+NFSTOTPRO, 		-- TOTAL DOS PRODUTOS
+NFSTOTITEST, 	-- TOTAL DA NOTA
+NFSVALIPI,		-- TOTAL IPI
+NFSBASCAL, 		-- BASE CALCULO
+PIS, 			-- VALOR PIS
+COFINS			-- VALOR COFINS
+
+FROM #NFDPIS
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+-- APURAÇÃO DE ICMS DE ENTRADA 
+
+if object_id('TempDB.dbo.#NFE') is not null
+   drop table #NFE
+
+SELECT
+A.NFECFOP AS CFOP,
+SUM(ROUND(dbo.NFETOTITE(A.NFEEMPCOD, A.NFETIP, A.NFENUM, A.NFECOD, A.SEREMPCOD, A.SERCOD, A.NFEITE),2)) AS NFETOTITE,
+SUM(ROUND(NFETOTOPEITE,2)) AS NFETOTOPEITE,
+SUM(ROUND(NFEVALIPI,2)) AS NFEVALIPI,
+SUM(ROUND(NFETOTOPEITE,2)) - SUM(ROUND(NFEVALIPI,2)) AS NFEBASCAL,
+ROUND((SUM(ROUND(NFETOTOPEITE,2)) - SUM(ROUND(NFEVALIPI,2))) * 0.0165,2) AS PIS, -- TOTAL NOTA - IPI * 0.0165 = PIS
+ROUND((SUM(ROUND(NFETOTOPEITE,2)) - SUM(ROUND(NFEVALIPI,2))) * 0.076,2)  AS COFINS
+
+INTO #NFE
+FROM TBS0591 A (NOLOCK)
+LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND A.NFENUM = B.NFENUM AND 
+A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND  A.SEREMPCOD = B.SEREMPCOD
+LEFT JOIN TBS080 D (NOLOCK) ON A.NFENUM = D.ENFNUM AND A.NFECOD = D.ENFCODDES
+
+WHERE 
+((D.ENFSIT = 6 AND D.ENFFINEMI = 4 AND D.ENFTIPDOC = 0) OR ((NFENOSFOR = 'N' OR NFENOSFOR = '') AND (B.NFECAN = 'N' OR B.NFECAN = '') AND NFEDATEFE <> '' )) AND
+B.NFEDATEFE BETWEEN convert(date,@ano+'/'+@mes+'/'+'01') AND @ultimoDiaMes AND  -- @Data_de AND @Data_ate AND
+A.NFECFOP COLLATE DATABASE_DEFAULT IN (SELECT CFOP FROM #CFOP WHERE TIPO = 'E' AND PAGAR = 'N')  -- TIRAR 1.252 PARA NÃO DUPLICAR NO CONTAS A PAGAR '1.252',
+
+GROUP BY 
+A.NFECFOP, A.NFECST
+
+ORDER BY 
+A.NFECFOP, A.NFECST
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+-- BUSCAR VALORES NO CONTAS A PAGAR
+
+if object_id('TempDB.dbo.#TBS057') is not null
+   drop table #TBS057
+
+SELECT 
+CPACFOP AS CFOP,
+SUM(ROUND(CPAVAL,2)) AS NFETOTITE,
+SUM(ROUND(CPAVAL,2)) AS NFETOTOPEITE,
+0 AS NFEVALIPI,
+SUM(ROUND(CPAVAL,2)) AS NFEBASCAL,
+-- SUM(ROUND(CPABASCAL,2)) AS NFEBASCAL,
+ROUND(SUM(ROUND(CPABASCAL,2)) *  CPAALIPIS / 100 ,2) AS PIS, 
+ROUND(SUM(ROUND(CPABASCAL,2)) *  CPAALICOFINS  / 100 ,2) AS COFINS
+
+INTO #TBS057
+FROM 
+TBS057 NOLOCK 
+
+WHERE 
+CPAREFMES = @mes and  
+CPAREFANO = @ano and  
+CPACFOP COLLATE DATABASE_DEFAULT IN (SELECT CFOP FROM #CFOP WHERE TIPO = 'E' AND PAGAR = 'S')
+
+GROUP BY 
+CPACFOP, 
+CPAALIPIS,
+CPAALICOFINS
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#PISENT') is not null
+   drop table #PISENT
+
+SELECT
+0 AS EMP ,
+@ano AS ANO,
+@mes AS MES, 
+REPLACE(CFOP,'.','') COLLATE Latin1_General_BIN AS CFOP,
+sum(NFETOTITE) 				AS NFETOTITE,		-- TOTAL DOS PRODUTOS
+SUM(NFETOTOPEITE) 			AS NFETOTOPEITE, 	-- TOTAL NOTA
+SUM(NFEVALIPI)				AS NFEVALIPI,		-- TOTAL IPI
+SUM(NFEBASCAL) 				AS NFEBASCAL, 		-- BASE CALCULO PIS/COFINS
+SUM(PIS) 					AS PIS,				-- VALOR PIS
+SUM(COFINS) 				AS COFINS			-- VALOR COFINS
+
+INTO #PISENT
+FROM #NFE
+
+GROUP BY CFOP 
+
+UNION
+
+SELECT
+0 AS EMP ,
+@ano AS ANO,
+@mes AS MES, 
+REPLACE(CFOP,'.','') COLLATE Latin1_General_BIN AS CFOP,
+sum(NFETOTITE) 				AS NFETOTITE,		-- TOTAL DOS PRODUTOS
+SUM(NFETOTOPEITE) 			AS NFETOTOPEITE, 	-- TOTAL NOTA
+SUM(NFEVALIPI)				AS NFEVALIPI,		-- TOTAL IPI
+SUM(NFEBASCAL) 				AS NFEBASCAL, 		-- BASE CALCULO PIS/COFINS
+SUM(PIS) 					AS PIS,				-- VALOR PIS
+SUM(COFINS) 				AS COFINS			-- VALOR COFINS
+
+FROM #TBS057
+
+GROUP BY CFOP 
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA FINAL DE APURAÇÃO PIS-COFINS
+
+BEGIN 
+DELETE TBS1291
+WHERE 
+LPCANO = @ano AND LPCMES = @mes
+END
+
+BEGIN 
+INSERT INTO TBS1291
+
+SELECT
+*
+
+FROM #PISSAI
+
+UNION
+
+SELECT 
+*
+
+FROM #PISENT
+END
+
+END
+
+
+
+
+--
+--EXEC sp_PISCOFINS '09','2016'
+--EXEC sp_PISCOFINS '10','2016'
+--EXEC sp_PISCOFINS '11','2016'
+--EXEC sp_PISCOFINS '12','2016'
+--EXEC sp_PISCOFINS '01','2017'
+--EXEC sp_PISCOFINS '02','2017'
+--EXEC sp_PISCOFINS '03','2017'
+--EXEC sp_PISCOFINS '04','2017'
+--
+--SELECT * FROM TBS129
+--SELECT * FROM TBS1291

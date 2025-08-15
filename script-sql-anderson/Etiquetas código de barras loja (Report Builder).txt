@@ -1,0 +1,303 @@
+-- VARIAVEIS
+
+DECLARE @COD CHAR (4000), @BARRAS CHAR (4000), @BARRAS1 CHAR (4000)
+SET @COD =''
+SET @BARRAS = '7898522711565  '
+set @BARRAS1 = REPLACE(@BARRAS,',',''',''')
+
+
+
+-- PESQUISA CODIGO INTERNO 
+
+DECLARE @sql varchar (max)
+
+IF @COD <> '' AND @BARRAS = ''
+BEGIN 
+set @sql = 'SELECT RTRIM(PROCOD) PROCOD FROM TBS010 (NOLOCK) WHERE PROCOD IN ('+rtrim(@COD)+') '
+END
+
+IF @COD = '' AND @BARRAS = ''
+BEGIN 
+set @sql = 'SELECT RTRIM(PROCOD) PROCOD FROM TBS010 (NOLOCK)'
+END
+
+IF @COD = '' AND @BARRAS <> ''
+BEGIN 
+set @sql = 'SELECT RTRIM(PROCOD) PROCOD FROM TBS010 (NOLOCK) 
+			WHERE 
+			PROCODBAR1 IN ('''+rtrim(@BARRAS1)+''') OR PROCODBAR2 IN ('''+rtrim(@BARRAS1)+''') OR 
+			PROCODBAR3 IN ('''+rtrim(@BARRAS1)+''') OR PROCODBAR4 IN ('''+rtrim(@BARRAS1)+''')'
+END
+
+IF @COD <> '' AND @BARRAS <> ''
+BEGIN 
+set @sql = 'SELECT RTRIM(PROCOD) FROM TBS010 (NOLOCK) 
+			WHERE 
+			(PROCODBAR1 IN ('''+rtrim(@BARRAS)+''') OR PROCODBAR2 IN ('''+rtrim(@BARRAS)+''') OR 
+			PROCODBAR3 IN ('''+rtrim(@BARRAS)+''') OR PROCODBAR4 IN ('''+rtrim(@BARRAS)+''')) AND
+			PROCOD IN ('+@COD+')'
+END
+
+PRINT @sql
+
+
+if object_id('TempDB.dbo.#T') is not null
+		drop table #T  
+
+create table #T (PROCOD CHAR(15))
+INSERT INTO #T
+EXEC(@sql)
+
+SELECT * FROM #T
+
+
+-- SELECT TOP 300 PROCOD, PROCODBAR1, PROCODBAR2, PROCODBAR3, PROCODBAR4 FROM TBS010
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DECLARE @COD VARCHAR (8000), @BARRAS CHAR (4000),  @A int, @MARCOD INT, @somenteComSaldo CHAR(1), @ATL CHAR (1),@dataDE DATETIME, @dataAte DATETIME, @STA CHAR (1),
+@MARNON CHAR(60), @PRODES CHAR (60) , @horaDe CHAR(8), @horaAte CHAR(8)
+SET @COD =''
+SET @BARRAS = ''
+SET @PRODES = ''
+SET @MARCOD = 1653 
+SET @MARNON = ''
+SET @STA = 'T'
+SET @ATL = 'N'
+SET @dataDE = ''
+SET @dataAte = ''
+SET @horaDe=''
+SET @horaAte=''
+SET @somenteComSaldo = 'N'
+set @A = 1
+
+--SELECT REPLACE(@COD,' ','')
+
+DECLARE @BARRAS1 varchar (4000) 
+set @BARRAS1 = REPLACE(REPLACE(@COD,',',''','''),' ','')
+
+/*SELECT @BARRAS1
+set @Tamanho = Len(@BARRAS1)
+set @Posicao = 1
+set @PROCODBAR = ''
+
+While @Posicao <= @Tamanho
+Begin
+   If SubString(@BARRAS1,@Posicao,1) <> ' '
+      Begin
+         Set @PROCODBAR = @PROCODBAR + SubString(@BARRAS1,@Posicao,1)
+      end
+
+   Set @Posicao = @Posicao+1
+end*/
+
+-- SELECT @PROCODBAR
+
+
+DECLARE @sql varchar (max)
+
+IF @COD <> '' -- AND @BARRAS = ''
+BEGIN 
+set @sql = 'SELECT RTRIM(PROCOD) PROCOD 
+			FROM TBS010 (NOLOCK) 
+			WHERE 
+			PROCOD IN ('+rtrim(ltrim(REPLACE(@COD,' ','')))+') OR 
+			PROCODBAR1 IN ('''+rtrim(ltrim(@BARRAS1))+''') OR PROCODBAR2 IN ('''+rtrim(ltrim(@BARRAS1))+''') OR 
+			PROCODBAR3 IN ('''+rtrim(ltrim(@BARRAS1))+''') OR PROCODBAR4 IN ('''+rtrim(ltrim(@BARRAS1))+''')
+			 '
+END
+
+IF @COD = '' -- AND @BARRAS = ''
+BEGIN 
+set @sql = 'SELECT RTRIM(PROCOD) PROCOD FROM TBS010 (NOLOCK)'
+END
+
+/*IF @COD = '' AND @BARRAS <> ''
+BEGIN 
+set @sql = 'SELECT RTRIM(PROCOD) PROCOD FROM TBS010 (NOLOCK) 
+			WHERE 
+			PROCODBAR1 IN ('''+rtrim(@BARRAS1)+''') OR PROCODBAR2 IN ('''+rtrim(@BARRAS1)+''') OR 
+			PROCODBAR3 IN ('''+rtrim(@BARRAS1)+''') OR PROCODBAR4 IN ('''+rtrim(@BARRAS1)+''')'
+END
+
+IF @COD <> '' AND @BARRAS <> ''
+BEGIN 
+set @sql = 'SELECT RTRIM(PROCOD) FROM TBS010 (NOLOCK) 
+			WHERE 
+			(PROCODBAR1 IN ('''+rtrim(@BARRAS)+''') OR PROCODBAR2 IN ('''+rtrim(@BARRAS)+''') OR 
+			PROCODBAR3 IN ('''+rtrim(@BARRAS)+''') OR PROCODBAR4 IN ('''+rtrim(@BARRAS)+''')) AND
+			PROCOD IN ('+@COD+')'
+END*/
+
+-- PRINT @sql
+
+if object_id('TempDB.dbo.#T') is not null
+		drop table #T  
+
+create table #T (PROCOD CHAR(15))
+INSERT INTO #T
+EXEC(@sql)
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+declare @comando varchar(1000)
+
+SET @comando = 'EXECUTE(''
+select
+cdprod,
+sum(ROUND(quant/3/4.35,2)) as quant
+
+FROM movcaixa
+where
+data between DATE_SUB(current_date(), INTERVAL 90 DAY) and current_date() and
+status = 01 and
+cancelado <> "S" 
+
+group by
+cdprod '') at MYSQLGZ' 
+-- exec(@comando)
+
+if object_id('TempDB.dbo.#MSL002') is not null
+   drop table #MSL002
+   
+create table #MSL002 (PROCOD int , QUANT DECIMAL(10,2))
+INSERT INTO #MSL002
+exec(@comando)
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+
+IF OBJECT_ID ('TempDB.dbo.#tbs') is not null
+drop table #tbs
+
+
+SELECT  
+rank() OVER (ORDER BY A.PROCOD) AS [RANKS],
+A.PROSTATUS AS STS, 
+RTRIM(LTRIM(A.PROCOD)) AS CÓDIGO, 
+RTRIM(LTRIM(A.PRODES)) AS DESCRIÇÃO, 
+RTRIM(LTRIM(A.MARNOM)) AS MARCA, 
+
+'*'+RTRIM(A.PROCOD)+'*'  AS CODBAR1,
+CASE WHEN PROUM2QTD > 0 
+		THEN '*'+RTRIM(LTRIM(A.PROCOD))+'-2*' ELSE '' END AS  CODBAR2,
+
+
+convert(decimal (12,2),
+CASE WHEN B.TDPVALPROI<=GETDATE() AND B.TDPVALPROF >= GETDATE() AND B.TDPPROLOJ = 'S' 
+	THEN ROUND(B.TDPPREPRO1,2) 
+	ELSE ROUND(B.TDPPRELOJ1,2) 
+END) AS PRECO1,
+
+convert(decimal (12,2),
+CASE WHEN PROUM2QTD > 0 
+	THEN 
+		CASE WHEN B.TDPVALPROI<=GETDATE() AND B.TDPVALPROF >= GETDATE() AND B.TDPPROLOJ = 'S'
+			THEN ROUND(B.TDPPREPRO2,2)*round(PROUM2QTD,2)
+			ELSE ROUND(B.TDPPRELOJ2,2)*round(PROUM2QTD,2) 
+		END
+	ELSE 0 
+END) AS PRECO2,
+		
+
+CASE WHEN PROUM1QTD = 1
+	THEN RTRIM((SELECT UNIDES FROM TBS011 D (NOLOCK) WHERE A.PROUM1 = D.UNICOD))   
+	ELSE
+		CASE WHEN PROUM1QTD > 1 
+		THEN rtrim(PROUM1) + ' C/' + rtrim(CAST(PROUM1QTD AS DECIMAL(10,0))) +''+ RTRIM(PROUMV) 
+		ELSE '' 
+	END 
+END  as UN1,
+'R$' sifra,
+
+CASE WHEN PROUM2QTD > 0 and TDPPRELOJ2 > 0
+	THEN rtrim(PROUM2) + ' C/' + rtrim(CAST(PROUM2QTD AS DECIMAL(10,0)))+''+ RTRIM(PROUM1) 
+	ELSE '' 
+END  as UN2,
+
+ISNULL(CONVERT(INT,ROUND(C.QUANT,0)),0) AS PP,
+
+A.PROUM1 AS UNpp
+
+into #tbs
+FROM TBS010 A (NOLOCK) 
+LEFT JOIN TBS031 B (NOLOCK) ON A.PROCOD = B.TDPPROCOD
+LEFT JOIN #MSL002 C (NOLOCK) ON CONVERT(NUMERIC,A.PROCOD) = C.PROCOD
+LEFT JOIN TBS032 D (nolock) ON A.PROCOD = D.PROCOD
+
+WHERE 
+A.PROCOD COLLATE Latin1_General_BIN IN ((SELECT PROCOD FROM #T ))-- AND 
+--A.MARNOM LIKE(CASE WHEN @MARNON = '' THEN '% %' ELSE '%'+UPPER(RTRIM(@MARNON))+'%' END) AND 
+--A.PROSTATUS IN( CASE WHEN @STA = 'T' THEN A.PROSTATUS ELSE @STA END ) AND 
+--convert(DATE,TDPDATATU) BETWEEN CASE WHEN @ATL = 'N' THEN '17530101' ELSE @dataDE END AND CASE WHEN @dataAte='' THEN GETDATE()+1 ELSE @dataAte END
+--and convert(nvarchar(8),TDPDATATU,108) BETWEEN CASE WHEN @ATL = 'N' THEN '00:00:00' ELSE @horaDe END AND CASE WHEN @horaAte='' THEN '23:59:59' ELSE @horaAte END AND
+--(D.ESTQTDATU-D.ESTQTDRES > case when @somenteComSaldo='N' then -999999 else 0 end 
+AND D.ESTLOC = 2 --AND
+--A.MARCOD = (CASE WHEN @MARCOD = 0 THEN A.MARCOD ELSE RTRIM(LTRIM(@MARCOD))END) AND 
+--A.PRODES LIKE (CASE WHEN @PRODES = '' THEN '% %' ELSE UPPER(RTRIM(@PRODES))+'%' END) 
+					
+ORDER BY [RANKS]
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+IF OBJECT_ID ('TempDB.dbo.#E') is not null
+drop table #E
+
+CREATE TABLE #E (RANKS INT, STS CHAR (1), CÓDIGO CHAR (15), DESCRIÇÃO CHAR(60), MARCA CHAR(60), CODBAR1 CHAR(17), CODBAR2 CHAR(19),
+					PRECO1 DECIMAL(10,2) , PRECO2 DECIMAL(10,2), UN1 CHAR (15), sifra CHAR (2), UN2 CHAR (15), PP INT, UNpp CHAR (2))
+
+declare @i INT
+
+SET @i = 1
+
+WHILE (@i <= @A)
+
+BEGIN
+INSERT INTO #E
+
+SELECT * from #tbs
+
+SET @i = @i + 1
+
+END 
+
+SELECT ROW_NUMBER ( ) OVER (ORDER BY CÓDIGO) AS [RANK],* FROM #E

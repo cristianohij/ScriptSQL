@@ -1,0 +1,315 @@
+-- Faturamento de clientes novos
+
+DECLARE @DATADE DATETIME, @DATEATE DATETIME , @DATADEV DATETIME, @DATEATEV DATETIME, @VENNOM VARCHAR(60) , @GVECOD INT
+
+SET @DATADE = '20170101'
+SET @DATEATE = '20171025'
+SET @DATADEV = @DATADE
+SET @DATEATEV = '20171025'
+SET @VENNOM = ''
+SET @GVECOD = 1
+			  
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- CLIENTES NOVOS 
+
+if object_id('TempDB.dbo.#CLI') is not null
+   drop table #CLI
+
+SELECT 
+--A.CLIDATCAD,
+--CASE CLITIPPES
+--	WHEN 'J' THEN 'JURIDICA'
+--	WHEN 'F' THEN 'FISICA'
+--	ELSE ''
+--END AS CLITIPPES,
+CLICOD, 
+RTRIM(LTRIM(CLINOM)) AS CLINOM,
+--CLICGC, 
+--CLICPF,
+--A.CLICLA,
+--A.CLILIC,
+--CASE A.CLISIT
+--	WHEN 'A' THEN 'ATIVO'
+--	WHEN 'I' THEN 'INATIVO'
+--	ELSE ''
+--END CLISIT,
+--CASE WHEN A.CLIBLQTRN = 'S' THEN 'SIM' ELSE 'NAO' END AS CLIBLQTRN, -- CAMPO CLIBLQTRN SIGNIFICA SOMENTE A VISTA ? 
+--A.CLIUSUALT,
+ISNULL(RTRIM(LTRIM(STR(A.VENCOD))) + ' - ' + RTRIM(LTRIM(VENNOM)), 'SEM VENDEDOR') AS VENNOM,
+ISNULL(RTRIM(LTRIM(STR(B.GVECOD))) + ' - ' + RTRIM(LTRIM(C.GVEDES)), '0 - SEM GRUPO') AS GVDES
+
+INTO #CLI
+FROM 
+TBS002 A (NOLOCK)
+LEFT JOIN 
+TBS004 B (NOLOCK) ON A.VENCOD = B.VENCOD AND A.VENEMPCOD = B.VENEMPCOD
+LEFT JOIN 
+TBS091 C (NOLOCK) ON B.GVECOD = C.GVECOD AND B.GVEEMPCOD = C.GVEEMPCOD
+
+WHERE
+A.CLIDATCAD BETWEEN @DATADE AND @DATEATE AND 
+ISNULL(RTRIM(LTRIM(STR(A.VENCOD))) + ' - ' + RTRIM(LTRIM(VENNOM)), '0 - SEM VENDEDOR') 
+LIKE (CASE WHEN @VENNOM = '' 
+		THEN ISNULL(RTRIM(LTRIM(STR(A.VENCOD))) + ' - ' + RTRIM(LTRIM(VENNOM)), 'SEM VENDEDOR')
+		ELSE upper(@VENNOM)
+	END) AND 
+CLICGC not Like('65069593%') AND CLICGC NOT Like('05118717%') AND CLICGC NOT Like('52080207%') AND CLICGC NOT Like('44125185%')--AND 
+ 	 			-- TANBYS			       -- BAG			           -- MISAS			               -- PAPE	 
+--ISNULL(B.GVECOD,0) IN (@GVECOD)		
+
+ORDER BY 
+CLICOD
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TODOS OS CLIENTES 
+
+if object_id('TempDB.dbo.#CLITOT') is not null
+   drop table #CLITOT
+
+SELECT 
+CLICOD, 
+RTRIM(LTRIM(CLINOM)) AS CLINOM,
+ISNULL(RTRIM(LTRIM(STR(A.VENCOD))) + ' - ' + RTRIM(LTRIM(VENNOM)), 'SEM VENDEDOR') AS VENNOM,
+ISNULL(RTRIM(LTRIM(STR(B.GVECOD))) + ' - ' + RTRIM(LTRIM(C.GVEDES)), '0 - SEM GRUPO') AS GVDES
+
+INTO #CLITOT
+FROM 
+TBS002 A (NOLOCK)
+LEFT JOIN 
+TBS004 B (NOLOCK) ON A.VENCOD = B.VENCOD AND A.VENEMPCOD = B.VENEMPCOD
+LEFT JOIN 
+TBS091 C (NOLOCK) ON B.GVECOD = C.GVECOD AND B.GVEEMPCOD = C.GVEEMPCOD
+
+WHERE
+ISNULL(RTRIM(LTRIM(STR(A.VENCOD))) + ' - ' + RTRIM(LTRIM(VENNOM)), '0 - SEM VENDEDOR') 
+LIKE (CASE WHEN @VENNOM = '' 
+		THEN ISNULL(RTRIM(LTRIM(STR(A.VENCOD))) + ' - ' + RTRIM(LTRIM(VENNOM)), 'SEM VENDEDOR')
+		ELSE upper(@VENNOM)
+	END) AND 
+CLICGC not Like('65069593%') AND CLICGC NOT Like('05118717%') AND CLICGC NOT Like('52080207%') AND CLICGC NOT Like('44125185%') --AND 
+ 	 			-- TANBYS			       -- BAG			           -- MISAS			               -- PAPE	 
+--ISNULL(B.GVECOD,0) IN (@GVECOD)		
+
+ORDER BY 
+CLICOD
+
+
+-- uso com subconsulta no reports
+
+--select 
+--GVECOD,
+--ISNULL(RTRIM(LTRIM(STR(B.GVECOD))) + ' - ' + RTRIM(LTRIM(B.GVEDES)), 'SEM GRUPO') AS GVDES
+--from TBS091 B
+--
+--UNION 
+--
+--SELECT 
+--0,
+--'0 - SEM GRUPO'
+--
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA DE AUTORIZAÇÃO TBS080
+
+if object_id('TempDB.dbo.#TBS080') is not null
+   drop table #TBS080
+
+SELECT 
+ENFNUM, SNEEMPCOD, SNESER, ENFSIT, ENFTIPDOC, ENFFINEMI, ENFCODDES
+
+INTO #TBS080
+FROM TBS080 (NOLOCK) 
+WHERE 
+ENFDATEMI between @DATADEV and @DATEATEV and 
+ENFSIT = 6
+
+-- SELECT * FROM #TBS080
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+-- CONTABILIZANDO NOTAS NORMAIS E COMPLEMENTARES
+
+if object_id('TempDB.dbo.#NFS') is not null
+   drop table #NFS
+
+		SELECT
+		CASE substring(CONVERT(CHAR (10), NFSDATEMI,102),6,2) 
+		WHEN '01' THEN 'Jan/'
+		WHEN '02' THEN 'Fev/'
+		WHEN '03' THEN 'Mar/'
+		WHEN '04' THEN 'Abr/'
+		WHEN '05' THEN 'Mai/' 
+		WHEN '06' THEN 'Jun/'
+		WHEN '07' THEN 'Jul/'
+		WHEN '08' THEN 'Ago/'
+		WHEN '09' THEN 'Set/'
+		WHEN '10' THEN 'Out/'
+		WHEN '11' THEN 'Nov/'
+		WHEN '12' THEN 'Dez/'
+		END + substring(CONVERT(CHAR (10), NFSDATEMI,102),1,4) AS DATA1,
+		substring(CONVERT(CHAR (10), NFSDATEMI,102),1,7) AS DATA,
+		A.NFSCLICOD AS NFSCLICOD,
+		A.NFSCLINOM AS NFSCLINOM,
+		SUM(ROUND(dbo.NFSTOTITEST(B.NFSEMPCOD,B.NFSNUM,B.SNEEMPCOD,B.SNESER,B.NFSITE),2)) AS NFSTOTITEST,
+		COUNT(DISTINCT A.NFSNUM) AS QTDNOT
+		
+		INTO #NFS
+		FROM 
+		TBS0671 B (nolock)
+		LEFT JOIN TBS067 A (nolock) ON A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+		LEFT JOIN #TBS080 D (NOLOCK) ON A.NFSNUM = D.ENFNUM AND A.SNEEMPCOD = D.SNEEMPCOD AND A.SNESER = D.SNESER AND A.NFSCLICOD = D.ENFCODDES
+		-- INNER JOIN #CLITOT E ON A.NFSCLICOD = E.CLICOD
+			  
+		WHERE 
+		NFSDATEMI between @DATADEV and @DATEATEV and 
+		-- NFSTIP ='N' and 
+		D.ENFSIT = 6 AND
+		D.ENFTIPDOC = 1 AND
+		B.NFSCFOP IN ('5.102','5.202','5.405','5.411','5.922','5.929','6.102','6.202','6.108','6.404','6.411','6.922') AND 
+		A.NFSCLICOD IN (SELECT CLICOD FROM #CLITOT)
+		
+		GROUP BY 
+		substring(CONVERT(CHAR (10), NFSDATEMI,102),1,7) , 
+		substring(CONVERT(CHAR (10), NFSDATEMI,102),6,2) ,
+		substring(CONVERT(CHAR (10), NFSDATEMI,102),1,4),
+		A.NFSCLICOD, A.NFSCLINOM
+		
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- devoluções
+
+if object_id('TempDB.dbo.#DEV') is not null
+   drop table #DEV
+   		
+		SELECT
+		CASE substring(CONVERT(CHAR (10), NFEDATEFE,102),6,2) 
+		WHEN '01' THEN 'Jan/'
+		WHEN '02' THEN 'Fev/'
+		WHEN '03' THEN 'Mar/'
+		WHEN '04' THEN 'Abr/'
+		WHEN '05' THEN 'Mai/' 
+		WHEN '06' THEN 'Jun/'
+		WHEN '07' THEN 'Jul/'
+		WHEN '08' THEN 'Ago/'
+		WHEN '09' THEN 'Set/'
+		WHEN '10' THEN 'Out/'
+		WHEN '11' THEN 'Nov/'
+		WHEN '12' THEN 'Dez/'
+		END + substring(CONVERT(CHAR (10), NFEDATEFE,102),1,4) AS DATA1,
+		substring(CONVERT(CHAR (10), NFEDATEFE,102),1,7) AS DATA,
+		B.NFECOD AS NFECOD,
+		B.NFENOM AS NFENOM, 
+		sum(ROUND(NFETOTOPEITE,2)) AS VALDEV,
+		COUNT(DISTINCT B.NFENUM) AS QTDNOTDEV
+		
+		INTO #DEV		
+		FROM
+		TBS0591 A (NOLOCK) 
+		LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND 
+		A.NFENUM = B.NFENUM AND A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND A.SEREMPCOD = B.SEREMPCOD
+		LEFT JOIN #TBS080 D (NOLOCK) ON A.NFENUM = D.ENFNUM AND A.NFECOD = D.ENFCODDES
+		-- INNER JOIN #CLITOT E ON B.NFECOD = E.CLICOD
+		
+		WHERE 
+		NFEDATEFE between @DATADEV and @DATEATEV and 
+		A.NFETIP = 'D' and 
+		((D.ENFSIT = 6 AND D.ENFFINEMI = 4 AND D.ENFTIPDOC = 0) OR ((NFENOSFOR = 'N' OR NFENOSFOR = '') AND (B.NFECAN = 'N' OR B.NFECAN = '') AND NFEDATEFE <> '' )) AND
+		A.NFECFOP IN ('1.102','2.102','1.202','2.202','1.403','2.403','2.411','1.411','1.653','2.653','1.922','2.922') AND 
+		B.NFECOD IN (SELECT CLICOD FROM #CLITOT)
+	
+		GROUP BY 
+		substring(CONVERT(CHAR (10), NFEDATEFE,102),1,7) , 
+		substring(CONVERT(CHAR (10), NFEDATEFE,102),6,2) ,
+		substring(CONVERT(CHAR (10), NFEDATEFE,102),1,4),
+		B.NFECOD, B.NFENOM 
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+SELECT 
+CASE WHEN ISNULL(A.NFSCLICOD,C.NFECOD) BETWEEN (SELECT MIN(CLICOD) FROM #CLI) AND (SELECT MAX(CLICOD) FROM #CLI)
+	THEN 1
+	ELSE 0
+END AS VERIFICA,
+ISNULL(A.DATA,C.DATA) as DATA,
+ISNULL(A.DATA1 , C.DATA1) as NFSDATEMI,
+
+ISNULL(A.NFSCLICOD,C.NFECOD) AS NFSCLICOD,
+(SELECT CLINOM FROM #CLITOT B WHERE ISNULL(A.NFSCLICOD,C.NFECOD) = B.CLICOD) AS NFSCLINOM,
+-- ISNULL(A.NFSCLINOM,C.NFENOM) AS NFSCLINOM,
+
+sum(ISNULL(A.QTDNOT,0)) AS QTDNOT,
+sum(ISNULL(A.NFSTOTITEST,0)) AS NFSVAL,
+
+
+sum(ISNULL(C.QTDNOTDEV,0)) AS QTDNOTDEV,
+sum(ISNULL(C.VALDEV,0)) AS VALDEV,
+
+sum(ISNULL(A.NFSTOTITEST,0)) - sum(ISNULL(C.VALDEV,0)) AS VALLIQ
+
+
+FROM 
+#NFS A 
+FULL OUTER JOIN #DEV C ON A.NFSCLICOD = C.NFECOD AND A.DATA1 = C.DATA1
+
+GROUP BY 
+NFSCLICOD,
+ISNULL(A.NFSCLICOD,C.NFECOD),
+-- ISNULL(A.NFSCLINOM,C.NFENOM),
+ISNULL(A.DATA,C.DATA),
+ISNULL(A.DATA1 , C.DATA1)
+
+ORDER BY 
+ISNULL(A.NFSCLICOD,C.NFECOD),
+ISNULL(A.DATA1 , C.DATA1)
+
+-----------------------------------------------------------------------------------
+
+-- clientes novos sem vendas -- "sub" realtorio 
+
+SELECT * FROM #CLI WHERE CLICOD NOT IN (SELECT NFSCLICOD FROM #NFS)
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+		/*SELECT
+		CASE substring(CONVERT(CHAR (10), NFSDATEMI,102),6,2) 
+		WHEN '01' THEN 'Jan/'
+		WHEN '02' THEN 'Fev/'
+		WHEN '03' THEN 'Mar/'
+		WHEN '04' THEN 'Abr/'
+		WHEN '05' THEN 'Mai/' 
+		WHEN '06' THEN 'Jun/'
+		WHEN '07' THEN 'Jul/'
+		WHEN '08' THEN 'Ago/'
+		WHEN '09' THEN 'Set/'
+		WHEN '10' THEN 'Out/'
+		WHEN '11' THEN 'Nov/'
+		WHEN '12' THEN 'Dez/'
+		END + substring(CONVERT(CHAR (10), NFSDATEMI,102),1,4) AS DATA1,
+		substring(CONVERT(CHAR (10), NFSDATEMI,102),1,7) AS DATA,
+		SUM(ROUND(dbo.NFSTOTITEST(B.NFSEMPCOD,B.NFSNUM,B.SNEEMPCOD,B.SNESER,B.NFSITE),2)) AS NFSTOTITEST,
+		COUNT(DISTINCT A.NFSNUM) AS QTDNOT
+		
+		FROM 
+		TBS0671 B (nolock)
+		LEFT JOIN TBS067 A (nolock) ON A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+		LEFT JOIN TBS080 D (NOLOCK) ON B.NFSNUM = D.ENFNUM AND B.SNEEMPCOD = D.SNEEMPCOD AND B.SNESER = D.SNESER
+		INNER JOIN #CLITOT E ON A.NFSCLICOD = E.CLICOD
+			  
+		WHERE 
+		NFSDATEMI between @DATADE and @DATEATEV and 
+		-- NFSTIP ='N' and 
+		D.ENFSIT = 6 AND
+		D.ENFTIPDOC = 1 AND
+		B.NFSCFOP IN ('5.102','5.202','5.405','5.411','5.922','5.929','6.102','6.202','6.108','6.404','6.411','6.922')
+		
+		GROUP BY 
+		substring(CONVERT(CHAR (10), NFSDATEMI,102),1,7) , 
+		substring(CONVERT(CHAR (10), NFSDATEMI,102),6,2) ,
+		substring(CONVERT(CHAR (10), NFSDATEMI,102),1,4)
+		
+		ORDER BY 
+		substring(CONVERT(CHAR (10), NFSDATEMI,102),1,7)*/

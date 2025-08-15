@@ -1,0 +1,170 @@
+-- ------------------------------------------------------------------------------
+-- Criando Tabelas
+-- ------------------------------------------------------------------------------
+
+-- se existir tabelas exclui
+
+if object_id ('tblloja1') is not null 
+	drop table tblloja1;
+	
+if object_id ('tblloja2') is not null
+	drop table tblloja2;
+	
+if object_id ('tbllojas') is not null
+	drop table tbllojas;
+	
+if object_id ('alteracoes') is not null
+	drop table alteracoes;
+	
+if object_id ('saldo_test') is not null
+	drop table saldo_test;
+	
+if object_id ('log_test') is not null
+	drop table log_test;
+	
+if object_id ('log_alteracoes') is not null
+	drop table log_alteracoes;
+
+-- cria tabelas
+
+create table
+	tblloja1 (lojcod int, procod int, prodes char(30))
+go
+create table 
+	tblloja2 (lojcod int, procod int, prodes char(30))
+go
+create table 
+	tbllojas (lojcod int, procod int, prodes char(30))
+go
+create table
+	alteracoes (tipo char(10), lojcod int, procod int, prodes_antes char(30), prodes_depois char(30))
+go
+create table
+	saldo_test (loc int, procod int, saldo int)
+go
+create table
+	log_test (loc int, procod int, saldo int, logdes char(30))
+go
+create table
+	log_alteracoes (tipo char(10), lojcod int, procod int, prodes_antes char(30), prodes_depois char(30), data_log datetime)
+	
+-- ------------------------------------------------------------------------------
+-- Preenchendo Tabelas "tblloja1" e "tblloja2"
+-- ------------------------------------------------------------------------------
+
+-- dados da tblloja1
+
+declare
+	@cont char(2)
+set
+	@cont = 1
+while
+	@cont <= 20
+		begin 
+			insert into tblloja1
+			values (1, @cont, 'caneta' + @cont)
+			set @cont = @cont + 1
+		end 
+
+go
+
+-- dados da tblloja2
+
+declare
+	@cont char(2)
+set
+	@cont = 15
+while
+	@cont <= 30
+		begin 
+			insert into tblloja2
+			values (1, @cont, 'caneta' + @cont)
+			set @cont = @cont + 1
+		end 
+
+-- ------------------------------------------------------------------------------
+-- Mesclando Tabelas "tblloja1" e "tbllojas"
+-- ------------------------------------------------------------------------------
+
+-- destino dos dados
+
+merge tbllojas des
+
+-- origem  dos dados
+
+
+using tblloja1 ori
+
+-- ligando as tabelas
+
+on ori.procod = des.procod
+
+-- comando executado quando o resultado for falso na ligação de tabelas
+
+when not matched then
+insert values (ori.lojcod, ori.procod, ori.prodes)
+
+-- comando executado quando o resultado for verdadeiro na ligação de tabelas
+
+when matched then
+update set des.lojcod = ori.lojcod;
+
+/*output
+	$action tipo,
+	inserted.lojcod lojcod,
+	inserted.procod procod,
+	inserted.prodes prodes
+	into alteracoes;*/
+
+-- ------------------------------------------------------------------------------
+-- Mesclando Tabelas "tblloja2" e "tbllojas"
+-- ------------------------------------------------------------------------------
+
+-- destino dos dados
+
+merge tbllojas des
+
+-- origem  dos dados
+
+using tblloja2 ori
+
+-- ligando as tabelas
+
+on ori.procod = des.procod
+
+-- comando executado quando o resultado for falso na ligação de tabelas
+
+when not matched then
+insert values (ori.lojcod, ori.procod, ori.prodes)
+
+-- comando executado quando o resultado for verdadeiro na ligação de tabelas
+
+when matched then
+update set des.lojcod = ori.lojcod, des.prodes = ori.prodes
+
+output
+	lower($action) tipo,
+	inserted.lojcod lojcod,
+	inserted.procod procod,
+	deleted.prodes prodes_antes,
+	inserted.prodes prodes_depois
+	into alteracoes;
+
+-- ------------------------------------------------------------------------------
+-- Inserindo dados nas Tabelas "saldo_test" e "log_test"
+-- ------------------------------------------------------------------------------
+
+insert into saldo_test (loc, procod, saldo) select '1', procod, '0' from alteracoes where tipo = 'insert';
+insert into saldo_test (loc, procod, saldo) select '2', procod, '0' from alteracoes where tipo = 'insert';
+insert into log_test (loc, procod, saldo, logdes) select '1', procod, '0', 'log gerado via script' from alteracoes where tipo = 'insert';
+insert into log_test (loc, procod, saldo, logdes) select '2', procod, '0', 'log gerado via script' from alteracoes where tipo = 'insert';
+insert into log_alteracoes (tipo, lojcod , procod, prodes_antes, prodes_depois, data_log) select tipo, lojcod, procod, prodes_antes, prodes_depois, getdate() from alteracoes;
+
+delete from alteracoes
+
+select * from tbllojas
+select * from saldo_test
+select * from log_test
+select * from log_alteracoes order by procod, data_log desc 
+
+-- update tblloja2 set prodes = replace(prodes, 'caneta', 'borracha') from tblloja2

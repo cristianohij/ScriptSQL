@@ -1,0 +1,229 @@
+-- BARRAREL.TXT
+select
+	cast(right(replicate(0,20) + rtrim(PROCOD),20) as character(20)) +
+	cast(right(replicate(0,20) + rtrim(isnull(CBPCODBAR,barras)),20) as character(20)) +
+	replicate(' ',40) +
+	replace(replace(str(isnull(CBPQTDEMB, PROUM1QTD),10,3),'.',''),' ','0') +
+	replace(replace(str(TDPPRELOJ,10,3),'.',''),' ','0')
+from (
+	select
+		'1' id,
+		rtrim(PROCOD) barras,
+		PROCOD,
+		PROUM1,
+		convert(smallmoney,1) PROUM1QTD
+	from
+		TBS010
+union
+	select
+		'2' id,
+		rtrim(PROCOD) + '2222' barras,
+		PROCOD,
+		PROUM2,
+		PROUM2QTD
+	from
+		TBS010
+union
+	select
+		'3' id,
+		rtrim(PROCOD) + '3333' barras,
+		PROCOD,
+		PROUM3,
+		PROUM3QTD
+	from
+		TBS010
+union
+	select
+		'4' id,
+		rtrim(PROCOD) + '4444' barras,
+		PROCOD,
+		PROUM4,
+		PROUM4QTD
+	from
+		TBS010) as a left join
+	(select
+			'1' id,
+			TDPPROCOD,
+			case when TDPPROLOJ = 'S' and convert(datetime,convert(char,getdate(),103)) between TDPVALPROI and TDPVALPROF then TDPPREPRO1 else TDPPRELOJ1 end TDPPRELOJ
+		from
+			TBS031
+	union
+		select
+			'2' id,
+			TDPPROCOD,
+			case when TDPPROLOJ = 'S' and convert(datetime,convert(char,getdate(),103)) between TDPVALPROI and TDPVALPROF then TDPPREPRO2 else TDPPRELOJ2 end TDPPRELOJ
+		from
+			TBS031
+	union
+		select
+			'3' id,
+			TDPPROCOD,
+			case when TDPPROLOJ = 'S' and convert(datetime,convert(char,getdate(),103)) between TDPVALPROI and TDPVALPROF then TDPPREPRO3 else TDPPRELOJ3 end TDPPRELOJ
+		from
+			TBS031
+	union
+		select
+			'4' id,
+			TDPPROCOD,
+			case when TDPPROLOJ = 'S' and convert(datetime,convert(char,getdate(),103)) between TDPVALPROI and TDPVALPROF then TDPPREPRO4 else TDPPRELOJ4 end TDPPRELOJ
+		from
+			TBS031) as b on PROCOD = TDPPROCOD and a.id = b.id left join
+	TBS0103 on PROCOD = CBPPROCOD and PROUM1QTD = CBPQTDEMB
+where
+	PROUM1QTD <> 0 and
+	TDPPRELOJ is not null
+union
+select
+	cast(right(replicate(0,20) + rtrim(PROCOD),20) as character(20)) +
+	cast(right(replicate(0,20) + rtrim(barras),20) as character(20)) +
+	replicate(' ',40) +
+	replace(replace(str(isnull(CBPQTDEMB, PROUMQTD),10,3),'.',''),' ','0') +
+	replace(replace(str(TDPPRELOJ,10,3),'.',''),' ','0')
+from (
+	select
+		'2' id,
+		rtrim(PROCOD) + '2222' barras,
+		PROCOD,
+		PROUM2,
+		PROUM2QTD PROUMQTD
+	from
+		TBS010
+union
+	select
+		'3' id,
+		rtrim(PROCOD) + '3333' barras,
+		PROCOD,
+		PROUM3,
+		PROUM3QTD PROUMQTD
+	from
+		TBS010
+union
+	select
+		'4' id,
+		rtrim(PROCOD) + '4444' barras,
+		PROCOD,
+		PROUM4,
+		PROUM4QTD PROUMQTD
+	from
+		TBS010) as a left join
+	(select
+			'1' id,
+			TDPPROCOD,
+			case when TDPPROLOJ = 'S' and convert(datetime,convert(char,getdate(),103)) between TDPVALPROI and TDPVALPROF then TDPPREPRO1 else TDPPRELOJ1 end TDPPRELOJ
+		from
+			TBS031
+	union
+		select
+			'2' id,
+			TDPPROCOD,
+			case when TDPPROLOJ = 'S' and convert(datetime,convert(char,getdate(),103)) between TDPVALPROI and TDPVALPROF then TDPPREPRO2 else TDPPRELOJ2 end TDPPRELOJ
+		from
+			TBS031
+	union
+		select
+			'3' id,
+			TDPPROCOD,
+			case when TDPPROLOJ = 'S' and convert(datetime,convert(char,getdate(),103)) between TDPVALPROI and TDPVALPROF then TDPPREPRO3 else TDPPRELOJ3 end TDPPRELOJ
+		from
+			TBS031
+	union
+		select
+			'4' id,
+			TDPPROCOD,
+			case when TDPPROLOJ = 'S' and convert(datetime,convert(char,getdate(),103)) between TDPVALPROI and TDPVALPROF then TDPPREPRO4 else TDPPRELOJ4 end TDPPRELOJ
+		from
+			TBS031) as b on PROCOD = TDPPROCOD and a.id = b.id left join
+	TBS0103 on PROCOD = CBPPROCOD and PROUMQTD = CBPQTDEMB
+where
+	PROUMQTD <> 0 and
+	TDPPRELOJ is not null
+	
+-- ESTOQUE.TXT
+select
+	cast(right(replicate(0,20) + rtrim(PROCOD),20) as character(20)) + --Código Interno do Produto (PLU)
+	cast(right(replicate(0,20) + rtrim(PROCOD),20) as character(20)) + --Código de Barras
+	cast(replace(upper(PRODES),'  ',' ') collate sql_latin1_general_cp1251_ci_as as character(40)) + --Descrição Completa
+	cast(replace(upper(left(PRODES,24)),'  ',' ') collate sql_latin1_general_cp1251_ci_as as character(24)) + --Descrição Resumida para o PDV
+	cast(upper('N') as character(1)) + --Fórmula
+	cast(upper(PROUM1) as character(2)) + --Unidade de Referência
+	cast(upper(replicate(0,4)) as character(4)) + --Armação / Localização
+	cast(upper(replicate(0,2)) as character(2)) + --Setor (Balança)
+	replace(replace(str(isnull(case when TDPPROLOJ = 'S' and convert(datetime,convert(char,getdate(),103)) between TDPVALPROI and TDPVALPROF then TDPPREPRO1 else TDPPRELOJ1 end,0),10,3),'.',''),' ','0') + --Preço de Venda Padrão
+	replicate(0,9) + --Preço de Venda Promocional
+	replicate(0,12) + --Saldo em Estoque (Quantidade)
+	'A' + --Desconto Padrão
+	PROPESAVEL + --Quantidade Variável / Produto Pesado ?
+	'N' + --Altera Preço de Venda no PDV?
+	'N' + --Bloqueia Multiplicador?
+	replicate(' ',6) + --Promoção: Leve X Pague Y
+	right(replicate(0,2) + rtrim(TGZCOD),2) + --Código da Tributação
+	replicate(' ',1) + --Reservado - Espaço em Branco
+	replace(replace(str(PROUM1QTD,8,3),'.',''),' ','0') + --Quantidade por Embalagem
+	'N' + --Vende Somente Embalagem Fechada ?
+	replicate(0,4) + --Desconto por Embalagem Fechada
+	'N' + --Pede Descrição Complementar?
+	replicate(' ',80) + --Reservado - Espaço em Branco
+	replicate(0,9) + --Preço de Venda Atacado
+	case when PROPESAVEL = 'S' then 'N' else 'S' end + --Bloqueia Venda Fracionada?
+	replicate(' ',40) + --Referencia
+	PROSTBA + PROSTBB + --Situação Tributária
+	'A' + --Estado do Produto
+	cast(upper(replicate(0,4)) as character(4)) + --Código do Vasilhame
+	replicate(' ',81) + --Reservado - Espaço em Branco
+	cast(upper(replicate(0,4)) as character(4)) + --Percentual Desconto Máximo Permitido
+	replace(replace(str(PROUM2QTD,8,3),'.',''),' ','0') + --Quantidade por Embalagem (Atacado)
+	case when PROPESAVEL = 'S' then 'N' else 'S' end + -- Vende Só Embal. Fechada? (Atacado)
+	replicate(0,4) + --Desconto por Embal. Fechada(Atacado)
+	cast(left(PROCLAFIS,8) as character(10))  + --Classificação Fiscal
+	replicate(0,12) + --Quantidade Pendente
+	replicate(' ',4) + --Validade da Quantidade Pendente
+	replicate(0,9) + --Preço de Venda Especial
+	replicate(0,7) + --Quantidade por Embalagem (Especial)
+	'N' + --Vende Só Embal. Fechada? (Especial)
+	replicate(0,4) + --Desconto por Embalagem Fechada (Especial)
+	replicate(0,12) + --Quantidade Mínima para Preço Atacado
+	replicate(0,12) + --Quantidade Mínima para Preço Especial
+	cast(right(replicate(0,6) + rtrim(GRUCOD),6) as character(6)) + --Grupo
+	replicate(0,6) + --Departamento
+	cast(right(replicate(0,6) + rtrim(MARCOD),6) as character(6)) + --Marca
+	replicate(0,8) + --Pontos Clube Fidelidade
+	replicate(' ',1) + --Base de Cálculo Clube Fidelidade
+	replicate(0,20) + --Código Interno do Produto Associado
+	replicate(0,3) + --Grupo de Finalizadores
+	replicate(0,9) + --Desconto Finalizadores Específicos
+	replicate(' ',90) + --Finalizadores para Desconto
+	replicate(0,2) + --1º Micro-Terminal de Impressão
+	replicate(0,6) + --Quantidade Máxima de Item por Compra
+	replicate(' ',1) + --Cupom Vinculado
+	replicate(' ',1) + --Bloqueador de Venda
+	replicate(0,1) + --Tipo do Produto
+	replicate(0,2) + --2º Micro-Terminal de Impressão
+	replicate(0,2) + --3º Micro-Terminal de Impressão
+	replicate(0,2) + --4º Micro-Terminal de Impressão
+	replicate(0,2) + --5º Micro-Terminal de Impressão
+	'N' + --Solicita Senha para Liberação de Venda
+	replicate(0,3) + --Grupo de Balcão
+	replicate(' ',1) + --Indicador de Produção Própria ou de Terceiro
+	replicate(' ',1) + --Indicador de Arredondamento ou Truncamento
+	replicate(0,9) + --Preço Máximo de Venda ao Consumidor
+	replicate(0,3) + --Tipo do Produto
+	replace(replace(str(case when PROSTBA = 0 or PROSTBA = 3 or PROSTBA = 4 or PROSTBA = 5 or PROSTBA = 8 then isnull(NCMALINAC,9.25) else isnull(NCMALIIMP,9.25) end,5,2),'.',''),' ','0') + --Carga Tributária Federal
+	replicate(' ',4) + --CSOSN
+	'N' + --Entregável
+	replicate(0,4) + --Carga Tributária Estadual
+	isnull(NCMCHV,replicate(' ',10)) + --Chave Tabela IBPT
+	case when PROSTBPIS = '' then '01' else PROSTBPIS end + --CST do PIS
+	replace(replace(str(case when PROSTBPIS = '' then '1.65' else PROPIS end,10,2),'.',''),' ','0') + --Alíquota do PIS
+	case when PROSTBCOFINS = '' then '01' else PROSTBCOFINS end + --CST do COFINS
+	replace(replace(str(case when PROSTBCOFINS = '' then '7.60' else PROCOFINS end,10,2),'.',''),' ','0') + --Alíquota do COFINS
+	PROCEST + --CEST – Código Especificador da Situação Tributária
+	replicate(0,9) + --Valor Unitário PIS - SAIDA
+	replicate(0,9) + --Valor Unitário COFINS - SAIDA
+	replace(replace(str(TDPCUSBAS,10,3),'.',''),' ','0') --Custo Base
+from
+	TBS010 join
+	TBS031 on PROCOD = TDPPROCOD left join
+	TBS092 on PROCLAFIS = NCMCOD
+where
+	isnull(NCMEX,'') = '' and
+	TDPCUSBAS <> 0

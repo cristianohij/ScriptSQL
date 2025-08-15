@@ -1,0 +1,26 @@
+BEGIN TRAN ;
+
+MERGE TBS011 A -- DESTINO
+USING nd.SIBD.dbo.TBS011 B -- ORIGEM
+ON A.UNICOD collate Latin1_General_BIN  = B.UNICOD
+
+-- Há registro no destino e na origem
+
+	WHEN MATCHED AND A.UNIEMPCOD <> B.UNIEMPCOD OR A.UNIDES collate Latin1_General_BIN <> B.UNIDES 
+	
+	THEN 
+	UPDATE 
+	SET A.UNIEMPCOD = B.UNIEMPCOD , A.UNICOD  = B.UNICOD , A.UNIDES = B.UNIDES --, A.UNIDATCAD = GETDATE()
+	
+	
+	
+	-- Quando não há registro no destino e há na origem
+	
+	WHEN NOT MATCHED 
+	
+	THEN INSERT (UNIEMPCOD,UNICOD,UNIDES,UNIDATCAD) VALUES (B.UNIEMPCOD, B.UNICOD,B.UNIDES,getdate())
+	
+ OUTPUT INSERTED.*, $action, DELETED.* ;
+ 
+ 
+

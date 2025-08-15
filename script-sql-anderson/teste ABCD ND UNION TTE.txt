@@ -1,0 +1,695 @@
+
+DECLARE @data1de date,@data1ate date,@data2de date, @data2ate date , @data3de date,
+@data3ate date,  @DIAS INT, @pA int , @pB int , @pC int , @marcod smallint , @marcanom char(30)
+SET @pA = 90
+SET @pB = 95
+SET @pC = 100   
+SET @data1de ='20151101'
+SET @data1ate ='20151130'
+SET @data2de ='20151201'
+SET @data2ate ='20151231'
+SET @data3de ='20160201'
+SET @data3ate ='20160229'
+SET @DIAS= 25
+set @marcod = '009'
+set @marcanom = '' 
+
+
+-- VENDAS DA LOJA , CRIA TABELA VIRTUAL #LOJA
+if object_id('TempDB.dbo.#LOJA') is not null
+   drop table #LOJA
+
+SELECT A.PROCOD AS COD, 
+ISNULL((SELECT SUM(M2_QTD) AS QTD FROM MSL002 B (nolock) WHERE M2_DAT between '20151101' and '20151130' and M2_TIPREG = '01' AND M2_REGCAN = 'F' AND A.PROCOD = B.M2_PROCOD GROUP BY M2_PROCOD ),0) AS VND1,
+ISNULL((SELECT SUM(M2_QTD) AS QTD FROM MSL002 B (nolock) WHERE M2_DAT between '20151201' and '20151231' and M2_TIPREG = '01' AND M2_REGCAN = 'F' AND A.PROCOD = B.M2_PROCOD GROUP BY M2_PROCOD ),0) AS VND2,
+ISNULL((SELECT SUM(M2_QTD) AS QTD FROM MSL002 B (nolock) WHERE M2_DAT between '20160201' and '20160229' and M2_TIPREG = '01' AND M2_REGCAN = 'F' AND A.PROCOD = B.M2_PROCOD GROUP BY M2_PROCOD ),0) AS VND3,
+ISNULL((SELECT SUM(M2_VALTOT)-SUM(M2_ABT) as VALOR FROM MSL002 B (nolock) WHERE M2_DAT between '20151101' and '20151130' and M2_TIPREG = '01' AND M2_REGCAN = 'F' AND A.PROCOD = B.M2_PROCOD GROUP BY M2_PROCOD ),0) AS VL1,
+ISNULL((SELECT SUM(M2_VALTOT)-SUM(M2_ABT) as VALOR FROM MSL002 B (nolock) WHERE M2_DAT between '20151201' and '20151231' and M2_TIPREG = '01' AND M2_REGCAN = 'F' AND A.PROCOD = B.M2_PROCOD GROUP BY M2_PROCOD ),0) AS VL2,
+ISNULL((SELECT SUM(M2_VALTOT)-SUM(M2_ABT) as VALOR FROM MSL002 B (nolock) WHERE M2_DAT between '20160201' and '20160229' and M2_TIPREG = '01' AND M2_REGCAN = 'F' AND A.PROCOD = B.M2_PROCOD GROUP BY M2_PROCOD ),0) AS VL3
+INTO #LOJA
+FROM TBS010 A (NOLOCK)
+WHERE (A.MARCOD =(CASE WHEN @marcod = '' THEN A.MARCOD ELSE Upper(RTRIM(@marcod)) END))  
+	AND(A.MARNOM LIKE(CASE WHEN @marcanom = '' THEN '% %' ELSE Upper(RTRIM(@marcanom))+'%' END))
+	
+
+
+
+-- VENDAS DO COORPORATIVO , CRIA TABLELA VITUAL #CORP
+if object_id('TempDB.dbo.#CORP') is not null
+   drop table #CORP
+
+
+SELECT PROCOD AS COD ,
+ISNULL((SELECT SUM(C.NFSQTD*NFSQTDEMB) AS QTD  FROM TBS0671 C (nolock) JOIN TBS067 B (nolock)  ON 
+										C.NFSEMPCOD = B.NFSEMPCOD and 
+										C.NFSNUM = B.NFSNUM and 
+										C.SNEEMPCOD = B.SNEEMPCOD and 
+										C.SNESER = B.SNESER
+										WHERE NFSDATEMI between '20151101' and '20151130' 
+										and NFSTIP = 'N' and NFSCAN = 'N' and NFSDEV='N' 
+										and  NFSCLINOM not Like('%BEST BAG%') and NFSCLINOM not Like('%BEST OFFICE%') 
+										and NFSCLINOM not Like('%MISASPEL%') and NFSCLINOM not Like('%PAPELYNA%') 
+										and  NFSCLINOM not Like('%TANBY%')
+										AND C.PROCOD = A.PROCOD
+										GROUP BY PROCOD),0) AS IVND1,
+
+ISNULL((SELECT SUM(C.NFSQTD*NFSQTDEMB) AS QTD  FROM TBS0671 C (nolock) JOIN TBS067 B (nolock)  ON 
+										C.NFSEMPCOD = B.NFSEMPCOD and 
+										C.NFSNUM = B.NFSNUM and 
+										C.SNEEMPCOD = B.SNEEMPCOD and 
+										C.SNESER = B.SNESER
+										WHERE NFSDATEMI between '20151201' and '20151231' 
+										and NFSTIP = 'N' and NFSCAN = 'N' and NFSDEV='N' 
+										and  NFSCLINOM not Like('%BEST BAG%') and NFSCLINOM not Like('%BEST OFFICE%') 
+										and NFSCLINOM not Like('%MISASPEL%') and NFSCLINOM not Like('%PAPELYNA%') 
+										and  NFSCLINOM not Like('%TANBY%')
+										AND C.PROCOD = A.PROCOD
+										GROUP BY PROCOD),0) AS IVND2,
+										
+ISNULL((SELECT SUM(C.NFSQTD*NFSQTDEMB) AS QTD  FROM TBS0671 C (nolock) JOIN TBS067 B (nolock)  ON 
+										C.NFSEMPCOD = B.NFSEMPCOD and 
+										C.NFSNUM = B.NFSNUM and 
+										C.SNEEMPCOD = B.SNEEMPCOD and 
+										C.SNESER = B.SNESER
+										WHERE NFSDATEMI between '20160201' and '20160229'
+										and NFSTIP = 'N' and NFSCAN = 'N' and NFSDEV='N' 
+										and  NFSCLINOM not Like('%BEST BAG%') and NFSCLINOM not Like('%BEST OFFICE%') 
+										and NFSCLINOM not Like('%MISASPEL%') and NFSCLINOM not Like('%PAPELYNA%') 
+										and  NFSCLINOM not Like('%TANBY%')
+										AND C.PROCOD = A.PROCOD
+										GROUP BY PROCOD),0) AS IVND3,
+
+
+ISNULL((SELECT sum(dbo.NFSTOTITEST(C.NFSEMPCOD,C.NFSNUM,C.SNEEMPCOD,C.SNESER,C.NFSITE)) as VALOR
+
+FROM TBS0671 C (nolock) JOIN TBS067 B (nolock)  ON 
+										C.NFSEMPCOD = B.NFSEMPCOD and 
+										C.NFSNUM = B.NFSNUM and 
+										C.SNEEMPCOD = B.SNEEMPCOD and 
+										C.SNESER = B.SNESER
+										WHERE NFSDATEMI between '20151101' and '20151130' 
+										and NFSTIP = 'N' and NFSCAN = 'N' and NFSDEV='N' 
+										and  NFSCLINOM not Like('%BEST BAG%') and NFSCLINOM not Like('%BEST OFFICE%') 
+										and NFSCLINOM not Like('%MISASPEL%') and NFSCLINOM not Like('%PAPELYNA%') 
+										and  NFSCLINOM not Like('%TANBY%')
+										AND C.PROCOD = A.PROCOD
+										GROUP BY PROCOD),0) AS IVL1,
+										
+ISNULL((SELECT sum(dbo.NFSTOTITEST(C.NFSEMPCOD,C.NFSNUM,C.SNEEMPCOD,C.SNESER,C.NFSITE)) as VALOR
+
+
+FROM TBS0671 C (nolock) JOIN TBS067 B (nolock)  ON 
+										C.NFSEMPCOD = B.NFSEMPCOD and 
+										C.NFSNUM = B.NFSNUM and 
+										C.SNEEMPCOD = B.SNEEMPCOD and 
+										C.SNESER = B.SNESER
+										WHERE NFSDATEMI between '20151201' and '20151231'
+										and NFSTIP = 'N' and NFSCAN = 'N' and NFSDEV='N' 
+										and  NFSCLINOM not Like('%BEST BAG%') and NFSCLINOM not Like('%BEST OFFICE%') 
+										and NFSCLINOM not Like('%MISASPEL%') and NFSCLINOM not Like('%PAPELYNA%') 
+										and  NFSCLINOM not Like('%TANBY%')
+										AND C.PROCOD = A.PROCOD
+										GROUP BY PROCOD),0) AS IVL2,
+										
+ISNULL((SELECT sum(dbo.NFSTOTITEST(C.NFSEMPCOD,C.NFSNUM,C.SNEEMPCOD,C.SNESER,C.NFSITE)) as VALOR
+
+FROM TBS0671 C (nolock) JOIN TBS067 B (nolock)  ON 
+										C.NFSEMPCOD = B.NFSEMPCOD and 
+										C.NFSNUM = B.NFSNUM and 
+										C.SNEEMPCOD = B.SNEEMPCOD and 
+										C.SNESER = B.SNESER
+										WHERE NFSDATEMI between '20160201' and '20160229' 
+										and NFSTIP = 'N' and NFSCAN = 'N' and NFSDEV='N' 
+										and  NFSCLINOM not Like('%BEST BAG%') and NFSCLINOM not Like('%BEST OFFICE%') 
+										and NFSCLINOM not Like('%MISASPEL%') and NFSCLINOM not Like('%PAPELYNA%') 
+										and  NFSCLINOM not Like('%TANBY%')
+										AND C.PROCOD = A.PROCOD
+										GROUP BY PROCOD),0) AS IVL3
+										
+INTO #CORP
+FROM TBS010 A (NOLOCK)
+WHERE (A.MARCOD =(CASE WHEN @marcod = '' THEN A.MARCOD ELSE Upper(RTRIM(@marcod)) END))  
+	AND(A.MARNOM LIKE(CASE WHEN @marcanom = '' THEN '% %' ELSE Upper(RTRIM(@marcanom))+'%' END))
+
+-- TABELA DE FERIADOS , CRIA TABELA VIRTUAL #FER
+if object_id('TempDB.dbo.#FER') is not null
+   drop table #FER
+   SELECT * INTO #FER FROM INTG.SIBDBKP.dbo.Feriado (NOLOCK)
+
+
+-- TABELA DE VENDAS TOTAIS #ABC, JUNTANDO #LOJA E #CORP , FAZENDO DIAS UTEIS JUNTO COM #FER
+if object_id('TempDB.dbo.#ABC') is not null
+   drop table #ABC
+
+SELECT Identity(INT,1,1) as ordem,
+
+rtrim(ltrim(A.PROCOD))  as 'CODIGO',
+L.VND1 AS GZ_1,
+L.VL1 AS VLGZ_1,
+I.IVND1 AS IN_1,
+I.IVL1 AS VLIN_1,
+L.VND2 AS GZ_2,
+L.VL2 AS VLGZ_2,
+I.IVND2 AS IN_2,
+I.IVL2 AS VLIN_2,
+L.VND3 AS GZ_3,
+L.VL3 AS VLGZ_3,
+I.IVND3 AS IN_3,
+I.IVL3 AS VLIN_3,
+L.VND1 + L.VND2+ L.VND3+ 
+I.IVND1 + I.IVND2 + I.IVND3 AS SOMAQTD,
+I.IVL1 +I.IVL2 + I.IVL3 + L.VL1 + L.VL2 + L.VL3 AS SOMATT,
+SUM(I.IVL1 +I.IVL2 + I.IVL3 + L.VL1 + L.VL2 + L.VL3) OVER (PARTITION BY 1) AS VALOR,
+(I.IVL1 +I.IVL2 + I.IVL3 + L.VL1 + L.VL2 + L.VL3) / 
+SUM(I.IVL1 +I.IVL2 + I.IVL3 + L.VL1 + L.VL2 + L.VL3) OVER (PARTITION BY 1) *100 AS PORC,
+
+dbo.FCNDIASUTEIS (@data1de, @data1ate) - (SELECT count(*) FROM #FER
+										  where (Sg_UF = 'SJ' or Tp_Feriado = 1 ) 
+										  and (Nr_Ano between substring(convert(char(10),@data1de,103),7,4) and substring(convert(char(10),@data1ate,103),7,4) OR 
+										  	  (Nr_Ano between 0 and 0))
+										  and Nr_Mes between substring(convert(char(10),@data1de,103),4,2) and substring(convert(char(10),@data1ate,103),4,2)
+										  and Nr_Dia between substring(convert(char(10),@data1de,103),1,2) and  substring(convert(char(10),@data1ate,103),1,2)) AS DIA1,
+
+dbo.FCNDIASUTEIS (@data2de, @data2ate) - (SELECT count(*) FROM #FER
+										  where (Sg_UF = 'SJ' or Tp_Feriado = 1 ) 
+										  and (Nr_Ano between substring(convert(char(10),@data2de,103),7,4) and substring(convert(char(10),@data2ate,103),7,4) OR 
+										  	  (Nr_Ano between 0 and 0))
+										  and Nr_Mes between substring(convert(char(10),@data2de,103),4,2) and substring(convert(char(10),@data2ate,103),4,2)
+										  and Nr_Dia between substring(convert(char(10),@data2de,103),1,2) and  substring(convert(char(10),@data2ate,103),1,2)) AS DIA2,
+
+dbo.FCNDIASUTEIS (@data3de, @data3ate) - (SELECT count(*) FROM #FER
+										  where (Sg_UF = 'SJ' or Tp_Feriado = 1 ) 
+										  and (Nr_Ano between substring(convert(char(10),@data3de,103),7,4) and substring(convert(char(10),@data3ate,103),7,4) OR 
+										  	  (Nr_Ano between 0 and 0))
+										  and Nr_Mes between substring(convert(char(10),@data3de,103),4,2) and substring(convert(char(10),@data3ate,103),4,2)
+										  and Nr_Dia between substring(convert(char(10),@data3de,103),1,2) and  substring(convert(char(10),@data3ate,103),1,2)) AS DIA3
+
+
+into #ABC
+
+FROM TBS010 A (NOLOCK)
+
+FULL OUTER JOIN   
+#LOJA L ON A.PROCOD = L.COD
+
+FULL OUTER JOIN   
+#CORP I ON A.PROCOD = I.COD
+
+			
+where ((ISNULL(L.VL1,0) + ISNULL(L.VL2,0) + ISNULL(L.VL3,0)) <> 0 OR ISNULL(L.VND1,0) + ISNULL(L.VND2,0) + ISNULL(L.VND3,0) <> 0 OR
+ 
+	   (ISNULL(I.IVL1,0) + ISNULL(I.IVL2,0) + ISNULL(I.IVL3,0)) <> 0 OR (ISNULL(I.IVND1,0) + ISNULL(I.IVND2,0) + ISNULL(I.IVND3,0)) <> 0) AND PROCOD IS NOT NULL
+	   					
+		
+ORDER BY (I.IVL1 +I.IVL2 + I.IVL3 + L.VL1 + L.VL2 + L.VL3) / 
+SUM(I.IVL1 +I.IVL2 + I.IVL3 + L.VL1 + L.VL2 + L.VL3) OVER (PARTITION BY 1) *100 DESC 
+
+
+
+-- CRIANDO ABC COM VALORES DETERMINADOS PELO USUARIO #ABCD , SENDO D SEM VENDAS 
+If object_id('TempDB.dbo.#ABCD') is not null
+   drop table #ABCD
+
+SELECT
+ordem, CODIGO,SOMATT, VALOR, PORC,SOMAQTD,
+GZ_1, VLGZ_1,
+IN_1,VLIN_1,
+GZ_2,VLGZ_2,
+IN_2,VLIN_2,
+GZ_3,VLGZ_3,
+IN_3,VLIN_3,
+DIA1,
+DIA2,
+DIA3,
+ROUND((SELECT SUM(TInt.PORC) FROM #ABC As TInt
+        WHERE TInt.ordem <= TOut.ordem),4) As PercAcum,
+CASE WHEN (ROUND((SELECT SUM(TInt.PORC) FROM #ABC As TInt
+           WHERE TInt.ordem <= TOut.ordem),4)) < @pA 
+		THEN 'A' 
+		ELSE 
+			CASE WHEN (ROUND((SELECT SUM(TInt.PORC) FROM #ABC As TInt
+        			   WHERE TInt.ordem <= TOut.ordem),4)) > @pA AND
+					  (ROUND((SELECT SUM(TInt.PORC) FROM #ABC As TInt
+        			   WHERE TInt.ordem <= TOut.ordem),4)) < @pB
+			THEN 'B' ELSE 'C' 
+			END
+		END AS ABC
+INTO #ABCD
+FROM #ABC As TOut
+
+
+-- TABELA FINAL , JUNTA TODO O SALDO + VENDAS + ABCD + SALDO DO CD
+
+If object_id('TempDB.dbo.#ND') is not null
+   drop table #ND
+SELECT 
+'ND' AS 'UNIDADE' ,
+rtrim(A.PROLOCFIS) AS 'LOC',
+RTRIM(LTRIM(A.PROSTATUS)) AS 'STA',
+rtrim(ltrim(A.PROCOD))  as 'CODIGO',
+A.PRODES  as 'DESCRICAO',							
+case when len(A.MARCOD) = 4 then rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) else right(('00' + ltrim(str(A.MARCOD))),3) + ' - ' + rtrim(A.MARNOM) end as 'MARCA',
+A.PROUM1 collate Latin1_General_BIN as 'UN.1',
+ISNULL(REPLACE(STR(SALDO.EST,10,4),'.',','),0) AS 'SALDO ESTOQUE',
+ISNULL(REPLACE(STR(SALDO.LOJA,10,4),'.',','),0) AS'SALDO LOJA' ,
+ISNULL(REPLACE(STR(SALDO.SALTT,10,4),'.',','),0) AS 'SOMA EST+LOJ',
+ISNULL(REPLACE(STR(SALDO.RES,10,4),'.',','),0) AS RESER,
+ISNULL(REPLACE(STR(SALDO.PEN,10,4),'.',','),0) AS PENDENTE,
+ISNULL(REPLACE(STR(SALDO.CMP,10,4),'.',','),0) AS COMPRAS,
+
+
+-- SOMA AS QTDS VENDIDAS / PELA QUANTIDADE DE DIAS UTEIS, CASO >0 , SOMA SALDO TOTAL + COMPRAS + SALDO CD - PENDENTE / (VEN_UTEIS) 
+CASE WHEN ISNULL((SOMAQTD / 
+				((SELECT TOP 1 DIA1 FROM #ABCD WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCD WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCD WHERE DIA3 > 0))),0)> 0 
+										  
+	THEN str(round(((ISNULL(SALDO.SALTT,0)+ ISNULL(SALDO.CMP,0) ) - ISNULL(SALDO.PEN,0))/
+	ISNULL((SOMAQTD / 
+				((SELECT TOP 1 DIA1 FROM #ABCD WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCD WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCD WHERE DIA3 > 0))),0),0),10,0)
+	ELSE 0 END AS 'TEMPO RESTANTE',
+
+
+-- USUARIO EESCOLHE A QUANTIDADE DE DIAS UTEIS PARA REPOSIÇÃO 
+-- @DIAS - (SOMA AS QTDS VENDIDAS / PELA QUANTIDADE DE DIAS UTEIS, CASO >0 , 
+-- SOMA SALDO TOTAL + COMPRAS + SALDO CD - PENDENTE / (QTDS VENDAS / PELA QUANTIDADE DE DIAS UTEIS)) * VEN_UTEIS CASO <=0.9 É 0 
+-- ELSE @DIAS - (SOMA AS QTDS VENDIDAS / PELA QUANTIDADE DE DIAS UTEIS, CASO >0 , 
+-- SOMA SALDO TOTAL + COMPRAS + SALDO CD - PENDENTE / (QTDS VENDAS / PELA QUANTIDADE DE DIAS UTEIS)) ( 
+-- PARA SABER QUANTOS DIAS , DEPOIS MULTIPLACAR PELA QUANTIDADE VENDIDA POR DIA) * VEN_UTEIS -- DAI SABEREI A QTD PARA REPOSIÇÃO
+CASE WHEN ((@DIAS - (CASE WHEN ISNULL((SOMAQTD / 
+					((SELECT TOP 1 DIA1 FROM #ABCD WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCD WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCD WHERE DIA3 > 0))),0) > 0 
+										  
+					THEN str(round(((ISNULL(SALDO.SALTT,0)+ ISNULL(SALDO.CMP,0)) - ISNULL(SALDO.PEN,0))/
+					ISNULL((SOMAQTD / 
+					((SELECT TOP 1 DIA1 FROM #ABCD WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCD WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCD WHERE DIA3 > 0))),0),0),10,0)
+					ELSE 0 END)) * ISNULL((SOMAQTD / 
+								((SELECT TOP 1 DIA1 FROM #ABCD WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCD WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCD WHERE DIA3 > 0))),0)) <=0.9 
+	THEN 0 
+	ELSE ((@DIAS - (CASE WHEN ISNULL((SOMAQTD / 
+					((SELECT TOP 1 DIA1 FROM #ABCD WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCD WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCD WHERE DIA3 > 0))),0) > 0 
+										  
+					THEN str(round(((ISNULL(SALDO.SALTT,0)+ ISNULL(SALDO.CMP,0)) - ISNULL(SALDO.PEN,0))/
+					ISNULL((SOMAQTD / 
+					((SELECT TOP 1 DIA1 FROM #ABCD WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCD WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCD WHERE DIA3 > 0))),0),0),10,0)
+					ELSE 0 END)) * ISNULL((SOMAQTD / 
+								((SELECT TOP 1 DIA1 FROM #ABCD WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCD WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCD WHERE DIA3 > 0))),0))
+					
+END AS 'QTD PARA REPOR' ,
+
+(SELECT TOP 1 DIA1 FROM #ABCD WHERE DIA1 > 0) AS DIASU1,
+ISNULL(GZ_1,0) AS 'GZ1',
+ISNULL(IN_1,0) AS 'INT1',
+(ISNULL(GZ_1,0) + ISNULL(IN_1,0)) / (SELECT TOP 1 DIA1 FROM #ABCD WHERE DIA1 > 0) AS 'MEDIA POR DIA1' ,
+(SELECT TOP 1 DIA2 FROM #ABCD WHERE DIA2 > 0) AS DIASU2,
+ISNULL(GZ_2,0) AS 'GZ2',
+ISNULL(IN_2,0) AS 'INT2',
+(ISNULL(GZ_2,0) + ISNULL(IN_2,0)) / (SELECT TOP 1 DIA2 FROM #ABCD WHERE DIA2 > 0) AS 'MEDIA POR DIA2' ,
+(SELECT TOP 1 DIA3 FROM #ABCD WHERE DIA3 > 0) AS DIASU3,
+ISNULL(GZ_3,0) AS 'GZ3',
+ISNULL(IN_3,0) AS 'INT3',
+(ISNULL(GZ_3,0) + ISNULL(IN_3,0)) / (SELECT TOP 1 DIA3 FROM #ABCD WHERE DIA3 > 0) AS 'MEDIA POR DIA3',
+ISNULL(ABC,'D') AS ABCD,
+(SELECT COUNT(*) FROM #ABCD WHERE ABC = 'A') AS 'A',
+(SELECT COUNT(*) FROM #ABCD WHERE ABC = 'B') AS 'B',
+(SELECT COUNT(*) FROM #ABCD WHERE ABC = 'C') AS 'C',
+isnull(PORC,0) AS 'Porc_VENDAS',
+
+
+ISNULL((SOMAQTD / 
+((SELECT TOP 1 DIA1 FROM #ABCD WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCD WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCD WHERE DIA3 > 0))),0) as VEN_UTEIS,
+
+ISNULL(((SOMAQTD / 
+((SELECT TOP 1 DIA1 FROM #ABCD WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCD WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCD WHERE DIA3 > 0)))*6),0) AS SEMENAL,
+
+ISNULL((((SOMAQTD / 
+((SELECT TOP 1 DIA1 FROM #ABCD WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCD WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCD WHERE DIA3 > 0)))*6)*4),0) AS MENSAL
+--
+------SE VENDAS TOTAIS QTD > 0 FAÇA (SALDO GERRAL + COMPRAS - PENDEN) / SOMA DOS DIAS UTEIS 'CONTANDO FERIADO' DE 1 PERIODO ATE ULTIMO PERIDO
+--	
+
+INTO #ND
+FROM TBS010 A (NOLOCK) 
+FULL OUTER JOIN   
+(SELECT PROCOD AS COD,SUM(ESTQTDATU-ESTQTDRES) AS SALTT, SUM(ESTQTDRES) AS RES , SUM(ESTQTDCMP) AS CMP, SUM(ESTQTDPEN) AS PEN,
+ISNULL((SELECT SUM(ESTQTDATU-ESTQTDRES) FROM TBS032 B (nolock) WHERE ESTLOC =1 AND A.PROCOD = B.PROCOD GROUP BY PROCOD),0) AS EST,
+ISNULL((SELECT SUM(ESTQTDATU-ESTQTDRES) FROM TBS032 B (nolock) WHERE ESTLOC =2 AND A.PROCOD = B.PROCOD GROUP BY PROCOD),0) AS LOJA	
+FROM TBS032 A (nolock) WHERE ESTLOC IN (1,2) GROUP BY PROCOD) AS SALDO ON SALDO.COD = A.PROCOD
+
+LEFT JOIN #ABCD B ON A.PROCOD = B.CODIGO
+
+
+where (SALDO.SALTT <> 0 OR SALDO.RES <> 0 OR SALDO.CMP <> 0 OR SALDO.PEN <>0
+		OR B.SOMATT <> 0) AND PROCOD IS NOT NULL
+		AND (A.MARCOD =(CASE WHEN @marcod = '' THEN A.MARCOD ELSE Upper(RTRIM(@marcod)) END))  
+	AND(A.MARNOM LIKE(CASE WHEN @marcanom = '' THEN '% %' ELSE Upper(RTRIM(@marcanom))+'%' END))					
+		
+ /*	AND(A.PROCOD LIKE(CASE WHEN @COD = '' THEN '% %' ELSE Upper(RTRIM(@COD))+'%' END))  
+	AND(A.PRODES LIKE(CASE WHEN @DESCRI = '' THEN '% %' ELSE Upper(RTRIM(@DESCRI))+'%' END))
+	*/
+
+ORDER BY PROCOD
+/*
+SELECT 
+((SELECT TOP 1 DIA1 FROM #ABCD WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCD WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCD WHERE DIA3 > 0))*/
+
+
+
+
+
+
+
+
+
+-- VENDAS DA LOJA , CRIA TABELA VIRTUAL #LOJA
+if object_id('TempDB.dbo.#LOJAtt') is not null
+   drop table #LOJAtt
+
+SELECT A.PROCOD AS COD, 
+ISNULL((SELECT SUM(M2_QTD) AS QTD FROM tt.SIBD.dbo.MSL002 B (nolock) WHERE M2_DAT between '20151101' and '20151130' and M2_TIPREG = '01' AND M2_REGCAN = 'F' AND A.PROCOD = B.M2_PROCOD GROUP BY M2_PROCOD ),0) AS VND1,
+ISNULL((SELECT SUM(M2_QTD) AS QTD FROM tt.SIBD.dbo.MSL002 B (nolock) WHERE M2_DAT between '20151201' and '20151231' and M2_TIPREG = '01' AND M2_REGCAN = 'F' AND A.PROCOD = B.M2_PROCOD GROUP BY M2_PROCOD ),0) AS VND2,
+ISNULL((SELECT SUM(M2_QTD) AS QTD FROM tt.SIBD.dbo.MSL002 B (nolock) WHERE M2_DAT between '20160201' and '20160229' and M2_TIPREG = '01' AND M2_REGCAN = 'F' AND A.PROCOD = B.M2_PROCOD GROUP BY M2_PROCOD ),0) AS VND3,
+ISNULL((SELECT SUM(M2_VALTOT)-SUM(M2_ABT) as VALOR FROM tt.SIBD.dbo.MSL002 B (nolock) WHERE M2_DAT between '20151101' and '20151130' and M2_TIPREG = '01' AND M2_REGCAN = 'F' AND A.PROCOD = B.M2_PROCOD GROUP BY M2_PROCOD ),0) AS VL1,
+ISNULL((SELECT SUM(M2_VALTOT)-SUM(M2_ABT) as VALOR FROM tt.SIBD.dbo.MSL002 B (nolock) WHERE M2_DAT between '20151201' and '20151231' and M2_TIPREG = '01' AND M2_REGCAN = 'F' AND A.PROCOD = B.M2_PROCOD GROUP BY M2_PROCOD ),0) AS VL2,
+ISNULL((SELECT SUM(M2_VALTOT)-SUM(M2_ABT) as VALOR FROM tt.SIBD.dbo.MSL002 B (nolock) WHERE M2_DAT between '20160201' and '20160229' and M2_TIPREG = '01' AND M2_REGCAN = 'F' AND A.PROCOD = B.M2_PROCOD GROUP BY M2_PROCOD ),0) AS VL3
+INTO #LOJAtt
+FROM TBS010 A (NOLOCK)
+WHERE (A.MARCOD =(CASE WHEN @marcod = '' THEN A.MARCOD ELSE Upper(RTRIM(@marcod)) END))  
+	AND(A.MARNOM LIKE(CASE WHEN @marcanom = '' THEN '% %' ELSE Upper(RTRIM(@marcanom))+'%' END))
+	
+
+
+
+-- VENDAS DO COORPORATIVO , CRIA TABLELA VITUAL #CORP
+if object_id('TempDB.dbo.#CORPtt') is not null
+   drop table #CORPtt
+
+
+SELECT PROCOD AS COD ,
+ISNULL((SELECT SUM(C.NFSQTD*NFSQTDEMB) AS QTD  FROM tt.SIBD.dbo.TBS0671 C (nolock) JOIN tt.SIBD.dbo.TBS067 B (nolock)  ON 
+										C.NFSEMPCOD = B.NFSEMPCOD and 
+										C.NFSNUM = B.NFSNUM and 
+										C.SNEEMPCOD = B.SNEEMPCOD and 
+										C.SNESER = B.SNESER
+										WHERE NFSDATEMI between '20151101' and '20151130' 
+										and NFSTIP = 'N' and NFSCAN = 'N' and NFSDEV='N' 
+										and  NFSCLINOM not Like('%BEST BAG%') and NFSCLINOM not Like('%BEST OFFICE%') 
+										and NFSCLINOM not Like('%MISASPEL%') and NFSCLINOM not Like('%PAPELYNA%') 
+										and  NFSCLINOM not Like('%TANBY%')
+										AND C.PROCOD = A.PROCOD
+										GROUP BY PROCOD),0) AS IVND1,
+
+ISNULL((SELECT SUM(C.NFSQTD*NFSQTDEMB) AS QTD  FROM tt.SIBD.dbo.TBS0671 C (nolock) JOIN tt.SIBD.dbo.TBS067 B (nolock)  ON 
+										C.NFSEMPCOD = B.NFSEMPCOD and 
+										C.NFSNUM = B.NFSNUM and 
+										C.SNEEMPCOD = B.SNEEMPCOD and 
+										C.SNESER = B.SNESER
+										WHERE NFSDATEMI between '20151201' and '20151231' 
+										and NFSTIP = 'N' and NFSCAN = 'N' and NFSDEV='N' 
+										and  NFSCLINOM not Like('%BEST BAG%') and NFSCLINOM not Like('%BEST OFFICE%') 
+										and NFSCLINOM not Like('%MISASPEL%') and NFSCLINOM not Like('%PAPELYNA%') 
+										and  NFSCLINOM not Like('%TANBY%')
+										AND C.PROCOD = A.PROCOD
+										GROUP BY PROCOD),0) AS IVND2,
+										
+ISNULL((SELECT SUM(C.NFSQTD*NFSQTDEMB) AS QTD  FROM tt.SIBD.dbo.TBS0671 C (nolock) JOIN tt.SIBD.dbo.TBS067 B (nolock)  ON 
+										C.NFSEMPCOD = B.NFSEMPCOD and 
+										C.NFSNUM = B.NFSNUM and 
+										C.SNEEMPCOD = B.SNEEMPCOD and 
+										C.SNESER = B.SNESER
+										WHERE NFSDATEMI between '20160201' and '20160229'
+										and NFSTIP = 'N' and NFSCAN = 'N' and NFSDEV='N' 
+										and  NFSCLINOM not Like('%BEST BAG%') and NFSCLINOM not Like('%BEST OFFICE%') 
+										and NFSCLINOM not Like('%MISASPEL%') and NFSCLINOM not Like('%PAPELYNA%') 
+										and  NFSCLINOM not Like('%TANBY%')
+										AND C.PROCOD = A.PROCOD
+										GROUP BY PROCOD),0) AS IVND3,
+
+
+ISNULL((SELECT sum(dbo.NFSTOTITEST(C.NFSEMPCOD,C.NFSNUM,C.SNEEMPCOD,C.SNESER,C.NFSITE)) as VALOR
+
+FROM tt.SIBD.dbo.TBS0671 C (nolock) JOIN tt.SIBD.dbo.TBS067 B (nolock)  ON 
+										C.NFSEMPCOD = B.NFSEMPCOD and 
+										C.NFSNUM = B.NFSNUM and 
+										C.SNEEMPCOD = B.SNEEMPCOD and 
+										C.SNESER = B.SNESER
+										WHERE NFSDATEMI between '20151101' and '20151130' 
+										and NFSTIP = 'N' and NFSCAN = 'N' and NFSDEV='N' 
+										and  NFSCLINOM not Like('%BEST BAG%') and NFSCLINOM not Like('%BEST OFFICE%') 
+										and NFSCLINOM not Like('%MISASPEL%') and NFSCLINOM not Like('%PAPELYNA%') 
+										and  NFSCLINOM not Like('%TANBY%')
+										AND C.PROCOD = A.PROCOD
+										GROUP BY PROCOD),0) AS IVL1,
+										
+ISNULL((SELECT sum(dbo.NFSTOTITEST(C.NFSEMPCOD,C.NFSNUM,C.SNEEMPCOD,C.SNESER,C.NFSITE)) as VALOR
+
+
+FROM tt.SIBD.dbo.TBS0671 C (nolock) JOIN tt.SIBD.dbo.TBS067 B (nolock)  ON 
+										C.NFSEMPCOD = B.NFSEMPCOD and 
+										C.NFSNUM = B.NFSNUM and 
+										C.SNEEMPCOD = B.SNEEMPCOD and 
+										C.SNESER = B.SNESER
+										WHERE NFSDATEMI between '20151201' and '20151231'
+										and NFSTIP = 'N' and NFSCAN = 'N' and NFSDEV='N' 
+										and  NFSCLINOM not Like('%BEST BAG%') and NFSCLINOM not Like('%BEST OFFICE%') 
+										and NFSCLINOM not Like('%MISASPEL%') and NFSCLINOM not Like('%PAPELYNA%') 
+										and  NFSCLINOM not Like('%TANBY%')
+										AND C.PROCOD = A.PROCOD
+										GROUP BY PROCOD),0) AS IVL2,
+										
+ISNULL((SELECT sum(dbo.NFSTOTITEST(C.NFSEMPCOD,C.NFSNUM,C.SNEEMPCOD,C.SNESER,C.NFSITE)) as VALOR
+
+FROM tt.SIBD.dbo.TBS0671 C (nolock) JOIN tt.SIBD.dbo.TBS067 B (nolock)  ON 
+										C.NFSEMPCOD = B.NFSEMPCOD and 
+										C.NFSNUM = B.NFSNUM and 
+										C.SNEEMPCOD = B.SNEEMPCOD and 
+										C.SNESER = B.SNESER
+										WHERE NFSDATEMI between '20160201' and '20160229' 
+										and NFSTIP = 'N' and NFSCAN = 'N' and NFSDEV='N' 
+										and  NFSCLINOM not Like('%BEST BAG%') and NFSCLINOM not Like('%BEST OFFICE%') 
+										and NFSCLINOM not Like('%MISASPEL%') and NFSCLINOM not Like('%PAPELYNA%') 
+										and  NFSCLINOM not Like('%TANBY%')
+										AND C.PROCOD = A.PROCOD
+										GROUP BY PROCOD),0) AS IVL3
+										
+INTO #CORPtt
+FROM TBS010 A (NOLOCK)
+WHERE (A.MARCOD =(CASE WHEN @marcod = '' THEN A.MARCOD ELSE Upper(RTRIM(@marcod)) END))  
+	AND(A.MARNOM LIKE(CASE WHEN @marcanom = '' THEN '% %' ELSE Upper(RTRIM(@marcanom))+'%' END))
+
+---- TABELA DE FERIADOS , CRIA TABELA VIRTUAL #FER
+--if object_id('TempDB.dbo.#FER') is not null
+--   drop table #FER
+--   SELECT * INTO #FER FROM INTG.SIBDBKP.dbo.Feriado (NOLOCK)
+
+
+-- TABELA DE VENDAS TOTAIS #ABC, JUNTANDO #LOJA E #CORP , FAZENDO DIAS UTEIS JUNTO COM #FER
+if object_id('TempDB.dbo.#ABCtt') is not null
+   drop table #ABCtt
+
+SELECT Identity(INT,1,1) as ordem,
+
+rtrim(ltrim(A.PROCOD))  as 'CODIGO',
+L.VND1 AS GZ_1,
+L.VL1 AS VLGZ_1,
+I.IVND1 AS IN_1,
+I.IVL1 AS VLIN_1,
+L.VND2 AS GZ_2,
+L.VL2 AS VLGZ_2,
+I.IVND2 AS IN_2,
+I.IVL2 AS VLIN_2,
+L.VND3 AS GZ_3,
+L.VL3 AS VLGZ_3,
+I.IVND3 AS IN_3,
+I.IVL3 AS VLIN_3,
+L.VND1 + L.VND2+ L.VND3+ 
+I.IVND1 + I.IVND2 + I.IVND3 AS SOMAQTD,
+I.IVL1 +I.IVL2 + I.IVL3 + L.VL1 + L.VL2 + L.VL3 AS SOMATT,
+SUM(I.IVL1 +I.IVL2 + I.IVL3 + L.VL1 + L.VL2 + L.VL3) OVER (PARTITION BY 1) AS VALOR,
+(I.IVL1 +I.IVL2 + I.IVL3 + L.VL1 + L.VL2 + L.VL3) / 
+SUM(I.IVL1 +I.IVL2 + I.IVL3 + L.VL1 + L.VL2 + L.VL3) OVER (PARTITION BY 1) *100 AS PORC,
+
+dbo.FCNDIASUTEIS (@data1de, @data1ate) - (SELECT count(*) FROM #FER
+										  where (Sg_UF = 'TT' or Tp_Feriado = 1 ) 
+										  and (Nr_Ano between substring(convert(char(10),@data1de,103),7,4) and substring(convert(char(10),@data1ate,103),7,4) OR 
+										  	  (Nr_Ano between 0 and 0))
+										  and Nr_Mes between substring(convert(char(10),@data1de,103),4,2) and substring(convert(char(10),@data1ate,103),4,2)
+										  and Nr_Dia between substring(convert(char(10),@data1de,103),1,2) and  substring(convert(char(10),@data1ate,103),1,2)) AS DIA1,
+
+dbo.FCNDIASUTEIS (@data2de, @data2ate) - (SELECT count(*) FROM #FER
+										  where (Sg_UF = 'TT' or Tp_Feriado = 1 ) 
+										  and (Nr_Ano between substring(convert(char(10),@data2de,103),7,4) and substring(convert(char(10),@data2ate,103),7,4) OR 
+										  	  (Nr_Ano between 0 and 0))
+										  and Nr_Mes between substring(convert(char(10),@data2de,103),4,2) and substring(convert(char(10),@data2ate,103),4,2)
+										  and Nr_Dia between substring(convert(char(10),@data2de,103),1,2) and  substring(convert(char(10),@data2ate,103),1,2)) AS DIA2,
+
+dbo.FCNDIASUTEIS (@data3de, @data3ate) - (SELECT count(*) FROM #FER
+										  where (Sg_UF = 'TT' or Tp_Feriado = 1 ) 
+										  and (Nr_Ano between substring(convert(char(10),@data3de,103),7,4) and substring(convert(char(10),@data3ate,103),7,4) OR 
+										  	  (Nr_Ano between 0 and 0))
+										  and Nr_Mes between substring(convert(char(10),@data3de,103),4,2) and substring(convert(char(10),@data3ate,103),4,2)
+										  and Nr_Dia between substring(convert(char(10),@data3de,103),1,2) and  substring(convert(char(10),@data3ate,103),1,2)) AS DIA3
+
+
+into #ABCtt
+
+FROM TBS010 A (NOLOCK)
+
+FULL OUTER JOIN   
+#LOJA L ON A.PROCOD = L.COD
+
+FULL OUTER JOIN   
+#CORP I ON A.PROCOD = I.COD
+
+			
+where ((ISNULL(L.VL1,0) + ISNULL(L.VL2,0) + ISNULL(L.VL3,0)) <> 0 OR ISNULL(L.VND1,0) + ISNULL(L.VND2,0) + ISNULL(L.VND3,0) <> 0 OR
+ 
+	   (ISNULL(I.IVL1,0) + ISNULL(I.IVL2,0) + ISNULL(I.IVL3,0)) <> 0 OR (ISNULL(I.IVND1,0) + ISNULL(I.IVND2,0) + ISNULL(I.IVND3,0)) <> 0) AND PROCOD IS NOT NULL
+	   					
+		
+ORDER BY (I.IVL1 +I.IVL2 + I.IVL3 + L.VL1 + L.VL2 + L.VL3) / 
+SUM(I.IVL1 +I.IVL2 + I.IVL3 + L.VL1 + L.VL2 + L.VL3) OVER (PARTITION BY 1) *100 DESC 
+
+
+
+-- CRIANDO ABC COM VALORES DETERMINADOS PELO USUARIO #ABCD , SENDO D SEM VENDAS 
+If object_id('TempDB.dbo.#ABCDtt') is not null
+   drop table #ABCDtt
+
+SELECT
+ordem, CODIGO,SOMATT, VALOR, PORC,SOMAQTD,
+GZ_1, VLGZ_1,
+IN_1,VLIN_1,
+GZ_2,VLGZ_2,
+IN_2,VLIN_2,
+GZ_3,VLGZ_3,
+IN_3,VLIN_3,
+DIA1,
+DIA2,
+DIA3,
+ROUND((SELECT SUM(TInt.PORC) FROM #ABC As TInt
+        WHERE TInt.ordem <= TOut.ordem),4) As PercAcum,
+CASE WHEN (ROUND((SELECT SUM(TInt.PORC) FROM #ABC As TInt
+           WHERE TInt.ordem <= TOut.ordem),4)) < @pA 
+		THEN 'A' 
+		ELSE 
+			CASE WHEN (ROUND((SELECT SUM(TInt.PORC) FROM #ABC As TInt
+        			   WHERE TInt.ordem <= TOut.ordem),4)) > @pA AND
+					  (ROUND((SELECT SUM(TInt.PORC) FROM #ABC As TInt
+        			   WHERE TInt.ordem <= TOut.ordem),4)) < @pB
+			THEN 'B' ELSE 'C' 
+			END
+		END AS ABC
+INTO #ABCDtt
+FROM #ABCtt As TOut
+
+
+-- TABELA FINAL , JUNTA TODO O SALDO + VENDAS + ABCD + SALDO DO CD
+
+If object_id('TempDB.dbo.#TT') is not null
+   drop table #TT
+   
+SELECT 
+'ND' AS 'UNIDADE' ,
+rtrim(A.PROLOCFIS) AS 'LOC',
+RTRIM(LTRIM(A.PROSTATUS)) AS 'STA',
+rtrim(ltrim(A.PROCOD))  as 'CODIGO',
+A.PRODES  as 'DESCRICAO',							
+case when len(A.MARCOD) = 4 then rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) else right(('00' + ltrim(str(A.MARCOD))),3) + ' - ' + rtrim(A.MARNOM) end as 'MARCA',
+A.PROUM1 collate Latin1_General_BIN as 'UN.1',
+ISNULL(REPLACE(STR(SALDO.EST,10,4),'.',','),0) AS 'SALDO ESTOQUE',
+ISNULL(REPLACE(STR(SALDO.LOJA,10,4),'.',','),0) AS'SALDO LOJA' ,
+ISNULL(REPLACE(STR(SALDO.SALTT,10,4),'.',','),0) AS 'SOMA EST+LOJ',
+ISNULL(REPLACE(STR(SALDO.RES,10,4),'.',','),0) AS RESER,
+ISNULL(REPLACE(STR(SALDO.PEN,10,4),'.',','),0) AS PENDENTE,
+ISNULL(REPLACE(STR(SALDO.CMP,10,4),'.',','),0) AS COMPRAS,
+
+
+-- SOMA AS QTDS VENDIDAS / PELA QUANTIDADE DE DIAS UTEIS, CASO >0 , SOMA SALDO TOTAL + COMPRAS + SALDO CD - PENDENTE / (VEN_UTEIS) 
+CASE WHEN ISNULL((SOMAQTD / 
+				((SELECT TOP 1 DIA1 FROM #ABCDtt WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCDtt WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCDtt WHERE DIA3 > 0))),0)> 0 
+										  
+	THEN str(round(((ISNULL(SALDO.SALTT,0)+ ISNULL(SALDO.CMP,0) ) - ISNULL(SALDO.PEN,0))/
+	ISNULL((SOMAQTD / 
+				((SELECT TOP 1 DIA1 FROM #ABCDtt WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCDtt WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCDtt WHERE DIA3 > 0))),0),0),10,0)
+	ELSE 0 END AS 'TEMPO RESTANTE',
+
+
+-- USUARIO EESCOLHE A QUANTIDADE DE DIAS UTEIS PARA REPOSIÇÃO 
+-- @DIAS - (SOMA AS QTDS VENDIDAS / PELA QUANTIDADE DE DIAS UTEIS, CASO >0 , 
+-- SOMA SALDO TOTAL + COMPRAS + SALDO CD - PENDENTE / (QTDS VENDAS / PELA QUANTIDADE DE DIAS UTEIS)) * VEN_UTEIS CASO <=0.9 É 0 
+-- ELSE @DIAS - (SOMA AS QTDS VENDIDAS / PELA QUANTIDADE DE DIAS UTEIS, CASO >0 , 
+-- SOMA SALDO TOTAL + COMPRAS + SALDO CD - PENDENTE / (QTDS VENDAS / PELA QUANTIDADE DE DIAS UTEIS)) ( 
+-- PARA SABER QUANTOS DIAS , DEPOIS MULTIPLACAR PELA QUANTIDADE VENDIDA POR DIA) * VEN_UTEIS -- DAI SABEREI A QTD PARA REPOSIÇÃO
+CASE WHEN ((@DIAS - (CASE WHEN ISNULL((SOMAQTD / 
+					((SELECT TOP 1 DIA1 FROM #ABCDtt WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCDtt WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCDtt WHERE DIA3 > 0))),0) > 0 
+										  
+					THEN str(round(((ISNULL(SALDO.SALTT,0)+ ISNULL(SALDO.CMP,0)) - ISNULL(SALDO.PEN,0))/
+					ISNULL((SOMAQTD / 
+					((SELECT TOP 1 DIA1 FROM #ABCDtt WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCDtt WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCDtt WHERE DIA3 > 0))),0),0),10,0)
+					ELSE 0 END)) * ISNULL((SOMAQTD / 
+								((SELECT TOP 1 DIA1 FROM #ABCD WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCD WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCD WHERE DIA3 > 0))),0)) <=0.9 
+	THEN 0 
+	ELSE ((@DIAS - (CASE WHEN ISNULL((SOMAQTD / 
+					((SELECT TOP 1 DIA1 FROM #ABCDtt WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCDtt WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCDtt WHERE DIA3 > 0))),0) > 0 
+										  
+					THEN str(round(((ISNULL(SALDO.SALTT,0)+ ISNULL(SALDO.CMP,0) ) - ISNULL(SALDO.PEN,0))/
+					ISNULL((SOMAQTD / 
+					((SELECT TOP 1 DIA1 FROM #ABCDtt WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCDtt WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCDtt WHERE DIA3 > 0))),0),0),10,0)
+					ELSE 0 END)) * ISNULL((SOMAQTD / 
+								((SELECT TOP 1 DIA1 FROM #ABCDtt WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCDtt WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCDtt WHERE DIA3 > 0))),0))
+					
+END AS 'QTD PARA REPOR' ,
+
+(SELECT TOP 1 DIA1 FROM #ABCDtt WHERE DIA1 > 0) AS DIASU1,
+ISNULL(GZ_1,0) AS 'GZ1',
+ISNULL(IN_1,0) AS 'INT1',
+(ISNULL(GZ_1,0) + ISNULL(IN_1,0)) / (SELECT TOP 1 DIA1 FROM #ABCD WHERE DIA1 > 0) AS 'MEDIA POR DIA1' ,
+(SELECT TOP 1 DIA2 FROM #ABCDtt WHERE DIA2 > 0) AS DIASU2,
+ISNULL(GZ_2,0) AS 'GZ2',
+ISNULL(IN_2,0) AS 'INT2',
+(ISNULL(GZ_2,0) + ISNULL(IN_2,0)) / (SELECT TOP 1 DIA2 FROM #ABCD WHERE DIA2 > 0) AS 'MEDIA POR DIA2' ,
+(SELECT TOP 1 DIA3 FROM #ABCDtt WHERE DIA3 > 0) AS DIASU3,
+ISNULL(GZ_3,0) AS 'GZ3',
+ISNULL(IN_3,0) AS 'INT3',
+(ISNULL(GZ_3,0) + ISNULL(IN_3,0)) / (SELECT TOP 1 DIA3 FROM #ABCD WHERE DIA3 > 0) AS 'MEDIA POR DIA3',
+ISNULL(ABC,'D') AS ABCD,
+(SELECT COUNT(*) FROM #ABCDtt WHERE ABC = 'A') AS 'A',
+(SELECT COUNT(*) FROM #ABCDtt WHERE ABC = 'B') AS 'B',
+(SELECT COUNT(*) FROM #ABCDtt WHERE ABC = 'C') AS 'C',
+isnull(PORC,0) AS 'Porc_VENDAS',
+
+
+ISNULL((SOMAQTD / 
+((SELECT TOP 1 DIA1 FROM #ABCDtt WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCDtt WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCDtt WHERE DIA3 > 0))),0) as VEN_UTEIS,
+
+ISNULL(((SOMAQTD / 
+((SELECT TOP 1 DIA1 FROM #ABCDtt WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCDtt WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCDtt WHERE DIA3 > 0)))*6),0) AS SEMENAL,
+
+ISNULL((((SOMAQTD / 
+((SELECT TOP 1 DIA1 FROM #ABCDtt WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCDtt WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCDtt WHERE DIA3 > 0)))*6)*4),0) AS MENSAL
+--
+------SE VENDAS TOTAIS QTD > 0 FAÇA (SALDO GERRAL + COMPRAS - PENDEN) / SOMA DOS DIAS UTEIS 'CONTANDO FERIADO' DE 1 PERIODO ATE ULTIMO PERIDO
+--	
+
+INTO #TT
+FROM TBS010 A (NOLOCK) 
+FULL OUTER JOIN   
+(SELECT PROCOD AS COD,SUM(ESTQTDATU-ESTQTDRES) AS SALTT, SUM(ESTQTDRES) AS RES , SUM(ESTQTDCMP) AS CMP, SUM(ESTQTDPEN) AS PEN,
+ISNULL((SELECT SUM(ESTQTDATU-ESTQTDRES) FROM tt.SIBD.dbo.TBS032 B (nolock) WHERE ESTLOC =1 AND A.PROCOD = B.PROCOD GROUP BY PROCOD),0) AS EST,
+ISNULL((SELECT SUM(ESTQTDATU-ESTQTDRES) FROM tt.SIBD.dbo.TBS032 B (nolock) WHERE ESTLOC =2 AND A.PROCOD = B.PROCOD GROUP BY PROCOD),0) AS LOJA	
+FROM tt.SIBD.dbo.TBS032 A (nolock) WHERE ESTLOC IN (1,2) GROUP BY PROCOD) AS SALDO ON SALDO.COD = A.PROCOD
+
+LEFT JOIN #ABCDtt B ON A.PROCOD = B.CODIGO
+
+
+where (SALDO.SALTT <> 0 OR SALDO.RES <> 0 OR SALDO.CMP <> 0 OR SALDO.PEN <>0
+		OR B.SOMATT <> 0) AND PROCOD IS NOT NULL
+		AND (A.MARCOD =(CASE WHEN @marcod = '' THEN A.MARCOD ELSE Upper(RTRIM(@marcod)) END))  
+	AND(A.MARNOM LIKE(CASE WHEN @marcanom = '' THEN '% %' ELSE Upper(RTRIM(@marcanom))+'%' END))					
+		
+ /*	AND(A.PROCOD LIKE(CASE WHEN @COD = '' THEN '% %' ELSE Upper(RTRIM(@COD))+'%' END))  
+	AND(A.PRODES LIKE(CASE WHEN @DESCRI = '' THEN '% %' ELSE Upper(RTRIM(@DESCRI))+'%' END))
+	*/
+
+ORDER BY PROCOD
+/*
+SELECT 
+((SELECT TOP 1 DIA1 FROM #ABCD WHERE DIA1 > 0)+(SELECT TOP 1 DIA2 FROM #ABCD WHERE DIA2 > 0)+(SELECT TOP 1 DIA3 FROM #ABCD WHERE DIA3 > 0))*/

@@ -1,0 +1,18 @@
+select UFESIG,count(*) from TBS067 (nolock) group by UFESIG
+
+select TBS067.UFESIG,TBS0671.PROCOD,
+       (select PRODES from TBS010 (nolock) where TBS010.PROCOD = TBS0671.PROCOD),
+       (select PROCLAFIS from TBS010 (nolock) where TBS010.PROCOD = TBS0671.PROCOD),
+       (select MARNOM from TBS010 (nolock) where TBS010.PROCOD = TBS0671.PROCOD)
+  from TBS067 (nolock) join TBS0671 (nolock) on TBS067.NFSEMPCOD = TBS0671.NFSEMPCOD and TBS067.NFSNUM = TBS0671.NFSNUM
+ where TBS067.UFESIG <> 'SP'
+ group by TBS067.UFESIG,TBS0671.PROCOD
+
+update TBS010 set TBS010.MARNOM = (select TBS014.MARNOM from TBS014 (nolock) where TBS014.MARCOD = TBS010.MARCOD) from TBS010 (nolock)
+
+-- ncm por estado
+select TBS067.UFESIG,TBS010.PROCLAFIS
+  from TBS067 (nolock) join TBS0671 (nolock) on TBS067.NFSEMPCOD = TBS0671.NFSEMPCOD and TBS067.NFSNUM = TBS0671.NFSNUM
+                       join TBS010 (nolock) on TBS010.PROCOD = TBS0671.PROCOD
+ where TBS067.UFESIG <> 'SP'
+ group by TBS067.UFESIG,TBS010.PROCLAFIS

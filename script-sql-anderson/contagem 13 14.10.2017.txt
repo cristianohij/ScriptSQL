@@ -1,0 +1,15 @@
+select 
+produtoLote as Coletor,
+rtrim(ltrim(B.PROLOCFIS)) AS 'Localização',
+rtrim(ltrim(produtoCodigo)) as Código,
+rtrim(ltrim(produtoDescricao)),
+rtrim(ltrim(produtoMarca)),
+replace(produtoQtde,'.',',') as 'Qtd Coletada',
+rtrim(ltrim(produtoEmbalagem)) as 'Menor Unidade',
+produtoDataHora as 'Hora Coleta',
+case when produtoZerado is null then 'Nao' else 'Sim' end as 'Foi zerado?',
+produtoZerado as 'hora',
+produtoColetas as 'x Coletadas'
+
+from produto A
+inner join TBS010 B (NOLOCK) ON A.produtoCodigo = B.PROCOD

@@ -1,0 +1,312 @@
+SELECT T31.TDPPROCOD AS COD INTO #TESTE FROM TBS031 A (NOLOCK) LEFT JOIN  tt.SIBD.dbo.TBS031 as T31 (nolock) on T31.TDPPROCOD = A.TDPPROCOD
+WHERE A.TDPDATATU between '20160301' and '20160319' and
+ (case when A.TDPVALPROI<=getdate() and getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' then A.TDPPREPRO1 else A.TDPPRELOJ1 end <>
+	  case when T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF and T31.TDPPROLOJ='S' then T31.TDPPREPRO1 else T31.TDPPRELOJ1 end)
+
+
+SELECT * INTO DROP TABLE #TESTE FROM tt.SIBD.dbo.TBS031
+
+
+
+DECLARE @produtoDe CHAR(15), @produtoAte char(15), @codigoDaMarca int , @nomeDaMarca char(30) , @somenteComSaldo char(1), @dataDe DATETIME , @dataAte datetime, @somenteComSaldoT CHAR(1)
+
+set @produtoDe =''
+set @produtoAte = ''
+set @codigoDaMarca = 0
+set @nomeDaMarca = ''
+set @somenteComSaldo ='N'
+--set @dataDe = '20160315'
+--set @dataAte = '20160319'
+SET @somenteComSaldoT = 'N'
+
+
+
+
+
+select
+'ND' AS UNIDADE,
+rtrim(TBS010.MARNOM)+' ('+Ltrim(str(TBS010.MARCOD,4))+')' as 'NomeECodigoDaMarca',
+TBS031.TDPPROCOD as 'CodigoDoProduto',
+TBS010.PRODES as 'DescricaoDoProduto',
+TBS010.PROUM1 as 'UnidadeDeMedida1',
+case when TBS031.TDPVALPROI<=getdate() and getdate()<=TBS031.TDPVALPROF and TBS031.TDPPROLOJ='S' then TBS031.TDPPREPRO1 else TBS031.TDPPRELOJ1 end as 'Preco1',
+TBS010.PROUM2 as 'UnidadeDeMedida2',
+
+case when TBS031.TDPVALPROI<=getdate() and getdate()<=TBS031.TDPVALPROF and TBS031.TDPPROLOJ='S' then TBS031.TDPPREPRO2*PROUM2QTD else TBS031.TDPPRELOJ2*PROUM2QTD end as 'Preco2',
+TBS031.TDPDATATU as 'DataDaAtualizacao',
+
+case when TBS031.TDPVALPROI<=getdate() AND getdate()<=TBS031.TDPVALPROF and TBS031.TDPPROLOJ='S' 
+then convert(char(8),TBS031.TDPVALPROF,3) else '' end as 'PromocaoValidaAte',
+ISNULL((SELECT LOJA FROM ndsaldoatual B WHERE TBS010.PROCOD  = B.CODIGO GROUP BY B.CODIGO,B.LOJA),0) as 'SaldoDisponivel'
+
+  from TBS010 (nolock) left join TBS031 (nolock) on PROCOD=TDPPROCOD
+                             
+ where TBS010.PROCOD between @produtoDe and case when @produtoAte='' then 'Z' else @produtoAte end and
+	  
+	  TBS010.PROCOD IN (SELECT A.TDPPROCOD FROM TBS031 A (NOLOCK) LEFT JOIN  tt.SIBD.dbo.TBS031 as T31 (nolock) on T31.TDPPROCOD=A.TDPPROCOD
+						WHERE --A.TDPDATATU between @dataDe and @dataAte and
+ 						(case when A.TDPVALPROI<=getdate() and getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' then A.TDPPREPRO1 else A.TDPPRELOJ1 end<>
+	  					case when T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF and T31.TDPPROLOJ='S' then T31.TDPPREPRO1 else T31.TDPPRELOJ1 end)) AND 
+	  --TBS010.MARCOD>=@codigoDaMarca and
+	   
+      TBS010.MARNOM between @nomeDaMarca and case when @nomeDaMarca='' then 'Z' else @nomeDaMarca end and
+
+     ISNULL((SELECT LOJA FROM ndsaldoatual B WHERE TBS010.PROCOD  = B.CODIGO GROUP BY B.CODIGO,B.LOJA),0) >= case when @somenteComSaldo='N' then -999999 else 0.001 end AND
+	 
+	 ISNULL((SELECT LOJA FROM ttsaldoatual B WHERE TBS010.PROCOD COLLATE Latin1_General_CI_AS = B.CODIGO GROUP BY B.CODIGO,B.LOJA),0) >= case when @somenteComSaldoT='N' then -999999 else 0.001 end
+	   
+ --order by TBS010.MARNOM,TBS010.PRODES
+ 
+ union 
+ 
+ select
+'TTE' AS UNIDADE,
+rtrim(B.MARNOM)+' ('+Ltrim(str(B.MARCOD,4))+')' as 'NomeECodigoDaMarca',
+A.TDPPROCOD as 'CodigoDoProduto',
+B.PRODES as 'DescricaoDoProduto',
+B.PROUM1 as 'UnidadeDeMedida1',
+case when A.TDPVALPROI<=getdate() and getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' then A.TDPPREPRO1 else A.TDPPRELOJ1 end as 'Preco1',
+B.PROUM2 as 'UnidadeDeMedida2',
+
+case when A.TDPVALPROI<=getdate() and getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' then A.TDPPREPRO2*PROUM2QTD else A.TDPPRELOJ2*PROUM2QTD end as 'Preco2',
+A.TDPDATATU as 'DataDaAtualizacao',
+
+case when A.TDPVALPROI<=getdate() AND getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' 
+then convert(char(8),A.TDPVALPROF,3) else '' end as 'PromocaoValidaAte',
+ISNULL((SELECT LOJA FROM ttsaldoatual C WHERE B.PROCOD COLLATE Latin1_General_CI_AS = C.CODIGO GROUP BY C.CODIGO,C.LOJA),0) as 'SaldoDisponivel'
+   
+  from TBS010 B (nolock) left join tt.SIBD.dbo.TBS031 A (nolock) on PROCOD=TDPPROCOD
+
+ 
+ where B.PROCOD between @produtoDe and case when @produtoAte='' then 'Z' else @produtoAte end and
+	  
+	  B.PROCOD IN (SELECT A.TDPPROCOD FROM TBS031 A (NOLOCK) LEFT JOIN  tt.SIBD.dbo.TBS031 as T31 (nolock) on T31.TDPPROCOD=A.TDPPROCOD
+						WHERE --A.TDPDATATU between @dataDe and @dataAte and
+ 						(case when A.TDPVALPROI<=getdate() and getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' then A.TDPPREPRO1 else A.TDPPRELOJ1 end<>
+	  					case when T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF and T31.TDPPROLOJ='S' then T31.TDPPREPRO1 else T31.TDPPRELOJ1 end)) AND 
+	  --B.MARCOD>=@codigoDaMarca and
+	   
+      B.MARNOM between @nomeDaMarca and case when @nomeDaMarca='' then 'Z' else @nomeDaMarca end and
+
+     ISNULL((SELECT LOJA FROM ndsaldoatual C WHERE B.PROCOD = C.CODIGO GROUP BY C.CODIGO,C.LOJA),0) >= case when @somenteComSaldo='N' then -999999 else 0.001 end AND
+	 
+	 ISNULL((SELECT LOJA FROM ttsaldoatual C WHERE B.PROCOD COLLATE Latin1_General_CI_AS = C.CODIGO GROUP BY C.CODIGO,C.LOJA),0) >= case when @somenteComSaldoT='N' then -999999 else 0.001 end 
+
+
+
+
+
+
+
+--- taubaté 
+
+
+DECLARE @produtoDe CHAR(15), @produtoAte char(15), @codigoDaMarca int , @nomeDaMarca char(30) , @somenteComSaldo char(1), @dataDe DATETIME , @dataAte datetime, @somenteComSaldoT CHAR(1)
+
+set @produtoDe =''
+set @produtoAte = ''
+set @codigoDaMarca = 0
+set @nomeDaMarca = ''
+set @somenteComSaldo ='N'
+set @dataDe = '20160315'
+set @dataAte = '20160319'
+SET @somenteComSaldoT = 'N'
+
+
+
+
+
+select
+'ND' AS UNIDADE,
+rtrim(TBS010.MARNOM)+' ('+Ltrim(str(TBS010.MARCOD,4))+')' as 'NomeECodigoDaMarca',
+B.TDPPROCOD as 'CodigoDoProduto',
+TBS010.PRODES as 'DescricaoDoProduto',
+TBS010.PROUM1 as 'UnidadeDeMedida1',
+case when B.TDPVALPROI<=getdate() and getdate()<=B.TDPVALPROF and B.TDPPROLOJ='S' then B.TDPPREPRO1 else B.TDPPRELOJ1 end as 'Preco1',
+TBS010.PROUM2 as 'UnidadeDeMedida2',
+
+case when B.TDPVALPROI<=getdate() and getdate()<=B.TDPVALPROF and B.TDPPROLOJ='S' then B.TDPPREPRO2*PROUM2QTD else B.TDPPRELOJ2*PROUM2QTD end as 'Preco2',
+B.TDPDATATU as 'DataDaAtualizacao',
+
+case when B.TDPVALPROI<=getdate() AND getdate()<=B.TDPVALPROF and B.TDPPROLOJ='S' 
+then convert(char(8),B.TDPVALPROF,3) else '' end as 'PromocaoValidaAte',
+ISNULL((SELECT LOJA FROM ndsaldoatual B WHERE TBS010.PROCOD COLLATE Latin1_General_CI_AS = B.CODIGO GROUP BY B.CODIGO,B.LOJA),0) as 'SaldoDisponivel'
+
+  from TBS010 (nolock) left join nd.SIBD.dbo.TBS031 B (nolock) on PROCOD=TDPPROCOD
+                             
+ where TBS010.PROCOD between @produtoDe and case when @produtoAte='' then 'Z' else @produtoAte end and
+	  
+	  TBS010.PROCOD IN (SELECT A.TDPPROCOD FROM TBS031 A (NOLOCK) LEFT JOIN  nd.SIBD.dbo.TBS031 as T31 (nolock) on T31.TDPPROCOD=A.TDPPROCOD
+						WHERE 
+ 						(case when A.TDPVALPROI<=getdate() and getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' then A.TDPPREPRO1 else A.TDPPRELOJ1 end<>
+	  					case when T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF and T31.TDPPROLOJ='S' then T31.TDPPREPRO1 else T31.TDPPRELOJ1 end)) AND 
+	  TBS010.MARCOD>=@codigoDaMarca and
+	   
+      TBS010.MARNOM between @nomeDaMarca and case when @nomeDaMarca='' then 'Z' else @nomeDaMarca end and
+
+     ISNULL((SELECT LOJA FROM ndsaldoatual B WHERE TBS010.PROCOD COLLATE Latin1_General_CI_AS = B.CODIGO GROUP BY B.CODIGO,B.LOJA),0) >= case when @somenteComSaldo='N' then -999999 else 0.001 end AND
+	 
+	 ISNULL((SELECT LOJA FROM ttsaldoatual B WHERE TBS010.PROCOD COLLATE Latin1_General_CI_AS = B.CODIGO GROUP BY B.CODIGO,B.LOJA),0) >= case when @somenteComSaldoT='N' then -999999 else 0.001 end
+	   
+ --order by TBS010.MARNOM,TBS010.PRODES
+ 
+ union 
+ 
+ select
+'TTE' AS UNIDADE,
+rtrim(B.MARNOM)+' ('+Ltrim(str(B.MARCOD,4))+')' as 'NomeECodigoDaMarca',
+A.TDPPROCOD as 'CodigoDoProduto',
+B.PRODES as 'DescricaoDoProduto',
+B.PROUM1 as 'UnidadeDeMedida1',
+case when A.TDPVALPROI<=getdate() and getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' then A.TDPPREPRO1 else A.TDPPRELOJ1 end as 'Preco1',
+B.PROUM2 as 'UnidadeDeMedida2',
+
+case when A.TDPVALPROI<=getdate() and getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' then A.TDPPREPRO2*PROUM2QTD else A.TDPPRELOJ2*PROUM2QTD end as 'Preco2',
+A.TDPDATATU as 'DataDaAtualizacao',
+
+case when A.TDPVALPROI<=getdate() AND getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' 
+then convert(char(8),A.TDPVALPROF,3) else '' end as 'PromocaoValidaAte',
+ISNULL((SELECT LOJA FROM ttsaldoatual C WHERE B.PROCOD COLLATE Latin1_General_CI_AS = C.CODIGO GROUP BY C.CODIGO,C.LOJA),0) as 'SaldoDisponivel'
+   
+  from TBS010 B (nolock) left join TBS031 A (nolock) on PROCOD=TDPPROCOD
+
+ 
+ where B.PROCOD between @produtoDe and case when @produtoAte='' then 'Z' else @produtoAte end and
+	  
+	  B.PROCOD IN (SELECT A.TDPPROCOD FROM TBS031 A (NOLOCK) LEFT JOIN  nd.SIBD.dbo.TBS031 as T31 (nolock) on T31.TDPPROCOD=A.TDPPROCOD
+						WHERE 
+ 						(case when A.TDPVALPROI<=getdate() and getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' then A.TDPPREPRO1 else A.TDPPRELOJ1 end<>
+	  					case when T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF and T31.TDPPROLOJ='S' then T31.TDPPREPRO1 else T31.TDPPRELOJ1 end)) AND 
+	  B.MARCOD>=@codigoDaMarca and
+	   
+      B.MARNOM between @nomeDaMarca and case when @nomeDaMarca='' then 'Z' else @nomeDaMarca end and
+
+     ISNULL((SELECT LOJA FROM ndsaldoatual C WHERE B.PROCOD COLLATE Latin1_General_CI_AS = C.CODIGO GROUP BY C.CODIGO,C.LOJA),0) >= case when @somenteComSaldo='N' then -999999 else 0.001 end AND
+	 
+	 ISNULL((SELECT LOJA FROM ttsaldoatual C WHERE B.PROCOD COLLATE Latin1_General_CI_AS = C.CODIGO GROUP BY C.CODIGO,C.LOJA),0) >= case when @somenteComSaldoT='N' then -999999 else 0.001 end 
+
+
+
+
+
+
+
+
+
+--- SEM O UNIN -- TUDO NA MESMA LINHA
+
+
+DECLARE @produtoDe CHAR(15), @produtoAte char(15), @codigoDaMarca int , @nomeDaMarca char(30) , @somenteComSaldo char(1), @dataDe DATETIME , @dataAte datetime, @somenteComSaldoT CHAR(1)
+
+set @produtoDe =''
+set @produtoAte = ''
+set @codigoDaMarca = 0
+set @nomeDaMarca = ''
+set @somenteComSaldo ='N'
+set @dataDe = '20160315'
+set @dataAte = '20160323'
+SET @somenteComSaldoT = 'N'
+
+
+
+
+select
+--'ND' AS UNIDADE,
+rtrim(TBS010.MARNOM)+' ('+Ltrim(str(TBS010.MARCOD,4))+')' as 'NomeECodigoDaMarca',
+A.TDPPROCOD as 'CodigoDoProduto',
+TBS010.PRODES as 'DescricaoDoProduto',
+TBS010.PROUM1 as 'UnidadeDeMedida1',
+case when A.TDPVALPROI<=getdate() and getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' then A.TDPPREPRO1 else A.TDPPRELOJ1 end as 'Preco1ND',
+case when T.TDPVALPROI<=getdate() and getdate()<=T.TDPVALPROF and T.TDPPROLOJ='S' then T.TDPPREPRO1 else T.TDPPRELOJ1 end as 'Preco1TT',
+TBS010.PROUM2 as 'UnidadeDeMedida2',
+
+case when A.TDPVALPROI<=getdate() and getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' then A.TDPPREPRO2*PROUM2QTD else A.TDPPRELOJ2*PROUM2QTD end as 'Preco2ND',
+case when T.TDPVALPROI<=getdate() and getdate()<=T.TDPVALPROF and T.TDPPROLOJ='S' then T.TDPPREPRO2*PROUM2QTD else T.TDPPRELOJ2*PROUM2QTD end as 'Preco2TT',
+A.TDPDATATU as 'DataDaAtualizacaoND',
+T.TDPDATATU as 'DataDaAtualizacaoTT',
+
+case when A.TDPVALPROI<=getdate() AND getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' 
+then convert(char(8),A.TDPVALPROF,3) else '' end as 'PromocaoValidaAteND',
+
+case when T.TDPVALPROI<=getdate() AND getdate()<=T.TDPVALPROF and T.TDPPROLOJ='S' 
+then convert(char(8),T.TDPVALPROF,3) else '' end as 'PromocaoValidaAteTT',
+
+ISNULL((SELECT LOJA FROM ndsaldoatual B WHERE TBS010.PROCOD COLLATE Latin1_General_CI_AS = B.CODIGO GROUP BY B.CODIGO,B.LOJA),0) as 'SaldoLJND',
+ISNULL((SELECT LOJA FROM ttsaldoatual B WHERE TBS010.PROCOD COLLATE Latin1_General_CI_AS = B.CODIGO GROUP BY B.CODIGO,B.LOJA),0) as 'SaldoLJTT'
+
+  from TBS010 (nolock) left join TBS031 A (nolock) on PROCOD=TDPPROCOD
+  						left join tt.SIBD.dbo.TBS031 T (NOLOCK) ON PROCOD = T.TDPPROCOD
+                             
+ where TBS010.PROCOD between @produtoDe and case when @produtoAte='' then 'Z' else @produtoAte end and
+	  
+	  TBS010.PROCOD IN (SELECT A.TDPPROCOD FROM TBS031 A (NOLOCK) LEFT JOIN  tt.SIBD.dbo.TBS031 as T31 (nolock) on T31.TDPPROCOD=A.TDPPROCOD
+						WHERE (convert(char(8),A.TDPDATATU,3) between @dataDe and @dataAte  OR
+						 	   convert(char(8),T31.TDPDATATU,3) between @dataDe and @dataAte ) AND -- OU ATUALIZOU AQUI OU EM TAUBATÉ
+ 						(case when A.TDPVALPROI<=getdate() and getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' then A.TDPPREPRO1 else A.TDPPRELOJ1 end<>
+	  					case when T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF and T31.TDPPROLOJ='S' then T31.TDPPREPRO1 else T31.TDPPRELOJ1 end)) AND 
+	  --TBS010.MARCOD>=@codigoDaMarca and
+	   
+      TBS010.MARNOM between @nomeDaMarca and case when @nomeDaMarca='' then 'Z' else @nomeDaMarca end and
+
+     ISNULL((SELECT LOJA FROM ndsaldoatual B WHERE TBS010.PROCOD  = B.CODIGO GROUP BY B.CODIGO,B.LOJA),0) >= case when @somenteComSaldo='N' then -999999 else 0.001 end AND
+	 
+	 ISNULL((SELECT LOJA FROM ttsaldoatual B WHERE TBS010.PROCOD COLLATE Latin1_General_CI_AS = B.CODIGO GROUP BY B.CODIGO,B.LOJA),0) >= case when @somenteComSaldoT='N' then -999999 else 0.001 end
+	   
+ --order by TBS010.MARNOM,TBS010.PRODES
+ 
+
+
+
+
+
+
+
+
+
+
+
+--- TAUBATÉ
+
+
+select
+--'ND' AS UNIDADE,
+rtrim(TBS010.MARNOM)+' ('+Ltrim(str(TBS010.MARCOD,4))+')' as 'NomeECodigoDaMarca',
+T.TDPPROCOD as 'CodigoDoProduto',
+TBS010.PRODES as 'DescricaoDoProduto',
+TBS010.PROUM1 as 'UnidadeDeMedida1',
+case when A.TDPVALPROI<=getdate() and getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' then A.TDPPREPRO1 else A.TDPPRELOJ1 end as 'Preco1ND',
+case when T.TDPVALPROI<=getdate() and getdate()<=T.TDPVALPROF and T.TDPPROLOJ='S' then T.TDPPREPRO1 else T.TDPPRELOJ1 end as 'Preco1TT',
+TBS010.PROUM2 as 'UnidadeDeMedida2',
+
+case when A.TDPVALPROI<=getdate() and getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' then A.TDPPREPRO2*PROUM2QTD else A.TDPPRELOJ2*PROUM2QTD end as 'Preco2ND',
+case when T.TDPVALPROI<=getdate() and getdate()<=T.TDPVALPROF and T.TDPPROLOJ='S' then T.TDPPREPRO2*PROUM2QTD else T.TDPPRELOJ2*PROUM2QTD end as 'Preco2TT',
+A.TDPDATATU as 'DataDaAtualizacaoND',
+T.TDPDATATU as 'DataDaAtualizacaoTT',
+
+case when A.TDPVALPROI<=getdate() AND getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' 
+then convert(char(8),A.TDPVALPROF,3) else '' end as 'PromocaoValidaAteND',
+
+case when T.TDPVALPROI<=getdate() AND getdate()<=T.TDPVALPROF and T.TDPPROLOJ='S' 
+then convert(char(8),T.TDPVALPROF,3) else '' end as 'PromocaoValidaAteTT',
+
+ISNULL((SELECT LOJA FROM ndsaldoatual B WHERE TBS010.PROCOD COLLATE Latin1_General_CI_AS = B.CODIGO GROUP BY B.CODIGO,B.LOJA),0) as 'SaldoLJND',
+ISNULL((SELECT LOJA FROM ttsaldoatual B WHERE TBS010.PROCOD COLLATE Latin1_General_CI_AS = B.CODIGO GROUP BY B.CODIGO,B.LOJA),0) as 'SaldoLJTT'
+
+  from TBS010 (nolock) left join TBS031 T (nolock) on PROCOD=TDPPROCOD
+  						left join nd.SIBD.dbo.TBS031 A (NOLOCK) ON PROCOD = A.TDPPROCOD
+                             
+ where TBS010.PROCOD between @produtoDe and case when @produtoAte='' then 'Z' else @produtoAte end and
+	  
+	  TBS010.PROCOD IN (SELECT A.TDPPROCOD FROM TBS031 A (NOLOCK) LEFT JOIN  nd.SIBD.dbo.TBS031 as T31 (nolock) on T31.TDPPROCOD=A.TDPPROCOD
+						WHERE (convert(char(8),A.TDPDATATU,3) between @dataDe and @dataAte  OR
+						 	   convert(char(8),T31.TDPDATATU,3) between @dataDe and @dataAte ) AND -- OU ATUALIZOU AQUI OU EM TAUBATÉ
+ 						(case when A.TDPVALPROI<=getdate() and getdate()<=A.TDPVALPROF and A.TDPPROLOJ='S' then A.TDPPREPRO1 else A.TDPPRELOJ1 end<>
+	  					case when T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF and T31.TDPPROLOJ='S' then T31.TDPPREPRO1 else T31.TDPPRELOJ1 end)) AND 
+	  --TBS010.MARCOD>=@codigoDaMarca and
+	   
+      TBS010.MARNOM between @nomeDaMarca and case when @nomeDaMarca='' then 'Z' else @nomeDaMarca end and
+
+     ISNULL((SELECT LOJA FROM ndsaldoatual B WHERE TBS010.PROCOD COLLATE Latin1_General_CI_AS  = B.CODIGO GROUP BY B.CODIGO,B.LOJA),0) >= case when @somenteComSaldo='N' then -999999 else 0.001 end AND
+	 
+	 ISNULL((SELECT LOJA FROM ttsaldoatual B WHERE TBS010.PROCOD COLLATE Latin1_General_CI_AS = B.CODIGO GROUP BY B.CODIGO,B.LOJA),0) >= case when @somenteComSaldoT='N' then -999999 else 0.001 end
+	   

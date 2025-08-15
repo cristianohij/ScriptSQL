@@ -1,0 +1,147 @@
+declare @data datetime
+set @data = '20160909'
+-- --------------------------------------------------------------------------------------
+;with
+                I as (
+select PROCOD, '1' as LOCEST from TBS010 union
+select PROCOD, '2' as LOCEST from TBS010 union
+select PROCOD, '3' as LOCEST from TBS010 union
+select PROCOD, '4' as LOCEST from TBS010 union
+select PROCOD, '5' as LOCEST from TBS010 union
+select PROCOD, '6' as LOCEST from TBS010 union
+select PROCOD, '7' as LOCEST from TBS010 union
+select PROCOD, '8' as LOCEST from TBS010),
+-- --------------------------------------------------------------------------------------
+A as (  
+
+--declare @data datetime
+--set @data = '20160909'
+select
+		A.PROCOD,
+        LMEACA,
+		A.LMEREG,
+        A.LMEDATHOR,
+        A.LMELOCEST,
+        case when LMEACA = 'E' then min(LMEQTDATU) else max(LMEQTDATU) end SALABT
+	    from
+        TBS051 A (nolock) 
+		join (  select
+				min(LMEREG) LMEREG,
+                PROCOD PROCOD,
+                LMELOCEST
+                from
+                TBS051 (nolock)
+                        
+				where
+                convert(datetime, floor(convert(float(24), LMEDATHOR))) = @data and
+                LMEINFALT = 'E'
+                                               
+                group by
+                PROCOD, LMELOCEST )as abt on A.PROCOD = abt.PROCOD and A.LMEREG = abt.LMEREG and A.LMELOCEST = abt.LMELOCEST
+		where
+        convert(datetime, floor(convert(float(24), A.LMEDATHOR))) = @data and
+        LMEINFALT = 'E'
+		
+		group by
+        A.PROCOD,
+        LMEACA,
+        A.LMEDATHOR,
+        A.LMELOCEST,
+		A.LMEREG),
+-- --------------------------------------------------------------------------------------
+
+F as (  select
+		A.PROCOD ,
+		LMEACA,
+		A.LMEREG,
+		A.LMEDATHOR,
+		A.LMELOCEST, 
+		case when LMEACA = 'E' then max(LMEQTDSAL) else min(LMEQTDSAL) end SALFEC
+		
+		from
+        TBS051 A (NOLOCK) 
+		join ( select
+               max(LMEREG) LMEREG,
+               PROCOD ,
+               LMELOCEST
+               
+			   from
+               TBS051 (NOLOCK)
+              
+			   Where
+               convert(datetime, floor(convert(float(24), LMEDATHOR))) = @data and
+               LMEINFALT = 'E'
+               
+			   group by
+               PROCOD, LMELOCEST) as fec on A.PROCOD = fec.PROCOD and A.LMEREG = fec.LMEREG and A.LMELOCEST = fec.LMELOCEST
+		where
+        convert(datetime, floor(convert(float(24), A.LMEDATHOR))) = @data and
+        LMEINFALT = 'E' 
+		
+		group by
+        A.PROCOD,
+        LMEACA,
+        A.LMEDATHOR,
+        A.LMELOCEST,
+		A.LMEREG),
+-- --------------------------------------------------------------------------------------
+
+E as (  select
+		PROCOD,
+        sum(LMEQTDMOV) ENT,
+        LMEACA,
+        LMEINFALT,
+        LMELOCEST
+		
+		from
+        TBS051 NOLOCK
+		
+		where
+        convert(datetime, floor(convert(float(24), LMEDATHOR))) = @data and
+        LMEINFALT = 'E' and
+        LMEACA = 'E'
+
+		group by
+        PROCOD, LMEACA, LMEINFALT, LMELOCEST),
+-- --------------------------------------------------------------------------------------
+S as (  select
+        PROCOD,
+        sum(LMEQTDMOV) SAI,
+        LMEACA,
+        LMEINFALT,
+        LMELOCEST
+		
+		from
+        TBS051 NOLOCK
+		
+		where
+        convert(datetime, floor(convert(float(24), LMEDATHOR))) = @data and
+        LMEINFALT = 'E' and
+        LMEACA = 'S'
+		
+		group by
+        PROCOD, LMEACA, LMEINFALT, LMELOCEST)
+-- --------------------------------------------------------------------------------------
+
+select
+@data,
+A.PROCOD 'Código',
+A.LMEACA 'Ent ou Sai?',
+LOCEST 'Local de Estoque',
+ltrim(replace(str(SALABT,10,4),'.',',')) 'Saldo de Abertura',
+ltrim(replace(str(isnull(ENT,0),10,4),'.',',')) 'Entrou',
+ltrim(replace(str(isnull(SAI,0),10,4),'.',',')) 'Saiu',
+ltrim(replace(str(SALFEC,10,4),'.',',')) 'Saldo de Fechamento',
+case when SALABT + isnull(ENT,0) - isnull(SAI,0) = SALFEC then 'Ok' else 'Verificar!' end 'Situação'
+
+from I 
+left join A on I.PROCOD = A.PROCOD and I.LOCEST = A.LMELOCEST 
+left join F on I.PROCOD = F.PROCOD and I.LOCEST = F.LMELOCEST 
+left join E on I.PROCOD = E.PROCOD and I.LOCEST = E.LMELOCEST 
+left join S on I.PROCOD = S.PROCOD and I.LOCEST = S.LMELOCEST
+
+where
+SALABT is not null or
+SALFEC is not null or
+ENT is not null or
+SAI is not null

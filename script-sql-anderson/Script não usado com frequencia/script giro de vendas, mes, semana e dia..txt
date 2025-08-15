@@ -1,0 +1,71 @@
+declare 
+@marca int, 
+@periodo01de datetime, @periodo01ate datetime
+-- --------------------------------------------
+-- Começo do Filtro
+-- --------------------------------------------
+-- Marca
+set @marca = '005'
+-- Periodo 01
+set @periodo01de = '20140901' --AAAAMMDD
+set @periodo01ate = '20150302' --AAAAMMDD
+
+-- --------------------------------------------
+-- Fim do Filtro
+-- --------------------------------------------
+select 
+rtrim(PROCOD) as 'PRODUTO',
+rtrim(PRODES) as 'DESCRICAO',
+rtrim(MARCOD) + ' - ' + rtrim(MARNOM) as 'MARCA',
+PROUM1 as 'UNID. MEDIDA',
+replace(str(isnull(GPeriodo01.QTDE,0)), '.', ',') as 'VENDA GZ PERIODO 01', 
+replace(str(isnull(IPeriodo01.QTDE,0)), '.', ',') as 'VENDA INTEGROS PERIODO 01',
+replace(str(isnull(GPeriodo01.QTDE,0) + isnull(IPeriodo01.QTDE,0)), '.', ','),
+replace(str((isnull(GPeriodo01.QTDE,0) + isnull(IPeriodo01.QTDE,0))/6,10,3),'.',','),
+
+replace(str(((isnull(GPeriodo01.QTDE,0) + isnull(IPeriodo01.QTDE,0))/6)/4.351,10,3),'.',','),
+
+replace(str((((isnull(GPeriodo01.QTDE,0) + isnull(IPeriodo01.QTDE,0))/6)/4.351)/6,10,3),'.',','),
+
+replace(str(isnull(Saldoestoque.SESTQTDDIS,0) + isnull(Saldoloja.SESTQTDDIS,0),10,3),'.',','),
+
+replace(str(isnull(Saldoestoque.SESTQTDDIS,0),10,3),'.',','),
+
+replace(str(isnull(Saldoloja.SESTQTDDIS,0),10,3),'.',',')
+
+from TBS010 P 
+left join
+(select rtrim(A.PROCOD) as SPROCOD, sum(A.ESTQTDATU-A.ESTQTDRES) as SESTQTDDIS
+from TBS032 A
+join TBS010 B on A.PROCOD = B.PROCOD
+where
+A.ESTLOC in (1) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0) and (B.MARCOD = @marca or (@marca = ''))
+group by A.PROCOD)
+as Saldoestoque on PROCOD = Saldoestoque.SPROCOD
+left join
+(select rtrim(A.PROCOD) as SPROCOD, sum(A.ESTQTDATU-A.ESTQTDRES) as SESTQTDDIS
+from TBS032 A
+join TBS010 B on A.PROCOD = B.PROCOD
+where
+A.ESTLOC in (2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0) and (B.MARCOD = @marca or (@marca = ''))
+group by A.PROCOD)
+as Saldoloja on PROCOD = Saldoloja.SPROCOD
+left join
+(select M2_PROCOD as PRO, sum(M2_QTD) as QTDE
+from MSL002 A join TBS010 B on M2_PROCOD = B.PROCOD 
+where M2_TIPREG = '01' and M2_REGCAN = 'F'
+and (M2_DAT between @periodo01de and @periodo01ate or (@periodo01de = '' and @periodo01ate = ''))
+and (MARCOD = @marca or (@marca = ''))
+group by M2_PROCOD)
+as GPeriodo01 on PROCOD = GPeriodo01.PRO
+left join
+(select A.PROCOD as PRO, sum(NFSQTD * NFSQTDEMB) as QTDE
+from TBS0671 A(nolock)join TBS067 B(nolock) on A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+join TBS042 C(nolock) on C.TESCOD = A.TESCOD
+join TBS010 D(nolock) on A.PROCOD = D.PROCOD
+where NFSTIP = 'N' and NFSCAN = 'N' and TESCNTVEN = 'S'
+and (NFSDATEMI between @periodo01de and @periodo01ate or (@periodo01de = '' and @periodo01ate = '')) 
+and (MARCOD = @marca or (@marca = ''))
+group by A.PROCOD) as IPeriodo01 on P.PROCOD = IPeriodo01.PRO
+where (MARCOD = @marca or (@marca = ''))
+order by PROCOD

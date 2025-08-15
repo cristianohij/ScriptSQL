@@ -1,0 +1,39 @@
+-- no cd e em tté
+
+-- atualizar produtos, inicia job no sql agent, o job contem o merge que atualiza os produtos
+
+if object_id('sp_atualizar_produtos') is not null
+   drop procedure sp_atualizar_produtos
+go
+
+create procedure sp_atualizar_produtos
+
+as
+
+begin
+
+EXEC msdb.dbo.sp_start_job N'atualizar produtos'   
+
+
+end 
+
+
+---------------------------------------------------------------------------------------------
+
+-- atualizar preços, inicia job no sql agent, o job contem o merge que atualiza os preços
+
+if object_id('sp_atualizar_precos') is not null
+   drop procedure sp_atualizar_precos
+go
+
+create procedure sp_atualizar_precos
+
+as
+
+begin
+
+EXEC msdb.dbo.sp_start_job N'atualizar precos'   
+
+
+end 
+

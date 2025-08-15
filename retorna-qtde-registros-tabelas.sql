@@ -1,0 +1,1 @@
+select sum(row_count) from sys.dm_db_partition_stats where object_id = object_id('TBS001') and index_id in (0,1)

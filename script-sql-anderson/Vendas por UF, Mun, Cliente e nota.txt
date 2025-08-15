@@ -1,0 +1,360 @@
+declare @data1de datetime, @data1ate datetime, @comando varchar (max), @PROCOD CHAR(15) , @GRUCOD INT , @SUBGRUCOD INT , @marcod INT, @marcanom CHAR(60) ,
+@PRODES CHAR (60), @GRUPO INT, @SQL VARCHAR(8000), @DEV VARCHAR(8000), @EMPCOD varchar(7)
+
+SET @GRUPO = 0 -- "0 - SIM" , "1 - NAO"
+SET @data1de  ='20170601'
+SET @data1ate ='20170606'
+SET @PROCOD = ''
+SET @GRUCOD = 0
+SET @SUBGRUCOD = 0
+SET @marcod = 0 
+SET @marcanom = ''
+SET @PRODES = ''
+--SET @EMPCOD = (SELECT CONVERT(INT,RTRIM(LTRIM(PARVAL))) AS PARVAL FROM TBS025 NOLOCK WHERE PARCHV = 1330)
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--declare @EMPCOD varchar(7) , @SQL VARCHAR(MAX)
+--
+--SET @EMPCOD = (SELECT CONVERT(INT,RTRIM(LTRIM(PARVAL))) AS PARVAL FROM TBS025 NOLOCK WHERE PARCHV = 1330)
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#CFOP') is not null
+   drop table #CFOP
+   
+create table #CFOP (TIPO CHAR (1), CFOP CHAR(5) )
+
+-- CFOP DE DEVOLUÇÃO
+INSERT INTO #CFOP VALUES ('E','1.201')
+INSERT INTO #CFOP VALUES ('E','1.202')
+INSERT INTO #CFOP VALUES ('E','1.411')
+INSERT INTO #CFOP VALUES ('E','1.503')
+
+INSERT INTO #CFOP VALUES ('E','2.201')
+INSERT INTO #CFOP VALUES ('E','2.202')
+INSERT INTO #CFOP VALUES ('E','2.411')
+INSERT INTO #CFOP VALUES ('E','2.503')
+
+-- CFOP DE VENDAS 
+INSERT INTO #CFOP VALUES ('S','5.101')
+INSERT INTO #CFOP VALUES ('S','5.102')
+INSERT INTO #CFOP VALUES ('S','5.116')
+INSERT INTO #CFOP VALUES ('S','5.117')
+INSERT INTO #CFOP VALUES ('S','5.118')
+INSERT INTO #CFOP VALUES ('S','5.119')
+INSERT INTO #CFOP VALUES ('S','5.123')
+INSERT INTO #CFOP VALUES ('S','5.405')
+INSERT INTO #CFOP VALUES ('S','5.502')
+INSERT INTO #CFOP VALUES ('S','5.551')
+INSERT INTO #CFOP VALUES ('S','5.929')
+INSERT INTO #CFOP VALUES ('S','6.101')
+INSERT INTO #CFOP VALUES ('S','6.102')
+INSERT INTO #CFOP VALUES ('S','6.116')
+INSERT INTO #CFOP VALUES ('S','6.117')
+INSERT INTO #CFOP VALUES ('S','6.118')
+INSERT INTO #CFOP VALUES ('S','6.119')
+INSERT INTO #CFOP VALUES ('S','6.123')
+INSERT INTO #CFOP VALUES ('S','6.405')
+INSERT INTO #CFOP VALUES ('S','6.502')
+INSERT INTO #CFOP VALUES ('S','6.551')
+INSERT INTO #CFOP VALUES ('S','6.929')
+
+-----------------------------------------------------------------------------------------------------------------------------------
+
+-- CONTABILIZAR AS VENDAS DE LOJA, DIRETO DO BANCO DA GZ
+
+--DECLARE @comando varchar (MAX)
+
+
+if object_id('TempDB.dbo.#NFSLOJA') is not null
+   drop table #NFSLOJA
+		
+		SELECT 
+		DISTINCT 
+		C.NFSNFRCOO AS COO ,
+		C.NFSNFRECF AS ECF
+		
+		INTO #NFSLOJA
+		FROM 
+		TBS0674 C (NOLOCK) 		
+		LEFT JOIN TBS080 D (NOLOCK) ON C.NFSNUM = D.ENFNUM AND C.SNEEMPCOD = D.SNEEMPCOD AND C.SNESER = D.SNESER
+		LEFT JOIN TBS067 A (nolock) ON A.NFSEMPCOD = C.NFSEMPCOD and A.NFSNUM = C.NFSNUM and A.SNEEMPCOD = C.SNEEMPCOD and A.SNESER = C.SNESER
+		
+		WHERE
+		C.NFSNFRTIP = 'CUP' AND 
+		A.NFSDATEMI BETWEEN @data1de and @data1ate + 10 and
+		D.ENFSIT = 6 AND -- VERIFICA SE ESTÁ AUTORIZADA
+		D.ENFTIPDOC = 1 
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- DECLARE @comando varchar (MAX)
+
+-- PEGANDO OS DADOS DO GZ, STATUS IN (01,02)
+
+SET @comando = 'EXECUTE(''
+select
+data,
+status, 
+loja,
+cupom,
+coo,
+ecf,
+caixa,
+item,
+case when cdprod = 0 then 0 else cdprod end as cdprod,
+desccupom,
+acrescupom,
+valortot,
+abatpgto,
+banco,
+"5.929C",
+tributacao,
+"F", 
+quant,
+preco
+
+FROM movcaixa
+where
+data between "'+convert(char(8), @data1de, 112)+'" and "'+convert(char(8), @data1ate, 112)+'"  and 
+status IN(01,02) and 
+cancelado <> "S" 
+'') at MYSQLGZ' 
+
+if object_id('TempDB.dbo.#MSLAUX') is not null
+   drop table #MSLAUX
+    
+create table #MSLAUX (M2_DAT DATE,M2_STATUS INT, M2_LOJ INT, M2_CUP INT, M2_COO INT, M2_ECF INT, M2_CXA INT ,M2_ITE INT, M2_PROCOD INT, M2_DESCUP DECIMAL(10,4),
+					  M2_ACRCUP DECIMAL(10,4), M2_VALBRU DECIMAL(10,4), M2_ABT DECIMAL(10,4), M2_CST CHAR(3), M2_CFOP CHAR (6), M2_TRI VARCHAR(6), M2_TIP CHAR(1),
+					  M2_QNT DECIMAL(10,4), M2_PRE DECIMAL (10,4))
+INSERT INTO #MSLAUX
+exec(@comando)
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- CRIANDO TABELA TEMP COM OS VALORES REAIS DE DESCONTO
+
+if object_id('TempDB.dbo.#TMP') is not null
+   drop table #TMP
+   
+select
+A.M2_CXA,
+A.M2_ECF,
+A.M2_CUP,
+A.M2_COO,
+M2_PROCOD,
+M2_PRE,
+M2_QNT,
+M2_VALBRU,
+M2_VALBRU - M2_ABT + M2_ACRCUP - 
+CASE WHEN  A.DESCONTO <> ISNULL(B.DESCONTO,0) AND M2_ITE = (SELECT TOP 1 M2_ITE 
+															FROM #MSLAUX E 
+																
+															WHERE 
+															A.M2_COO = E.M2_COO AND 
+															A.M2_ECF = E.M2_ECF AND 
+															A.M2_CUP = E.M2_CUP 
+																
+															ORDER BY 
+															M2_DESCUP DESC)
+																
+	THEN
+		CASE WHEN A.DESCONTO > ISNULL(B.DESCONTO,0) 
+			THEN ROUND(M2_DESCUP,2) - (A.DESCONTO - ISNULL(B.DESCONTO,0))
+			ELSE ROUND(M2_DESCUP,2) + (ISNULL(B.DESCONTO,0) - A.DESCONTO)
+		END
+	ELSE ROUND(M2_DESCUP,2)
+END AS M2_LIQUIDO
+	
+INTO #TMP	
+FROM (
+	SELECT
+	M2_DAT, 
+	M2_ITE,M2_PROCOD,M2_TRI,M2_CST,
+	M2_LOJ, M2_CUP, M2_COO, M2_ECF, M2_CXA , 
+	M2_DESCUP , M2_PRE, M2_QNT,
+	M2_ACRCUP,
+	M2_ABT ,
+	M2_VALBRU,
+	SUM(ISNULL(ROUND(M2_DESCUP,2),0)) OVER (PARTITION BY M2_LOJ, M2_CUP, M2_COO, M2_ECF, M2_CXA ) AS DESCONTO
+				
+	FROM 
+	#MSLAUX 
+				
+	WHERE
+	M2_STATUS = 1 ) AS A 
+		
+LEFT JOIN (
+	SELECT 
+	M2_LOJ, M2_CUP, M2_COO, M2_ECF, M2_CXA , M2_VALBRU AS DESCONTO 
+				
+	FROM 
+	#MSLAUX 
+				
+	WHERE
+	M2_STATUS = 2 ) AS B ON A.M2_LOJ = B.M2_LOJ AND A.M2_CUP = B.M2_CUP AND A.M2_COO= B.M2_COO AND 
+														A.M2_ECF = B.M2_ECF AND A.M2_CXA = B.M2_CXA  
+		
+LEFT JOIN #NFSLOJA D (NOLOCK) ON A.M2_COO = D.COO AND A.M2_ECF = D.ECF
+	
+WHERE 
+D.COO IS NULL 
+
+	
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- CRIANDO TABELA DE ITENS COM OS TRIBUTOS NECESSARIOS
+
+if object_id('TempDB.dbo.#LIQUIDO') is not null
+   drop table #LIQUIDO
+
+SELECT
+'SP'AS UF ,
+'3549904' AS MUNCOD,
+'SAO JOSE DOS CAMPOS' AS MUNNOM,
+0 AS NFSCLICOD,
+'LOJA' AS NFSCLINOM,
+RTRIM(LTRIM(STR(M2_CXA)))+ ' - ' + RTRIM(LTRIM(STR(M2_ECF)))+ ' - ' + RTRIM(LTRIM(STR(M2_COO)))+ ' - ' + RTRIM(LTRIM(STR(M2_CUP))) AS NFSNUM,
+--M2_ECF AS ECF,
+--M2_CUP AS CUP,
+--M2_COO AS NFSNUM,
+B.PROCOD AS PROCOD,
+B.PRODES AS NFSPRODES,
+B.PROUM1 AS PROUM1,
+M2_PRE,
+SUM(M2_QNT) AS NFSQTDVEN ,
+SUM(ROUND(M2_LIQUIDO,2)) AS NFSTOTITEST ,
+SUM(ROUND(M2_VALBRU,2)) - SUM(ROUND(M2_LIQUIDO,2)) AS NFSVDDTOT,
+0 AS NFSQTDDEV,
+0 AS NFSTOTDEV
+INTO #LIQUIDO
+FROM #TMP C 
+LEFT JOIN TBS010 B (NOLOCK) ON C.M2_PROCOD = CONVERT(INT,B.PROCOD)
+
+GROUP BY 
+M2_CXA,
+M2_ECF,
+M2_CUP,
+M2_COO,
+B.PROCOD,
+B.PRODES ,
+B.PROUM1 ,
+M2_PRE
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA DE AUTORIZAÇÃO
+if object_id('TempDB.dbo.#TBS080') is not null
+   drop table #TBS080
+   
+SELECT 
+ENFNUM ,
+SNEEMPCOD ,
+SNESER,
+ENFSIT,
+ENFTIPDOC,
+ENFFINEMI,
+ENFCODDES
+
+INTO #TBS080
+FROM 
+TBS080 NOLOCK 
+
+WHERE 
+ENFSIT = 6 AND 
+ENFDATEMI between @data1de and @data1ate AND 
+ENFTIPDOC = 1 
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- CLIENTES DO GRUPO
+
+if object_id('TempDB.dbo.#GRUPOCLI') is not null
+   begin
+      drop table #GRUPOCLI
+   end
+   
+CREATE TABLE #GRUPOCLI (CLICOD INT)   
+
+-- GRUPO DE CLIENTES DO GRUPO, CONTABIIZAR ?
+
+IF @GRUPO = 0 -- SIM 
+
+BEGIN 
+SET @SQL = 'SELECT TOP 1
+			0 AS CLICOD			
+			FROM TBS010'
+END
+
+IF @GRUPO = 1 -- NÃO
+
+BEGIN 
+SET @SQL = 'SELECT CLICOD 
+			FROM TBS002 (nolock)
+			WHERE 
+			CLICGC Like(''65069593%'') or CLICGC Like(''05118717%'') or CLICGC Like(''52080207%'') or CLICGC Like(''44125185%'')'
+                        -- TANBYS                     -- BAG                           -- MISAS                      -- PAPE
+END
+
+INSERT INTO #GRUPOCLI
+EXEC (@SQL)
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- contabilizar vendas CORPORATIVO
+
+if object_id('TempDB.dbo.#CORP') is not null
+   drop table #CORP
+
+SELECT
+A.UFESIG AS UF,
+C.MUNCOD,
+(SELECT MUNNOM FROM TBS003 E (NOLOCK) WHERE E.MUNCOD = C.MUNCOD) AS MUNNOM,
+NFSCLICOD,
+NFSCLINOM,
+CONVERT(VARCHAR(10),A.NFSNUM) AS NFSNUM,
+B.PROCOD,
+B.NFSPRODES,
+F.PROUM1,
+SUM(ROUND(dbo.NFSTOTITEST(B.NFSEMPCOD,B.NFSNUM,B.SNEEMPCOD,B.SNESER,B.NFSITE),2)) /sum(B.NFSQTD * B.NFSQTDEMB) AS NFSPREMED,
+SUM(B.NFSQTD * B.NFSQTDEMB) AS NFSQTDVEN,
+SUM(ROUND(dbo.NFSTOTITEST(B.NFSEMPCOD,B.NFSNUM,B.SNEEMPCOD,B.SNESER,B.NFSITE),2)) AS NFSTOTITEST,
+SUM(ROUND(dbo.NFSVDDITE(B.NFSEMPCOD, B.NFSNUM, B.SNEEMPCOD, B.SNESER,B.NFSITE),2)) AS NFSVDDTOT,
+SUM(NFSQTDDEV) AS NFSQTDDEV, 
+SUM(ROUND(dbo.NFSVALDEV(B.NFSEMPCOD, B.NFSNUM, B.SNEEMPCOD, B.SNESER,B.NFSITE),2)) AS NFSTOTDEV
+
+into #CORP
+FROM 
+TBS0671 B (nolock)
+LEFT JOIN TBS067 A (nolock) ON A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+INNER JOIN #TBS080 D (NOLOCK) ON B.NFSNUM = D.ENFNUM AND B.SNEEMPCOD = D.SNEEMPCOD AND B.SNESER = D.SNESER
+LEFT JOIN TBS002 C (NOLOCK)   ON A.NFSCLICOD = C.CLICOD
+LEFT JOIN TBS010 F (NOLOCK) ON B.PROCOD = F.PROCOD
+		  
+WHERE 
+NFSDATEMI between @data1de and @data1ate and 
+-- NFSTIP IN('N','C') and 
+B.NFSCFOP COLLATE DATABASE_DEFAULT IN (SELECT CFOP FROM #CFOP WHERE TIPO = 'S') AND
+A.NFSCLINOM NOT LIKE ('TANBY%') AND 		-- TIRO AS TRANSFERENCIAS
+NFSCLICOD NOT IN ((SELECT CLICOD FROM #GRUPOCLI)) --AND 
+--A.UFESIG IN (@UFESIG) AND 
+--C.MUNCOD IN (@MUNCOD) 
+
+GROUP BY 
+A.UFESIG,
+C.MUNCOD,
+NFSCLICOD,
+NFSCLINOM,
+A.NFSNUM,
+B.PROCOD,
+B.NFSPRODES,
+F.PROUM1
+
+UNION 
+
+SELECT * FROM #LIQUIDO
+
+
+
+SELECT * FROM #CORP

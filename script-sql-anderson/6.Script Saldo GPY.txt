@@ -1,0 +1,294 @@
+with
+bb as (
+	select 
+	'BEST BAG' as 'UNIDADE',
+	rtrim(ESTLOC) + ' - ' + rtrim(C.LESDES) collate Latin1_General_BIN as 'LOCAL',
+	rtrim(ltrim(A.PROCOD)) collate Latin1_General_BIN as 'CODIGO',
+	rtrim(B.PRODES) collate Latin1_General_BIN as 'DESCRICAO',
+	rtrim(B.MARCOD) + ' - ' + rtrim(B.MARNOM) collate Latin1_General_BIN as 'MARCA',
+	B.PROUM1 collate Latin1_General_BIN as 'UNID. MEDIDA',
+	ltrim(replace(str(sum(A.ESTQTDATU)), '.', ',')) collate Latin1_General_BIN as 'ATUAL',
+	ltrim(replace(str(sum(A.ESTQTDRES)), '.', ',')) collate Latin1_General_BIN as 'RESERVADO',
+	ltrim(replace(str(sum(A.ESTQTDATU - A.ESTQTDRES)), '.', ',')) collate Latin1_General_BIN as 'DISPONIVEL',
+	ltrim(replace(str(sum(A.ESTQTDPEN)), '.', ',')) collate Latin1_General_BIN as 'PENDENTE',
+	ltrim(replace(str(sum(A.ESTQTDCMP)), '.', ',')) collate Latin1_General_BIN as 'COMPRAS'
+	from BESTBAG.SIBD2.dbo.TBS032 A
+	join BESTBAG.SIBD2.dbo.TBS010 B on A.PROCOD = B.PROCOD 
+	join BESTBAG.SIBD2.dbo.TBS034 C on A.ESTLOC = C.LESCOD
+	where
+	A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+	group by A.PROEMPCOD, A.PROCOD, B.PRODES, B.PROUM1, A.ESTLOC, C.LESDES, B.MARCOD, B.MARNOM),
+bo as (
+	select 
+	'BEST OFFICE' as 'UNIDADE',
+	rtrim(ESTLOC) + ' - ' + rtrim(C.LESDES) collate Latin1_General_BIN as 'LOCAL',
+	rtrim(ltrim(A.PROCOD)) collate Latin1_General_BIN as 'CODIGO',
+	rtrim(B.PRODES) collate Latin1_General_BIN as 'DESCRICAO',
+	rtrim(B.MARCOD) + ' - ' + rtrim(B.MARNOM) collate Latin1_General_BIN as 'MARCA',
+	B.PROUM1 collate Latin1_General_BIN as 'UNID. MEDIDA',
+	ltrim(replace(str(sum(A.ESTQTDATU)), '.', ',')) collate Latin1_General_BIN as 'ATUAL',
+	ltrim(replace(str(sum(A.ESTQTDRES)), '.', ',')) collate Latin1_General_BIN as 'RESERVADO',
+	ltrim(replace(str(sum(A.ESTQTDATU - A.ESTQTDRES)), '.', ',')) collate Latin1_General_BIN as 'DISPONIVEL',
+	ltrim(replace(str(sum(A.ESTQTDPEN)), '.', ',')) collate Latin1_General_BIN as 'PENDENTE',
+	ltrim(replace(str(sum(A.ESTQTDCMP)), '.', ',')) collate Latin1_General_BIN as 'COMPRAS'
+	from BESTOFFICE.SIBD.dbo.TBS032 A
+	join BESTOFFICE.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD 
+	join BESTOFFICE.SIBD.dbo.TBS034 C on A.ESTLOC = C.LESCOD
+	where
+	A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+	group by A.PROEMPCOD, A.PROCOD, B.PRODES, B.PROUM1, A.ESTLOC, C.LESDES, B.MARCOD, B.MARNOM),	
+mi as (
+	select 
+	'MISASPEL' as 'UNIDADE',
+	rtrim(ESTLOC) + ' - ' + rtrim(C.LESDES) collate Latin1_General_BIN as 'LOCAL',
+	rtrim(ltrim(A.PROCOD)) collate Latin1_General_BIN as 'CODIGO',
+	rtrim(B.PRODES) collate Latin1_General_BIN as 'DESCRICAO',
+	rtrim(B.MARCOD) + ' - ' + rtrim(B.MARNOM) collate Latin1_General_BIN as 'MARCA',
+	B.PROUM1 collate Latin1_General_BIN as 'UNID. MEDIDA',
+	ltrim(replace(str(sum(A.ESTQTDATU)), '.', ',')) collate Latin1_General_BIN as 'ATUAL',
+	ltrim(replace(str(sum(A.ESTQTDRES)), '.', ',')) collate Latin1_General_BIN as 'RESERVADO',
+	ltrim(replace(str(sum(A.ESTQTDATU - A.ESTQTDRES)), '.', ',')) collate Latin1_General_BIN as 'DISPONIVEL',
+	ltrim(replace(str(sum(A.ESTQTDPEN)), '.', ',')) collate Latin1_General_BIN as 'PENDENTE',
+	ltrim(replace(str(sum(A.ESTQTDCMP)), '.', ',')) collate Latin1_General_BIN as 'COMPRAS'
+	from MISASPEL.SIBD.dbo.TBS032 A
+	join MISASPEL.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD 
+	join MISASPEL.SIBD.dbo.TBS034 C on A.ESTLOC = C.LESCOD
+	where
+	A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+	group by A.PROEMPCOD, A.PROCOD, B.PRODES, B.PROUM1, A.ESTLOC, C.LESDES, B.MARCOD, B.MARNOM),
+py as (
+	select 
+	'PAPELYNA' as 'UNIDADE',
+	rtrim(ESTLOC) + ' - ' + rtrim(C.LESDES) collate Latin1_General_BIN as 'LOCAL',
+	rtrim(ltrim(A.PROCOD)) collate Latin1_General_BIN as 'CODIGO',
+	rtrim(B.PRODES) collate Latin1_General_BIN as 'DESCRICAO',
+	rtrim(B.MARCOD) + ' - ' + rtrim(B.MARNOM) collate Latin1_General_BIN as 'MARCA',
+	B.PROUM1 collate Latin1_General_BIN as 'UNID. MEDIDA',
+	ltrim(replace(str(sum(A.ESTQTDATU)), '.', ',')) collate Latin1_General_BIN as 'ATUAL',
+	ltrim(replace(str(sum(A.ESTQTDRES)), '.', ',')) collate Latin1_General_BIN as 'RESERVADO',
+	ltrim(replace(str(sum(A.ESTQTDATU - A.ESTQTDRES)), '.', ',')) collate Latin1_General_BIN as 'DISPONIVEL',
+	ltrim(replace(str(sum(A.ESTQTDPEN)), '.', ',')) collate Latin1_General_BIN as 'PENDENTE',
+	ltrim(replace(str(sum(A.ESTQTDCMP)), '.', ',')) collate Latin1_General_BIN as 'COMPRAS'
+	from PAPELYNA.SIBD.dbo.TBS032 A
+	join PAPELYNA.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD 
+	join PAPELYNA.SIBD.dbo.TBS034 C on A.ESTLOC = C.LESCOD
+	where
+	A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+	group by A.PROEMPCOD, A.PROCOD, B.PRODES, B.PROUM1, A.ESTLOC, C.LESDES, B.MARCOD, B.MARNOM),
+cd as (
+	select 
+	'TANBY C. DISTRIUICAO' as 'UNIDADE',     
+	rtrim(ESTLOC) + ' - ' + rtrim(C.LESDES) as 'LOCAL',
+	rtrim(ltrim(A.PROCOD)) as 'CODIGO',
+	rtrim(B.PRODES) as 'DESCRICAO',
+	rtrim(B.MARCOD) + ' - ' + rtrim(B.MARNOM) as 'MARCA',
+	B.PROUM1 as 'UNID. MEDIDA',
+	ltrim(replace(str(sum(A.ESTQTDATU)), '.', ',')) as 'ATUAL',
+	ltrim(replace(str(sum(A.ESTQTDRES)), '.', ',')) as 'RESERVADO',
+	ltrim(replace(str(sum(A.ESTQTDATU - A.ESTQTDRES)), '.', ',')) as 'DISPONIVEL',
+	ltrim(replace(str(sum(A.ESTQTDPEN)), '.', ',')) as 'PENDENTE',
+	ltrim(replace(str(sum(A.ESTQTDCMP)), '.', ',')) as 'COMPRAS'
+	from TANBYCD.SIBD.dbo.TBS032 A
+	join TANBYCD.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD
+	join TANBYCD.SIBD.dbo.TBS034 C on A.ESTLOC = C.LESCOD
+	where
+	A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+	group by A.PROEMPCOD, A.PROCOD, B.PRODES, B.PROUM1, A.ESTLOC, C.LESDES, B.MARCOD, B.MARNOM),
+nd as (
+	select 
+	'TANBY N. DAVILA' as 'UNIDADE',     
+	rtrim(ESTLOC) + ' - ' + rtrim(C.LESDES) as 'LOCAL',
+	rtrim(ltrim(A.PROCOD)) as 'CODIGO',
+	rtrim(B.PRODES) as 'DESCRICAO',
+	rtrim(B.MARCOD) + ' - ' + rtrim(B.MARNOM) as 'MARCA',
+	B.PROUM1 as 'UNID. MEDIDA',
+	ltrim(replace(str(sum(A.ESTQTDATU)), '.', ',')) as 'ATUAL',
+	ltrim(replace(str(sum(A.ESTQTDRES)), '.', ',')) as 'RESERVADO',
+	ltrim(replace(str(sum(A.ESTQTDATU - A.ESTQTDRES)), '.', ',')) as 'DISPONIVEL',
+	ltrim(replace(str(sum(A.ESTQTDPEN)), '.', ',')) as 'PENDENTE',
+	ltrim(replace(str(sum(A.ESTQTDCMP)), '.', ',')) as 'COMPRAS'
+	from TANBYND.SIBD.dbo.TBS032 A
+	join TANBYND.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD
+	join TANBYND.SIBD.dbo.TBS034 C on A.ESTLOC = C.LESCOD
+	where
+	A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+	group by A.PROEMPCOD, A.PROCOD, B.PRODES, B.PROUM1, A.ESTLOC, C.LESDES, B.MARCOD, B.MARNOM),
+tt as (
+	select 
+	'TANBY TAUBATE' as 'UNIDADE',     
+	rtrim(ESTLOC) + ' - ' + rtrim(C.LESDES) as 'LOCAL',
+	rtrim(ltrim(A.PROCOD)) as 'CODIGO',
+	rtrim(B.PRODES) as 'DESCRICAO',
+	rtrim(B.MARCOD) + ' - ' + rtrim(B.MARNOM) as 'MARCA',
+	B.PROUM1 as 'UNID. MEDIDA',
+	ltrim(replace(str(sum(A.ESTQTDATU)), '.', ',')) as 'ATUAL',
+	ltrim(replace(str(sum(A.ESTQTDRES)), '.', ',')) as 'RESERVADO',
+	ltrim(replace(str(sum(A.ESTQTDATU - A.ESTQTDRES)), '.', ',')) as 'DISPONIVEL',
+	ltrim(replace(str(sum(A.ESTQTDPEN)), '.', ',')) as 'PENDENTE',
+	ltrim(replace(str(sum(A.ESTQTDCMP)), '.', ',')) as 'COMPRAS'
+	from TANBYTTE.SIBD.dbo.TBS032 A
+	join TANBYTTE.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD
+	join TANBYTTE.SIBD.dbo.TBS034 C on A.ESTLOC = C.LESCOD
+	where
+	A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+	group by A.PROEMPCOD, A.PROCOD, B.PRODES, B.PROUM1, A.ESTLOC, C.LESDES, B.MARCOD, B.MARNOM)
+select * from bb union 
+select * from bo union 
+select * from mi union 
+select * from py union 
+select * from cd union 
+select * from nd union 
+select * from tt
+
+
+
+
+
+
+----PUXAR CÓD NAO ZERADOS CD, TTE E ND
+
+
+WITH cd as (
+	select 
+	'TANBY C. DISTRIUICAO' collate Latin1_General_CI_AS as 'UNIDADE',     
+	rtrim(ESTLOC) + ' - ' + rtrim(C.LESDES)collate Latin1_General_CI_AS as 'LOCAL',
+	rtrim(ltrim(A.PROCOD))collate Latin1_General_CI_AS as 'CODIGO'
+	from cd.SIBD.dbo.TBS032 A (nolock)
+	join cd.SIBD.dbo.TBS010 B (nolock)on A.PROCOD = B.PROCOD
+	join cd.SIBD.dbo.TBS034 C (nolock)on A.ESTLOC = C.LESCOD
+	where
+	A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+	group by A.PROEMPCOD, A.PROCOD, B.PRODES, B.PROUM1, A.ESTLOC, C.LESDES, B.MARCOD, B.MARNOM),
+nd as (
+	select 
+	'TANBY N. DAVILA' collate Latin1_General_CI_AS as 'UNIDADE',     
+	rtrim(ESTLOC) + ' - ' + rtrim(C.LESDES)collate Latin1_General_CI_AS as 'LOCAL',
+	rtrim(ltrim(A.PROCOD))collate Latin1_General_CI_AS as 'CODIGO'
+	from TBS032 A (nolock)
+	join TBS010 B (nolock)on A.PROCOD = B.PROCOD
+	join TBS034 C (nolock)on A.ESTLOC = C.LESCOD
+	where
+	A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+	group by A.PROEMPCOD, A.PROCOD, B.PRODES, B.PROUM1, A.ESTLOC, C.LESDES, B.MARCOD, B.MARNOM),
+tt as (
+	select 
+	'TANBY TAUBATE' collate Latin1_General_CI_AS as 'UNIDADE',     
+	rtrim(ESTLOC) + ' - ' + rtrim(C.LESDES) collate Latin1_General_CI_AS as 'LOCAL',
+	rtrim(ltrim(A.PROCOD))collate Latin1_General_CI_AS as 'CODIGO'
+	from tt.SIBD.dbo.TBS032 A (nolock)
+	join tt.SIBD.dbo.TBS010 B (nolock)on A.PROCOD = B.PROCOD
+	join tt.SIBD.dbo.TBS034 C (nolock)on A.ESTLOC = C.LESCOD
+	where
+	A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+	group by A.PROEMPCOD, A.PROCOD, B.PRODES, B.PROUM1, A.ESTLOC, C.LESDES, B.MARCOD, B.MARNOM)
+
+select * from cd union 
+select * from nd union 
+select * from tt
+
+ORDER BY UNIDADE 
+
+
+
+
+
+
+
+
+
+
+
+-- cód nao zerados todas as unidades--
+
+with
+bb as (
+	select 
+	'BEST BAG' as 'UNIDADE',
+	rtrim(ESTLOC) + ' - ' + rtrim(C.LESDES) collate Latin1_General_BIN as 'LOCAL',
+	rtrim(ltrim(A.PROCOD)) collate Latin1_General_BIN as 'CODIGO'
+	
+	from bb2.SIBD2.dbo.TBS032 A
+	join bb2.SIBD2.dbo.TBS010 B on A.PROCOD = B.PROCOD 
+	join bb2.SIBD2.dbo.TBS034 C on A.ESTLOC = C.LESCOD
+	where
+	A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+	group by A.PROEMPCOD, A.PROCOD, B.PRODES, B.PROUM1, A.ESTLOC, C.LESDES, B.MARCOD, B.MARNOM),
+bo as (
+	select 
+	'BEST OFFICE' as 'UNIDADE',
+	rtrim(ESTLOC) + ' - ' + rtrim(C.LESDES) collate Latin1_General_BIN as 'LOCAL',
+	rtrim(ltrim(A.PROCOD)) collate Latin1_General_BIN as 'CODIGO'
+	
+	from bo.SIBD.dbo.TBS032 A
+	join bo.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD 
+	join bo.SIBD.dbo.TBS034 C on A.ESTLOC = C.LESCOD
+	where
+	A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+	group by A.PROEMPCOD, A.PROCOD, B.PRODES, B.PROUM1, A.ESTLOC, C.LESDES, B.MARCOD, B.MARNOM),	
+mi as (
+	select 
+	'MISASPEL' as 'UNIDADE',
+	rtrim(ESTLOC) + ' - ' + rtrim(C.LESDES) collate Latin1_General_BIN as 'LOCAL',
+	rtrim(ltrim(A.PROCOD)) collate Latin1_General_BIN as 'CODIGO'
+	
+	from mi.SIBD.dbo.TBS032 A
+	join mi.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD 
+	join mi.SIBD.dbo.TBS034 C on A.ESTLOC = C.LESCOD
+	where
+	A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+	group by A.PROEMPCOD, A.PROCOD, B.PRODES, B.PROUM1, A.ESTLOC, C.LESDES, B.MARCOD, B.MARNOM),
+py as (
+	select 
+	'PAPELYNA' as 'UNIDADE',
+	rtrim(ESTLOC) + ' - ' + rtrim(C.LESDES) collate Latin1_General_BIN as 'LOCAL',
+	rtrim(ltrim(A.PROCOD)) collate Latin1_General_BIN as 'CODIGO'
+	
+	from py.SIBD.dbo.TBS032 A
+	join py.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD 
+	join py.SIBD.dbo.TBS034 C on A.ESTLOC = C.LESCOD
+	where
+	A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+	group by A.PROEMPCOD, A.PROCOD, B.PRODES, B.PROUM1, A.ESTLOC, C.LESDES, B.MARCOD, B.MARNOM),
+cd as (
+	select 
+	'TANBY C. DISTRIUICAO' as 'UNIDADE',     
+	rtrim(ESTLOC) + ' - ' + rtrim(C.LESDES) as 'LOCAL',
+	rtrim(ltrim(A.PROCOD)) as 'CODIGO'
+	
+	from cd.SIBD.dbo.TBS032 A
+	join cd.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD
+	join cd.SIBD.dbo.TBS034 C on A.ESTLOC = C.LESCOD
+	where
+	A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+	group by A.PROEMPCOD, A.PROCOD, B.PRODES, B.PROUM1, A.ESTLOC, C.LESDES, B.MARCOD, B.MARNOM),
+nd as (
+	select 
+	'TANBY N. DAVILA' as 'UNIDADE',     
+	rtrim(ESTLOC) + ' - ' + rtrim(C.LESDES) as 'LOCAL',
+	rtrim(ltrim(A.PROCOD)) as 'CODIGO'
+	
+	from nd.SIBD.dbo.TBS032 A
+	join nd.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD
+	join nd.SIBD.dbo.TBS034 C on A.ESTLOC = C.LESCOD
+	where
+	A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+	group by A.PROEMPCOD, A.PROCOD, B.PRODES, B.PROUM1, A.ESTLOC, C.LESDES, B.MARCOD, B.MARNOM),
+tt as (
+	select 
+	'TANBY TAUBATE' as 'UNIDADE',     
+	rtrim(ESTLOC) + ' - ' + rtrim(C.LESDES) as 'LOCAL',
+	rtrim(ltrim(A.PROCOD)) as 'CODIGO'
+	
+	from tt.SIBD.dbo.TBS032 A
+	join tt.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD
+	join tt.SIBD.dbo.TBS034 C on A.ESTLOC = C.LESCOD
+	where
+	A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+	group by A.PROEMPCOD, A.PROCOD, B.PRODES, B.PROUM1, A.ESTLOC, C.LESDES, B.MARCOD, B.MARNOM)
+select * from bb union 
+select * from bo union 
+select * from mi union 
+select * from py union 
+select * from cd union 
+select * from nd union 
+select * from tt

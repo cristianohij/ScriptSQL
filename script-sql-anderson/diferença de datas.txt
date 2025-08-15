@@ -1,0 +1,25 @@
+-- diferença de mes
+
+
+DECLARE @anoDe varchar(4), @mesDe varchar(2), @anoAte varchar(4), @mesAte varchar(2), @diaDe varchar(2), @diaAte varchar(2)
+
+	set @anoDe ='2015'
+	set @mesDe= '10'
+	set @anoAte ='2016'
+	set @mesAte= '02'	
+	set @diaDe = '01'
+	set @diaAte = '28'
+	
+	select @anoDe+@mesDe+@diaDe , @anoAte+@mesAte+@diaAte,
+  DATEDIFF(month,@anoDe+@mesDe+'01' , @anoAte+@mesAte+'28') +1 
+
+
+	
+	
+DECLARE @antes DATETIME = '20131129 11:30:40.157';
+DECLARE @depois DATETIME = '20140527 14:10:50.637';
+
+SELECT  CONVERT(VARCHAR, DATEDIFF(month, @antes, @depois)) + 'd '
+        + RIGHT('00' + CONVERT(VARCHAR, DATEDIFF(HOUR, @antes, @depois) % 24), 2) + ':'
+        + RIGHT('00' + CONVERT(VARCHAR, DATEDIFF(MINUTE, @antes, @depois) % 60), 2) + ':'
+        + RIGHT('00' + CONVERT(VARCHAR, DATEDIFF(SECOND, @antes, @depois) % 60), 2);

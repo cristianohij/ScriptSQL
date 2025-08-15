@@ -1,0 +1,16 @@
+select E4_CODIGO,
+       E4_TIPO,
+       E4_COND,
+       E4_DESCRI,
+       E4_IPI,
+       E4_DDD,
+       E4_DESCFIN,
+       E4_DIADESC,
+       E4_FORMA,
+       E4_ACRSFIN,
+       E4_SOLID,
+       E4_PERCOM,
+       E4_SUPER,
+       E4_INFER,
+       E4_FATOR
+  from SE4010 where D_E_L_E_T_=''

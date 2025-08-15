@@ -1,0 +1,150 @@
+DECLARE @DATADE DATETIME, @DATEATE DATETIME,@VENCOD int, @VENNOM varchar(60)
+SET @DATADE = '20170704'
+SET @DATEATE = '20170704'
+set @VENCOD = 0
+set @VENNOM = ''
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- CLIENTES DO GRUPO NÃO SERÃO CONTABIIZADOS
+
+if object_id('TempDB.dbo.#CNPJ') is not null 
+	drop table #CNPJ
+
+SELECT CLICOD 
+INTO #CNPJ 
+FROM TBS002 NOLOCK WHERE CLICGC LIKE('05118717000%') OR CLICGC LIKE('44125185000%') OR CLICGC LIKE('52080207000%') OR CLICGC LIKE('6506959300%')
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- DADOS DO VENDEDOR / CLIENTE
+
+if object_id('TempDB.dbo.#TBS0041') is not null
+   drop table #TBS0041
+
+SELECT 
+GVECOD,
+ISNULL((SELECT GVEDES FROM TBS091 A (NOLOCK) WHERE B.GVECOD = A.GVECOD),'SEM GRUPO') AS GVEDES,
+B.VENCOD AS VENCOD, 
+VENNOM AS VENNOM
+
+INTO #TBS0041
+FROM TBS004 B (NOLOCK) 
+
+UNION
+
+SELECT 
+0,
+'SEM GRUPO',
+0 AS VENCOD,
+'SEM VENDEDOR' AS VENNOM
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+-- FILTROS VENDEDOR 
+
+if object_id('TempDB.dbo.#TBS004') is not null
+   drop table #TBS004
+
+SELECT 
+* 
+INTO #TBS004
+FROM #TBS0041
+
+WHERE 
+VENNOM LIKE (CASE WHEN @VENNOM = '' THEN VENNOM ELSE RTRIM(UPPER(@VENNOM)) + '%' END)--  AND
+-- VENCOD IN (@VENCOD) -- AND
+--GVECOD IN (@GVECOD) 
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- ORÇAMENTO
+
+if object_id('TempDB.dbo.#TBS043') is not null 
+	drop table #TBS043
+	
+SELECT
+'ORÇAMENTO' AS OP, 
+B.* , COUNT(*) AS QTDORC, SUM(ROUND(dbo.ORCTOTLIQ(A.ORCEMPCOD ,A.ORCNUM),2)) AS ORCVAL
+-- INTO #TBS043
+FROM TBS043 A (NOLOCK)
+INNER JOIN #TBS004 B ON A.VENCOD = B.VENCOD
+
+WHERE
+A.ORCDATCAD BETWEEN @DATADE AND @DATEATE AND
+ORCULTITE > 0 AND
+A.ORCCLI NOT IN ((SELECT CLICOD FROM #CNPJ)) 
+
+GROUP BY 
+B.VENCOD,
+VENNOM,
+GVECOD,
+GVEDES
+
+UNION 
+
+-- PEDIDO
+
+SELECT
+'PEDIDO' AS OP, 
+B.* , COUNT(*) AS QTDPED, SUM(ROUND(dbo.PDVTOTLIQ(A.PDVEMPCOD,A.PDVNUM),2)) AS ORCVAL
+
+-- INTO #TBS055								
+FROM TBS055 A (NOLOCK)
+INNER JOIN #TBS004 B(NOLOCK) ON A.VENCOD = B.VENCOD
+
+WHERE 
+PDVDATCAD BETWEEN @DATADE AND @DATEATE AND
+PDVULTITE > 0 AND
+A.PDVCLICOD NOT IN ((SELECT CLICOD FROM #CNPJ))
+
+GROUP BY 
+B.VENCOD,
+VENNOM,
+GVECOD,
+GVEDES
+
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#TBS0041') is not null
+   drop table #TBS0041
+
+SELECT 
+GVECOD,
+ISNULL((SELECT GVEDES FROM TBS091 A (NOLOCK) WHERE B.GVECOD = A.GVECOD),'SEM GRUPO') AS GVEDES,
+B.VENCOD AS VENCOD, 
+VENNOM AS VENNOM
+
+INTO #TBS0041
+FROM TBS004 B (NOLOCK) 
+
+UNION
+
+SELECT 
+0,
+'SEM GRUPO',
+0 AS VENCOD,
+'SEM VENDEDOR' AS VENNOM
+
+
+DECLARE @Nomes VARCHAR(8000)
+
+SELECT 
+    @Nomes = COALESCE(@Nomes + ',', '') + CONVERT(VARCHAR(4),VENCOD)
+FROM 
+#TBS0041
+ORDER BY VENCOD
+
+SELECT
+@Nomes AS NOME, 
+VENCOD
+
+FROM #TBS0041 A (NOLOCK) 
+
+ORDER BY 
+VENCOD

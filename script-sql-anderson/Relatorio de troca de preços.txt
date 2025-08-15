@@ -1,0 +1,135 @@
+--select TDPPROCOD, TDPPRELOJ1, TDPPRELOJ2 FROM TBS031 (NOLOCK) WHERE TDPPROCOD IN ('1640054','1080067')
+--
+--select PROCOD, ESTQTDATU , ESTLOC FROM TBS032 (NOLOCK) WHERE PROCOD IN ('1640054','1080067')
+--
+--
+--exec ('select * from barrarel') at MYSQLGZ
+--exec (
+--'select 
+--rtrim(ltrim(cdprod)) 
+--into #t
+--from estoque' ) at MYSQLGZ
+--
+--select rtrim(ltrim(cdprod)) 
+--
+--from MYSQLGZ...estoque
+--
+--select * from sys.servers
+
+select PROSTATUS, PROCOD, PROUM2QTD ,C.TDPPRELOJ2, multiplos, termvenda
+from 
+TBS010 A (NOLOCK) 
+LEFT JOIN MYSQLGZ...barrarel B ON CONVERT(NUMERIC,A.PROCOD) = B.cdprod and multiplos = PROUM2QTD
+LEFT JOIN TBS031 C (NOLOCK) ON A.PROCOD = C.TDPPROCOD
+
+WHERE PROUM2QTD > 0 AND (multiplos is null or multiplos = 0 or multiplos = 1 )
+
+
+
+
+if object_id ('TempDB.dbo.#TBS032') is not null 
+	drop table #TBS032;
+
+select * into #TBS032 from TBS032 WHERE ESTQTDATU > 0 AND ESTLOC = 2  
+
+if object_id ('TempDB.dbo.#barrarel') is not null 
+	drop table #barrarel;
+
+SELECT * into #barrarel FROM OPENQUERY (MYSQLGZ, 'SELECT * FROM barrarel WHERE termvenda > 0')
+
+
+-- PARA FUNCIONAR O SELECT ABAIXO (USANDO LINK) PRECISEI MEXER NAS PROPRIEDADES DO PROVEDOR MSDASQL DENTRO DO STUDIO, POREM O OPENQUERY É MAIS RAPIDO
+-- SELECT * FROM MYSQLGZ...barrarel WHERE cdprod = 8740021
+-- SELECT * FROM OPENQUERY (MYSQLGZ, 'SELECT * FROM barrarel WHERE cdprod = 0060230')
+
+if object_id ('TempDB.dbo.#estoque') is not null 
+	drop table #estoque;
+
+SELECT * into #estoque FROM OPENQUERY (MYSQLGZ, 'SELECT * FROM estoque')
+-- SELECT * FROM OPENQUERY (MYSQLGZ, 'SELECT * FROM estoque where cdprod = 8421515')
+
+--if object_id ('TempDB.dbo.#T') is not null 
+--	drop table #T;
+
+select 
+rtrim(c.PROCOD) as Código,
+rtrim(ltrim(c.PRODES)) as Descrição,
+case when len(c.MARCOD) = 4 then 
+	rtrim(c.MARCOD) + ' - ' + rtrim(c.MARNOM) 
+	else right(('00' + ltrim(str(c.MARCOD))),3) + ' - ' + rtrim(c.MARNOM) end as 'MARCA',
+CASE WHEN PROUM1QTD = 1
+	THEN RTRIM((SELECT UNIDES FROM TBS011 D (NOLOCK) WHERE c.PROUM1 = D.UNICOD))   
+	ELSE
+		CASE WHEN PROUM1QTD > 1 
+		THEN rtrim(PROUM1) + ' C/' + rtrim(CAST(PROUM1QTD AS DECIMAL(10,0))) +''+ RTRIM(PROUMV) 
+		ELSE '' 
+	END 
+END  as UN1,
+a.termvenda as 'Preço GZ 1',
+CASE WHEN d.TDPVALPROI<=GETDATE() AND d.TDPVALPROF >= GETDATE() AND d.TDPPROLOJ = 'S' 
+	THEN round(d.TDPPREPRO1,3) 
+	ELSE round(d.TDPPRELOJ1,3) 
+END AS 'Preço 1',
+
+CASE WHEN PROUM2QTD > 0 and TDPPRELOJ2 > 0
+	THEN rtrim(PROUM2) + ' C/' + rtrim(CAST(PROUM2QTD AS DECIMAL(10,0)))+''+ RTRIM(PROUM1) 
+	ELSE '' 
+END  as UN2,
+
+isnull(b.termvenda*c.PROUM2QTD,0) as 'Preço GZ 2' ,
+CASE WHEN c.PROUM2QTD > 0 
+		THEN CASE WHEN d.TDPVALPROI<=GETDATE() AND d.TDPVALPROF >= GETDATE() AND d.TDPPROLOJ = 'S'
+				THEN round(d.TDPPREPRO2,3)*c.PROUM2QTD
+				ELSE round(d.TDPPRELOJ2,3)*c.PROUM2QTD 
+			END
+		ELSE 0 
+END AS 'Preço 2',
+ISNULL(ESTQTDATU,0) AS SALDO
+--into #T  
+from 
+TBS010 c (nolock)
+left join #estoque a on CONVERT(NUMERIC,c.PROCOD) = a.cdprod
+left join #barrarel b on c.PROUM2QTD = b.multiplos and CONVERT(NUMERIC,c.PROCOD) = b.cdprod 
+left join TBS031 d on CONVERT(NUMERIC,d.TDPPROCOD) = a.cdprod
+left join #TBS032 e on c.PROCOD = e.PROCOD
+
+where 
+a.termvenda <> 
+CASE WHEN d.TDPVALPROI<=GETDATE() AND d.TDPVALPROF >= GETDATE() AND d.TDPPROLOJ = 'S' 
+	THEN round(d.TDPPREPRO1,3) 
+	ELSE round(d.TDPPRELOJ1,3) 
+END or 
+isnull(b.termvenda*c.PROUM2QTD,0) <>
+CASE WHEN c.PROUM2QTD > 0 
+		THEN CASE WHEN d.TDPVALPROI<=GETDATE() AND d.TDPVALPROF >= GETDATE() AND d.TDPPROLOJ = 'S'
+				THEN round(d.TDPPREPRO2,3)*c.PROUM2QTD
+				ELSE round(d.TDPPRELOJ2,3)*c.PROUM2QTD 
+			END
+		ELSE 0 
+END 
+
+
+
+
+
+select 
+D.TDPPROCOD, 
+D.TDPPRELOJ1 AS LOJA1,
+D.TDPPRELOJ2 AS LOJA2,
+D.TDPPRELOJ3 AS LOJA3,
+D.TDPPRELOJ4 AS LOJA4,
+D.TDPPREPRO1 AS PRO1,
+D.TDPPREPRO2 AS PRO2,
+D.TDPVALPROI AS PROINI,
+D.TDPVALPROF AS PROFIN
+FROM TBS031 D (NOLOCK) 
+WHERE D.TDPPROCOD IN (0100099)
+
+
+,--D.TDPPROCOD IN (1640054,1080067,1640020)
+
+
+--SELECT CONVERT(NUMERIC,PROCOD) FROM TBS010 WHERE PROCOD = 	'0470438'
+
+
+

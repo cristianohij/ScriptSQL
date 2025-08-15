@@ -1,0 +1,16 @@
+declare @marca int 
+set @marca = '659'
+
+select PROLOCFIS LOC ,TBS010.PROSTATUS STAT ,TBS010.PROCOD COD ,TBS010.PRODES DESCR,TBS010.MARNOM NOM,
+replace(str(isnull(ESTQTDATU-ESTQTDRES,0),10,4),'.',',') DIS,
+replace(str(isnull(ESTQTDRES,0),10,4),'.',',') RES
+
+  from TBS010 inner join TBS032 on TBS010.PROCOD=TBS032.PROCOD
+
+WHERE ESTLOC=1 AND TBS010.MARCOD= @marca
+Order by TBS010.PROCOD
+
+SELECT * FROM SALDO WHERE COD = 6591113        
+WITH SALDO AS (
+
+       

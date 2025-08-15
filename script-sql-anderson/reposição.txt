@@ -1,0 +1,803 @@
+SELECT 
+rtrim(A.PROLOCFIS) AS 'LOC',
+RTRIM(A.PROSTATUS) AS 'STA',
+rtrim(ltrim(A.PROCOD))  as 'CODIGO',
+A.PRODES  as 'DESCRICAO',
+CASE WHEN PROUM1QTD > 1 THEN RTRIM(LTRIM(PROUM1))+' '+ 
+	RTRIM(CONVERT(DECIMAL,PROUM1QTD,0))+ '' + CASE WHEN PROUMV = '' THEN PROUM1 ELSE PROUMV END ELSE 
+	RTRIM(CONVERT(DECIMAL,PROUM1QTD,0))+ '' + CASE WHEN PROUMV = '' THEN PROUM1 ELSE PROUMV END END AS UN1,
+CASE WHEN PROUM2QTD > 0 THEN
+	RTRIM(PROUM2) +' '+ RTRIM(CONVERT(DECIMAL,PROUM2QTD,0))+ '' + RTRIM(LTRIM(PROUM1))
+ELSE '' END AS UN2,
+CASE WHEN PROUM3QTD > 0 THEN 
+	RTRIM(PROUM3) +' '+ RTRIM(CONVERT(DECIMAL,(PROUM3QTD/PROUM2QTD),0)) +''+ RTRIM(PROUM2) 
+ELSE '' END AS UN3,
+CASE WHEN PROUM4QTD > 0 THEN
+	RTRIM(PROUM4) +' '+ RTRIM(CONVERT(DECIMAL,(PROUM4QTD/PROUM3QTD),0)) +''+ RTRIM(PROUM3) 
+ELSE '' END AS UN4,
+case when len(A.MARCOD) = 4 then 
+	rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) 
+	else right(('00' + ltrim(str(A.MARCOD))),3) + ' - ' + rtrim(A.MARNOM) end as 'MARCA',
+A.PROUM1 AS UNMED,
+ISNULL(CD.DIS,0) AS DISCD,
+ISNULL(CD.RES,0) AS RESCD,
+ISNULL(TRA.QTD,0) AS TRANS,
+ISNULL(SALDO.EST,0) AS DISEST,
+ISNULL(SALDO.RES,0) AS RESEST,
+ISNULL(SALDO.LOJA,0) AS DISLOJA,
+Ceiling((ISNULL(VINT.TT,0) + ISNULL(VLOJA.TT,0))/3/4.35/6) AS SEG_EST,
+Ceiling(ISNULL(VLOJA.TT,0)/3/4.35/6) AS SEG_LOJA
+
+
+
+FROM TBS010 A (nolock)	-- SALDO EST ELOJA
+				FULL OUTER JOIN (SELECT PROCOD AS COD,SUM(ESTQTDRES) AS RES,
+								ISNULL((SELECT SUM(ESTQTDATU-ESTQTDRES) FROM TBS032 I (nolock) WHERE ESTLOC =1 AND I.PROCOD = H.PROCOD GROUP BY PROCOD),0) AS EST,
+								ISNULL((SELECT SUM(ESTQTDATU-ESTQTDRES) FROM TBS032 I (nolock) WHERE ESTLOC =2 AND I.PROCOD = H.PROCOD GROUP BY PROCOD),0) AS LOJA	
+								FROM TBS032 H (nolock) WHERE ESTLOC IN (1,2) GROUP BY PROCOD) AS SALDO ON SALDO.COD = A.PROCOD
+
+				-- SALDO CD
+				FULL OUTER JOIN (SELECT B.PROCOD COLLATE Latin1_General_BIN AS COD ,SUM(ESTQTDATU-ESTQTDRES) AS DIS, SUM(ESTQTDRES) AS RES 
+				FROM cd.SIBD.dbo.TBS032 B (nolock) WHERE ESTLOC IN(1,2) GROUP BY B.PROCOD) AS CD ON CD.COD = A.PROCOD
+				
+				--- SALDO EM TRANSITO
+trocar pelo novo saldo em transito
+
+				FULL OUTER JOIN (SELECT ltrim(rtrim(P.PROCOD)) collate Latin1_General_CI_AS AS CÓD,
+						NFS.QTD  AS QTD
+
+						FROM TBS010 P (nolock) JOIN (SELECT C.NFSNUM AS NFS, C.PROCOD collate Latin1_General_CI_AS AS CÓD, (NFSQTD*NFSQTDEMB) AS QTD
+						FROM cd.SIBD.dbo.TBS0671 C (nolock)
+						JOIN cd.SIBD.dbo.TBS067 E (nolock) ON
+								C.NFSEMPCOD = E.NFSEMPCOD and
+								C.NFSNUM = E.NFSNUM and
+								C.SNEEMPCOD = E.SNEEMPCOD and
+								C.SNESER = E.SNESER
+	
+						JOIN cd.SIBD.dbo.TBS080 D (nolock) ON
+ 								D.SNEEMPCOD = C.SNEEMPCOD AND
+								D.SNESER = C.SNESER AND
+								D.SNEEMPCOD = E.SNEEMPCOD AND
+								D.SNESER = E.SNESER AND
+								E.NFSNUM = D.ENFNUM AND
+								D.ENFNUM = C.NFSNUM
+	
+						WHERE D.ENFCNPJCPF='65069593000198' AND D.ENFSIT='6' AND E.NFSDATEMI  between getdate() - CONVERT(DATETIME,30) and getdate()
+						GROUP BY NFSQTD,NFSQTDEMB,C.PROCOD,C.NFSNUM) AS NFS  ON P.PROCOD = NFS.CÓD
+
+						LEFT JOIN (SELECT F.NFENUM  AS NFE,G.PROCOD  collate Latin1_General_CI_AS AS COD
+									FROM TBS0591 G (nolock) 
+									LEFT JOIN TBS059 F (nolock) ON F.NFECOD = G.NFECOD AND
+												F.NFEEMPCOD = G.NFEEMPCOD AND
+												F.NFENUM = G.NFENUM AND
+												F.NFETIP = G.NFETIP AND
+												F.SERCOD = G.SERCOD AND
+												F.SEREMPCOD = G.SEREMPCOD
+									LEFT JOIN TBS006 N (nolock) ON N.FORCOD = F.NFECOD
+												
+									WHERE  F.NFECAN = 'N' AND N.FORCGC ='65069593000350' --AND F.NFEDATENT  between getdate() - CONVERT(DATETIME,30) and getdate() ) 
+									AS NFE ON P.PROCOD = NFE.COD AND NFE.NFE = NFS.NFS 
+									WHERE NFE.NFE IS NULL
+									GROUP BY P.PROCOD, NFS.QTD ) AS TRA ON A.PROCOD = TRA.CÓD
+			
+			-- VENDAS LOJA			
+			FULL OUTER JOIN (SELECT J.M2_PROCOD AS COD, SUM(M2_QTD) AS TT
+								FROM MSL002 J (nolock) 
+								WHERE M2_DAT between getdate() - CONVERT(DATETIME,91) and getdate()-1 and M2_TIPREG = '01' AND M2_REGCAN = 'F'   
+								GROUP BY M2_PROCOD ) AS VLOJA ON A.PROCOD = VLOJA.COD
+			
+			-- VENDAS INTEGROS
+			FULL OUTER JOIN (SELECT L.PROCOD AS COD ,CONVERT(DECIMAL (10,4),SUM(NFSQTD*NFSQTDEMB)) AS TT
+								FROM TBS0671 L (nolock) JOIN TBS067 M (nolock)  ON 
+										L.NFSEMPCOD = M.NFSEMPCOD and 
+										L.NFSNUM = M.NFSNUM and 
+										L.SNEEMPCOD = M.SNEEMPCOD and 
+										L.SNESER = M.SNESER
+										WHERE NFSDATEMI between getdate() - CONVERT(DATETIME,91) and getdate()-1 -- colocar com mes inicial e mes final
+										and NFSTIP = 'N' and NFSCAN = 'N' and NFSDEV='N'
+										and  NFSCLINOM not Like('%BEST BAG%') and NFSCLINOM not Like('%BEST OFFICE%') 
+										and NFSCLINOM not Like('%MISASPEL%') and NFSCLINOM not Like('%PAPELYNA%') 
+										and  NFSCLINOM not Like('%TANBY%')
+										GROUP BY PROCOD) AS VINT ON VINT.COD = A.PROCOD
+
+-- CONDIÇÃO : SALDOS , VENDAS E TRANSITO <> 0						
+WHERE VINT.TT <> 0 OR  VLOJA.TT <> 0 OR TRA.QTD <> 0 OR CD.DIS <> 0 OR CD.RES <> 0 OR SALDO.EST <> 0 OR SALDO.LOJA <> 0 OR SALDO.RES <> 0	
+
+
+
+
+SELECT PROCOD, PROUM1QTD,PROUM2QTD,PROUM3QTD,PROUM4QTD
+FROM TBS010 A WHERE ( PROUM3QTD = 0 AND PROUM4QTD > 0) 
+							
+case when len(A.MARCOD) = 4 then rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) else right(('00' + ltrim(str(A.MARCOD))),3) + ' - ' + rtrim(A.MARNOM) end as 'MARCA',
+A.PROUM1 collate Latin1_General_BIN as 'UNID. MEDIDA',
+ISNULL(SALDO.EST,0) AS SALDOEST,
+ISNULL(SALDO.LOJA,0) AS SALDOLOJ,
+ISNULL(SALDO.SALTT,0) AS SOMAEST,
+ISNULL(SALDO.RES,0) AS RESER,
+ISNULL(SALDO.PEN,0) AS PEN,
+ISNULL(SALDO.CMP,0) AS COMPRAS,
+ISNULL(VLOJA.VND1,0) AS LOJA1,
+ISNULL(VLOJA.VND2,0) AS LOJA2,
+ISNULL(VLOJA.VND3,0) AS LOJA3,
+ISNULL(VINT.VND1,0) AS INT1,
+ISNULL(VINT.VND2,0) AS INT2,
+ISNULL(VINT.VND3,0) AS INT3,
+ISNULL(VLOJA.TT,0) AS VLOJATT,
+ISNULL(VINT.TT,0) AS VINTT,
+ISNULL(VLOJA.TT,0) + ISNULL(VINT.TT,0) AS TOTAL,
+ISNULL(VLOJA.VALOR,0) + ISNULL(VINT.VALOR,0) AS SOMATT,
+SUM(ISNULL(VLOJA.VALOR,0) + ISNULL(VINT.VALOR,0)) OVER (PARTITION BY 1) AS VALOR,
+(ISNULL(VLOJA.VALOR,0) + ISN
+
+Select PROLOCFIS LOC ,TBS010.PROSTATUS STAT ,TBS010.PROCOD COD ,TBS010.PRODES DESCR,TBS010.MARNOM NOM,
+PROUM1 UN1,
+replace(str(isnull(PROUM1QTD,0),10,4),'.',',') QTD1, 
+PROUM2 UN2 ,
+replace(str(isnull(PROUM2QTD,0),10,4),'.',',') QTD2,
+PROUM3 UN3, 
+replace(str(isnull(PROUM3QTD,0),10,4),'.',',') QTD3 ,
+PROUM4 UN4 ,
+replace(str(isnull(PROUM4QTD,0),10,4),'.',',') QTD4 
+FROM TBS010
+Order by TBS010.PROCOD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--- NOVA REPOSIÇÃO 
+
+ 
+
+DECLARE @anoDe varchar (4), @mesDe varchar (2), @anoAte varchar (4), @mesAte varchar (2)
+
+	set @anoDe ='2016'
+	set @mesDe= '01'
+	set @anoAte ='2016'
+	set @mesAte= '02'
+
+-- TABLELA VIRTUAL TBS010
+if object_id('TempDB.dbo.#TBS010') is not null
+   drop table #TBS010
+   SELECT PROLOCFIS,PROSTATUS,PROCOD,PRODES,PROUM1QTD,PROUM1,PROUMV,PROUM2QTD,PROUM2,
+   PROUM3QTD,PROUM3,PROUM4QTD,PROUM4,MARCOD,MARNOM INTO #TBS010 FROM TBS010 (NOLOCK)
+
+	
+-- Diminuir a tabela de vendas da loja
+if object_id('TempDB.dbo.#MSL002') is not null
+   drop table #MSL002
+select M2_PROCOD AS COD, SUM(M2_QTD) AS TT
+					 into #MSL002
+					 from MSL002 (NOLOCK) 
+					 WHERE SUBSTRING(CONVERT(VARCHAR(12),M2_DAT,111),1,7) BETWEEN   @anoDe+'/'+@mesDe AND @anoAte+'/'+@mesAte
+					 and 
+					 (M2_TIPREG = '01') AND (M2_REGCAN = 'F') 
+	
+					 GROUP BY M2_PROCOD   
+
+					 
+
+-- tabela de vendas corporativo
+if object_id('TempDB.dbo.#TBS0671') is not null
+   drop table #TBS0671
+   
+SELECT L.PROCOD AS COD, CONVERT(DECIMAL(10, 4), SUM(L.NFSQTD * L.NFSQTDEMB)) AS TT
+					 INTO #TBS0671
+					 FROM TBS0671 AS L (nolock) 
+					 INNER JOIN TBS067 AS M (nolock) ON L.NFSEMPCOD = M.NFSEMPCOD AND L.NFSNUM = M.NFSNUM AND L.SNEEMPCOD = M.SNEEMPCOD AND L.SNESER = M.SNESER
+					 
+					 WHERE SUBSTRING(CONVERT(VARCHAR(12),NFSDATEMI,111),1,7) BETWEEN @anoDe+'/'+@mesDe AND @anoAte+'/'+@mesAte
+					 AND (M.NFSTIP = 'N') AND (M.NFSCAN = 'N') AND (M.NFSDEV = 'N') AND 
+					 (M.NFSCLINOM NOT LIKE '%BEST BAG%') AND (M.NFSCLINOM NOT LIKE '%BEST OFFICE%') AND (M.NFSCLINOM NOT LIKE '%MISASPEL%') AND
+					 (M.NFSCLINOM NOT LIKE '%PAPELYNA%') AND (M.NFSCLINOM NOT LIKE '%TANBY%')
+					 GROUP BY L.PROCOD
+
+
+	
+SELECT RTRIM(A.PROLOCFIS) AS 'LOC', 
+RTRIM(A.PROSTATUS) AS 'STA', 
+RTRIM(LTRIM(A.PROCOD)) AS 'CODIGO', 
+A.PRODES AS 'DESCRICAO', 
+CASE WHEN PROUM1QTD > 1 
+	THEN RTRIM(LTRIM(PROUM1)) + ' ' + RTRIM(CONVERT(DECIMAL, PROUM1QTD, 0)) + '' + 
+		CASE WHEN PROUMV = '' 
+			THEN PROUM1 
+			ELSE PROUMV 
+		END 
+	ELSE RTRIM(CONVERT(DECIMAL, PROUM1QTD, 0)) + '' + 
+		CASE WHEN PROUMV = '' 
+			THEN PROUM1 
+			ELSE PROUMV 
+		END 
+END AS UN1,
+ 
+CASE WHEN PROUM2QTD > 0 
+	THEN RTRIM(PROUM2) + ' ' + RTRIM(CONVERT(DECIMAL, PROUM2QTD, 0)) + '' + RTRIM(LTRIM(PROUM1)) 
+	ELSE '' 
+END AS UN2, 
+CASE WHEN PROUM3QTD > 0 
+	THEN RTRIM(PROUM3) + ' ' + RTRIM(CONVERT(DECIMAL, (PROUM3QTD / PROUM2QTD), 0)) + '' + RTRIM(PROUM2) 
+    ELSE '' 
+END AS UN3,
+CASE WHEN PROUM4QTD > 0 
+	THEN RTRIM(PROUM4) + ' ' + RTRIM(CONVERT(DECIMAL, (PROUM4QTD / PROUM3QTD), 0)) + '' + RTRIM(PROUM3) 
+	ELSE '' 
+END AS UN4, 
+CASE WHEN len(A.MARCOD) = 4 
+	THEN rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) 
+	ELSE RIGHT(('00' + ltrim(str(A.MARCOD))), 3) + ' - ' + rtrim(A.MARNOM) 
+END AS 'MARCA', 
+A.PROUM1 AS UNMED, 
+ISNULL(CD.DIS,0) AS DISCD, 
+ISNULL(CD.RES,0) AS RESCD, 
+ISNULL(TRA.QTD,0) AS TRANS, 
+ISNULL(SALDO.EST,0) AS DISEST, 
+ISNULL(SALDO.RES,0) AS RESEST, 
+ISNULL(SALDO.LOJA,0) AS DISLOJA, 
+CEILING((ISNULL(VINT.TT, 0) + ISNULL(VLOJA.TT, 0)) / (DATEDIFF(month,@anoDe+@mesDe+'01' , @anoAte+@mesAte+'28') +1)  / 4.35) AS SEG_EST, 
+CEILING(ISNULL(VLOJA.TT, 0) / (DATEDIFF(month,@anoDe+@mesDe+'01' , @anoAte+@mesAte+'28') +1)  / 4.35) AS SEG_LOJA
+
+FROM  #TBS010 AS A (NOLOCK) 
+FULL OUTER JOIN   
+(SELECT PROCOD AS COD,SUM(ESTQTDATU-ESTQTDRES) AS SALTT, SUM(ESTQTDRES) AS RES , SUM(ESTQTDCMP) AS CMP, SUM(ESTQTDPEN) AS PEN,
+ISNULL((SELECT SUM(ESTQTDATU-ESTQTDRES) FROM TBS032 B (nolock) WHERE ESTLOC =1 AND A.PROCOD = B.PROCOD GROUP BY PROCOD),0) AS EST,
+ISNULL((SELECT SUM(ESTQTDATU-ESTQTDRES) FROM TBS032 B (nolock) WHERE ESTLOC =2 AND A.PROCOD = B.PROCOD GROUP BY PROCOD),0) AS LOJA	
+FROM TBS032 A (nolock) 
+WHERE ESTLOC IN (1,2) and ( ESTQTDATU-ESTQTDRES <> 0 or ESTQTDRES <>0 or ESTQTDCMP <> 0 or ESTQTDPEN <> 0)
+GROUP BY PROCOD) AS SALDO ON SALDO.COD = A.PROCOD
+	
+	FULL OUTER JOIN (SELECT PROCOD COLLATE Latin1_General_BIN AS COD, SUM(ESTQTDATU - ESTQTDRES) AS DIS, SUM(ESTQTDRES) AS RES
+                     FROM  cd.SIBD.dbo.TBS032 AS B (nolock)
+                     WHERE (ESTLOC IN (1)) and ( ESTQTDATU - ESTQTDRES <> 0 or ESTQTDRES <> 0 or ESTQTDCMP <> 0 or ESTQTDPEN <> 0)
+                     GROUP BY PROCOD COLLATE Latin1_General_BIN) AS CD ON CD.COD = A.PROCOD 
+	
+	FULL OUTER JOIN
+                             (SELECT LTRIM(RTRIM(P.PROCOD)) COLLATE Latin1_General_CI_AS AS CÓD, NFS.QTD
+                              FROM #TBS010 AS P INNER JOIN
+                             
+							 (SELECT  C.NFSNUM AS NFS, C.PROCOD COLLATE Latin1_General_CI_AS AS CÓD, C.NFSQTD * C.NFSQTDEMB AS QTD
+                              FROM cd.SIBD.dbo.TBS0671 AS C (nolock) 
+							  INNER JOIN cd.SIBD.dbo.TBS067 AS E (nolock) ON C.NFSEMPCOD = E.NFSEMPCOD AND C.NFSNUM = E.NFSNUM AND 
+																			   C.SNEEMPCOD = E.SNEEMPCOD AND C.SNESER = E.SNESER 
+							  INNER JOIN cd.SIBD.dbo.TBS080 AS D (nolock) ON D.SNEEMPCOD = C.SNEEMPCOD AND D.SNESER = C.SNESER AND D.SNEEMPCOD = E.SNEEMPCOD AND 
+																			   D.SNESER = E.SNESER AND E.NFSNUM = D.ENFNUM AND D.ENFNUM = C.NFSNUM
+																			   
+                              WHERE (D.ENFCNPJCPF = '65069593000198') AND (D.ENFSIT = '6') AND (E.NFSDATEMI BETWEEN GETDATE() - CONVERT(DATETIME, 60) AND GETDATE())
+                              GROUP BY C.NFSQTD, C.NFSQTDEMB, C.PROCOD COLLATE Latin1_General_CI_AS, 
+							  C.NFSNUM) AS NFS ON P.PROCOD = NFS.CÓD 
+							  
+							  LEFT OUTER JOIN (SELECT F.NFENUM AS NFE, G.PROCOD AS COD
+                                               FROM TBS0591 AS G (nolock) 
+											   
+											   LEFT OUTER JOIN TBS059 AS F (nolock) ON F.NFECOD = G.NFECOD AND F.NFEEMPCOD = G.NFEEMPCOD AND F.NFENUM = G.NFENUM AND 
+											   										   F.NFETIP = G.NFETIP AND F.SERCOD = G.SERCOD AND F.SEREMPCOD = G.SEREMPCOD 
+											   LEFT OUTER JOIN TBS006 AS N (nolock) ON N.FORCOD = F.NFECOD
+                                               
+											   WHERE (F.NFECAN = 'N') AND  NFENOM LIKE('%TANBY%') AND
+				  		 							 ((N.FORCGC = '65069593000350') OR N.FORNOM IS NULL)) AS NFE ON P.PROCOD = NFE.COD AND NFE.NFE = NFS.NFS
+                               WHERE  (NFE.NFE IS NULL)
+                               GROUP BY P.PROCOD, NFS.QTD) AS TRA ON A.PROCOD = TRA.CÓD COLLATE Latin1_General_CI_AS 
+							   
+							  
+	FULL OUTER JOIN #MSL002 AS VLOJA ON A.PROCOD = VLOJA.COD 
+							   
+							   
+							   
+	FULL OUTER JOIN #TBS0671 AS VINT ON VINT.COD = A.PROCOD
+							   
+WHERE       ((VINT.TT <> 0) OR
+                         (VLOJA.TT <> 0) OR
+                         (TRA.QTD <> 0) OR
+                         (CD.DIS <> 0) OR
+                         (CD.RES <> 0) OR
+                         (SALDO.EST <> 0) OR
+                         (SALDO.LOJA <> 0) OR
+                         (SALDO.RES <> 0)) and A.PROCOD IS NOT NULL
+ORDER BY A.PROCOD
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--- SOMENTE REPOSIÇÃO DE LOJA
+
+-- SOMENTE REPOSIÇÃO DE LOJA
+
+-- VARIAVEIS
+DECLARE @anoDe varchar (4), @mesDe varchar (2), @anoAte varchar (4), @mesAte varchar (2), 
+@PROCODDE CHAR(15) , @PROCODATE CHAR(15) ,@MARCOD INT , @MARNOM CHAR(60), @PRODES CHAR(60) ,@PERIODO INT , @comando varchar(1000)
+
+SET @anoDe ='2016'
+SET @mesDe= '08'
+SET @anoAte ='2016'
+SET @mesAte= '10'
+SET @PROCODDE =''
+SET @PROCODATE =''
+SET @MARCOD = 0
+SET @MARNOM = ''
+SET @PRODES =''
+SET @PERIODO = 24
+
+
+SET @comando = 'EXECUTE(''
+select 
+cdprod , 
+sum(quant) as quant,
+MIN(data) AS datini,
+max(data) as datfim
+
+FROM movcaixa
+where
+CAST(data AS CHAR(7)) between "'+@anoDe+'-'+@mesDe+'" and "'+@anoAte+'-'+@mesAte+'" and 
+status = 01 and 
+cancelado <> "S"
+group by cdprod '') at MYSQLGZ' 
+
+
+if object_id('TempDB.dbo.#MSL002') is not null
+   drop table #MSL002
+   
+create table #MSL002 (cdprod INT, quant decimal(10,4), datini date, datfim date)
+INSERT INTO #MSL002
+exec(@comando)
+
+--select * from #MSL002
+
+
+---- vendas GZ
+--if object_id('TempDB.dbo.#MSL002') is not null
+--   drop table #MSL002
+--
+--select 
+--cdprod , 
+--sum(quant) as quant,
+--MIN(data) AS datini,
+--max(data) as datfim
+--
+--into #MSL002
+--FROM MYSQLGZ...movcaixa
+--where
+--CAST(data AS CHAR(7)) between @anoDe+'-'+@mesDe and @anoAte+'-'+@mesAte and 
+--status = 01 and 
+--cancelado <> 'S'
+--group by cdprod 
+ 
+
+--select 
+--cdprod,
+--quant,
+--(select convert(char(10), min(datini),103) from #MSL002) as dataini,
+--(select convert(char(10), max(datfim),103) from #MSL002) as datafim,
+--dbo.FCNDIASUTEIS ((select min(datini) from #MSL002), (select max(datfim) from #MSL002)) as diasuteis,
+--CEILING(quant / dbo.FCNDIASUTEIS ((select min(datini) from #MSL002), (select max(datfim) from #MSL002)))  AS SEG_LOJA,
+--CEILING(quant / dbo.FCNDIASUTEIS ((select min(datini) from #MSL002), (select max(datfim) from #MSL002)) @PERIODO)  AS SEG_LOJA,
+--CEILING(quant / dbo.FCNDIASUTEIS ((select min(datini) from #MSL002), (select max(datfim) from #MSL002)) @PERIODO)  AS SEG_LOJA
+--
+--from #MSL002
+--
+--group by cdprod,quant
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+---- VENDAS GZ
+--if object_id('TempDB.dbo.#MSL002') is not null
+--   drop table #MSL002
+--select 
+--M2_PROCOD , 
+--SUM(M2_QTD) AS M2_QTD,
+--CEILING(SUM(M2_QTD) / (DATEDIFF(month,@anoDe+@mesDe+'01' , @anoAte+@mesAte+'28') +1)  / 4.35) AS SEG_LOJA
+--
+---- into #MSL002
+--from MSL002 (NOLOCK) 
+--WHERE SUBSTRING(CONVERT(VARCHAR(12),M2_DAT,111),1,7) BETWEEN @anoDe+'/'+@mesDe AND @anoAte+'/'+@mesAte and 
+--M2_TIPREG = '01' AND 
+--M2_REGCAN = 'F' 
+--GROUP BY M2_PROCOD 
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABLELA VIRTUAL TBS010
+if object_id('TempDB.dbo.#TBS010') is not null
+   drop table #TBS010
+SELECT 
+PROLOCFIS,
+PROSTATUS,
+case when len(MARCOD) = 4 
+	then rtrim(MARCOD) + ' - ' + rtrim(MARNOM) 
+	else right(('00' + ltrim(str(MARCOD))),3) + ' - ' + rtrim(MARNOM)
+end collate Latin1_General_BIN as MARCOD ,
+PROCOD,
+PRODES,
+CASE WHEN PROUM1QTD > 1 
+	THEN RTRIM(LTRIM(PROUM1)) + ' ' + RTRIM(CONVERT(DECIMAL, PROUM1QTD, 0)) + '' + 
+		CASE WHEN PROUMV = '' 
+			THEN PROUM1 
+			ELSE PROUMV 
+		END 
+	ELSE RTRIM(CONVERT(DECIMAL, PROUM1QTD, 0)) + '' + 
+		CASE WHEN PROUMV = '' 
+			THEN PROUM1 
+			ELSE PROUMV 
+		END 
+END AS PROUM1
+
+INTO #TBS010 
+FROM TBS010 (NOLOCK)
+WHERE 
+PROCOD BETWEEN @PROCODDE AND CASE WHEN @PROCODATE ='' THEN 'Z' ELSE @PROCODATE END AND
+--PROCOD IN (SELECT DISTINCT COD FROM #MSL002) AND 
+MARCOD = CASE WHEN @MARCOD = 0 THEN MARCOD ELSE @MARCOD END AND 
+MARNOM LIKE (RTRIM(LTRIM(upper(@MARNOM)))+'%') AND 
+PRODES LIKE (RTRIM(LTRIM(upper(@PRODES)))+'%')
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+	
+-- tabela de saldo 
+if object_id('TempDB.dbo.#TBS032') is not null
+   drop table #TBS032
+SELECT 
+PROCOD,
+SUM(ESTQTDCMP) AS ESTQTDCMP,
+--ISNULL((SELECT SUM(PRPQTD*PRPQTDEMB) FROM TBS058 B (NOLOCK) WHERE A.PROCOD = B.PROCOD AND PRPSIT = 'R' AND PRPCLICOD IN(590)),0) AS ESTQTDRES,
+--SUM(ESTQTDCMP) AS ESTQTDCMP, 
+--SUM(ESTQTDPEN) AS ESTQTDPEN,
+ISNULL((SELECT SUM(ESTQTDATU-ESTQTDRES) FROM TBS032 B (nolock) WHERE ESTLOC =1 AND A.PROCOD = B.PROCOD GROUP BY PROCOD),0) AS EST,
+ISNULL((SELECT SUM(ESTQTDATU-ESTQTDRES) FROM TBS032 B (nolock) WHERE ESTLOC =2 AND A.PROCOD = B.PROCOD GROUP BY PROCOD),0) AS LOJA	
+
+INTO #TBS032
+FROM TBS032 A (nolock) 
+
+WHERE 
+ESTLOC IN (1,2) and ( 
+ESTQTDATU <> 0 OR  ESTQTDCMP <> 0)
+
+GROUP BY PROCOD
+
+--select * from #TBS032
+------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA DE SALDO DO CD 
+IF OBJECT_ID ('TempDB.dbo.#TBS032CD') is not null
+drop table #TBS032CD
+
+SELECT Scr.* 
+
+INTO #TBS032CD 
+FROM OPENROWSET('SQLNCLI','192.168.10.7';'si';'123','
+SELECT 
+A.PROCOD ,
+ESTQTDATU-ESTQTDRES AS EST,
+(SELECT SUM(PRPQTD*PRPQTDEMB) FROM SIBD.dbo.TBS058 B (NOLOCK) WHERE A.PROCOD = B.PROCOD AND PRPSIT = ''R'' AND PRPCLICOD IN(590,6709))  AS ESTQTDRES
+
+FROM 
+SIBD.dbo.TBS032 A (nolock) 
+
+WHERE 
+ESTLOC = 1 AND 
+ESTQTDATU <> 0 ') AS Scr
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA DE SALDO DE TAUBATÉ
+IF OBJECT_ID ('TempDB.dbo.#TBS032TT') is not null
+drop table #TBS032TT
+
+SELECT Scr.* 
+
+INTO #TBS032TT 
+FROM OPENROWSET('SQLNCLI','192.168.3.205';'si';'123','
+SELECT 
+PROCOD,
+ISNULL((SELECT SUM(ESTQTDATU-ESTQTDRES) FROM TBS032 B (nolock) WHERE ESTLOC =1 AND A.PROCOD = B.PROCOD GROUP BY PROCOD),0) AS EST,
+ISNULL((SELECT SUM(ESTQTDATU-ESTQTDRES) FROM TBS032 B (nolock) WHERE ESTLOC =2 AND A.PROCOD = B.PROCOD GROUP BY PROCOD),0) AS LOJA	
+
+FROM SIBD.dbo.TBS032 A (nolock) 
+
+WHERE 
+ESTLOC IN (1,2) and ( 
+ESTQTDATU <> 0 OR  ESTQTDCMP <> 0)
+
+GROUP BY PROCOD ') AS Scr
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+-- PRODUTOS EM TRANSITO PARA ND --
+IF OBJECT_ID ('TempDB.dbo.#TRA') is not null
+drop table #TRA
+
+;with 
+NFS AS (SELECT 
+		NF.PROCOD AS PROCOD,
+		NF.NFSNUM AS NFSNUM,
+		NF.QTD AS QTD
+		
+		FROM OPENROWSET('SQLNCLI','192.168.10.7';'si';'123','
+		SELECT
+		PROCOD COLLATE Latin1_General_CI_AS AS PROCOD,
+		NFSNUM, 
+		SUM(C.NFSQTD * C.NFSQTDEMB) AS QTD
+		
+		FROM SIBD.dbo.TBS0671 AS C (nolock)
+		LEFT JOIN SIBD.dbo.TBS080 AS D (NOLOCK) ON C.SNEEMPCOD = D.SNEEMPCOD AND C.SNESER = D.SNESER AND C.NFSNUM = D.ENFNUM AND C.SNEEMPCOD = D.ENFEMPCOD
+		
+		WHERE D.ENFCNPJCPF = ''65069593000198'' AND 
+		D.ENFSIT = ''6'' AND
+		D.ENFDATEMI BETWEEN GETDATE() - CONVERT(DATETIME, 60) AND GETDATE()
+		
+		GROUP BY 
+		PROCOD,NFSNUM') AS NF ), 
+
+NFE AS (SELECT 
+		F.NFENUM AS NFENUM, 
+		PROCOD AS PROCOD
+		
+		FROM TBS0591 AS G (nolock) 
+		LEFT OUTER JOIN TBS059 AS F (nolock) ON F.NFECOD = G.NFECOD AND F.NFEEMPCOD = G.NFEEMPCOD AND F.NFENUM = G.NFENUM AND 
+												F.NFETIP = G.NFETIP AND F.SERCOD = G.SERCOD AND F.SEREMPCOD = G.SEREMPCOD 
+		LEFT OUTER JOIN TBS006 AS N (nolock) ON N.FORCOD = F.NFECOD
+													   
+		WHERE 
+		F.NFECAN = 'N' AND  
+		NFENOM LIKE('%TANBY%') AND
+		(N.FORCGC = '65069593000350' OR N.FORNOM IS NULL)) 
+
+SELECT 
+A.PROCOD ,
+SUM(QTD) AS QTD
+
+INTO #TRA
+FROM 
+NFS A 
+LEFT JOIN NFE B ON A.PROCOD COLLATE Latin1_General_CI_AS = B.PROCOD AND A.NFSNUM = B.NFENUM
+
+WHERE 
+B.NFENUM IS NULL
+
+GROUP BY 
+A.PROCOD
+
+-----------------------------------------------------------------------------------------------------------
+
+-- TABELA FINAL DE REPOSIÇÃO DA LOJA
+
+;WITH 
+T10 AS (SELECT 
+		PROLOCFIS,
+		PROSTATUS,
+		MARCOD ,
+		PROCOD,
+		PRODES,
+		PROUM1
+		
+		FROM #TBS010),
+		
+M02 AS (select 
+		cdprod,
+		quant,
+		(select convert(char(10), min(datini),103) from #MSL002) as dataini,
+		(select convert(char(10), max(datfim),103) from #MSL002) as datafim,
+		dbo.FCNDIASUTEIS ((select min(datini) from #MSL002), (select max(datfim) from #MSL002)) as diasuteis,
+		CEILING(quant / dbo.FCNDIASUTEIS ((select min(datini) from #MSL002), (select max(datfim) from #MSL002)) * @PERIODO)  AS SEG_LOJA
+		
+		from #MSL002
+		),
+
+SND AS (SELECT 
+		PROCOD,
+		ESTQTDCMP,
+		EST,
+		LOJA	
+		
+		FROM #TBS032),
+
+SCD AS (SELECT 
+		PROCOD,
+		ISNULL(ESTQTDRES,0) AS ESTQTDRES ,
+		EST	
+		
+		FROM #TBS032CD),
+		
+STT AS (SELECT 
+		PROCOD,
+		EST,
+		LOJA	
+		
+		FROM #TBS032TT),
+
+TRA AS (SELECT 
+		PROCOD ,
+		QTD
+		
+		FROM #TRA)
+		
+	
+SELECT 
+A.PROCOD,
+PROLOCFIS,
+PROSTATUS,
+MARCOD ,
+PRODES,
+PROUM1,
+ISNULL(quant,0) AS TOTVEN,
+ISNULL(SEG_LOJA,0) as media, 	-- media por dia ou semana ou mes
+ISNULL(C.ESTQTDCMP,0) AS CMPND, -- COMPRAS ND
+ISNULL(C.EST,0) AS ESTND, 		-- Disponivel EST ND
+ISNULL(C.LOJA,0) AS LOJA, 		-- Disponivel Loja
+ISNULL(D.ESTQTDRES,0) AS RESCD, -- Reservado CD
+ISNULL(D.EST,0) AS ESTCD,		-- Disponivel CD,
+ISNULL(F.EST,0) AS ESTNDTT, 	-- Disponivel EST TT
+ISNULL(F.LOJA,0) AS LOJATT,		-- Disponivel Loja TT
+ISNULL(QTD,0) AS QTD_TRA,		-- Em transito
+
+--CASE WHEN ISNULL(SEG_LOJA,0) - ISNULL(LOJA,0) - ISNULL(C.ESTQTDRES,0) > 0 and 
+--	THEN CASE WHEN ISNULL(SEG_LOJA,0) - ISNULL(LOJA,0) - ISNULL(C.ESTQTDRES,0) <= (ISNULL(C.EST,0) + ISNULL(D.EST,0))
+--			THEN ISNULL(SEG_LOJA,0) - ISNULL(LOJA,0) - ISNULL(C.ESTQTDRES,0)
+--			ELSE ISNULL(D.EST,0) + ISNULL(C.EST,0)
+--		END
+--	ELSE 0
+--END  as qtdrepor,
+--
+--
+--
+--CASE WHEN ISNULL(SEG_LOJA,0) - ISNULL(LOJA,0) > 0 and ISNULL(D.EST,0) > 0 and ISNULL(C.EST,0) > 0
+--	THEN CASE WHEN ISNULL(SEG_LOJA,0) - ISNULL(LOJA,0) <= (ISNULL(C.EST,0) + ISNULL(D.EST,0))
+--			THEN ISNULL(SEG_LOJA,0) - ISNULL(LOJA,0) 
+--			ELSE ISNULL(D.EST,0) + ISNULL(C.EST,0)
+--		END
+--	ELSE 0
+--END  as qtdrepor,
+
+
+CASE WHEN ISNULL(C.LOJA,0) >=0 
+	THEN 
+		CASE WHEN ISNULL(SEG_LOJA,0) - ISNULL(C.LOJA,0) > 0 
+				THEN ISNULL(SEG_LOJA,0) - ISNULL(C.LOJA,0)
+				ELSE 0
+		END
+	ELSE ISNULL(SEG_LOJA,0)
+END  as qtdrepor,
+		
+
+
+(select top 1 dataini from M02) dataini,
+(select top 1 datafim from M02) datafim,
+(select top 1 diasuteis from M02) diasuteis
+
+
+FROM 
+T10 A
+LEFT JOIN M02 B ON convert(numeric, A.PROCOD) = B.cdprod
+LEFT JOIN SND C ON A.PROCOD = C.PROCOD
+LEFT JOIN SCD D ON A.PROCOD COLLATE Latin1_General_CI_AS= D.PROCOD
+LEFT JOIN TRA E ON A.PROCOD COLLATE Latin1_General_CI_AS = E.PROCOD
+LEFT JOIN STT F ON A.PROCOD COLLATE Latin1_General_CI_AS = F.PROCOD
+
+WHERE 
+ISNULL(C.LOJA,0) <> 0 OR 
+ISNULL(D.EST,0) <> 0 OR 
+ISNULL(C.EST,0) <> 0 OR 
+ISNULL(quant,0) <> 0 OR
+ISNULL(QTD,0) <> 0 OR 
+ISNULL(C.ESTQTDCMP,0) <> 0 OR 
+ISNULL(D.ESTQTDRES,0) <> 0 OR
+ISNULL(F.EST,0) <> 0 OR 
+ISNULL(F.LOJA,0) <> 0
+
+--select convert(numeric,PROCOD) FROM TBS010 WHERE PROCOD = '1640054'
+
+-- SELECT dbo.FCNDIASUTEIS ('20161001', getdate())

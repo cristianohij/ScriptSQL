@@ -1,0 +1,421 @@
+select * from sys.servers
+
+declare @datade date, @dataate date, @caixa VARCHAR(20) , @comando varchar(1000)
+
+set @datade = '20160507'
+set @dataate = '20160606'
+set @caixa = '1,2,3,4,5,6'
+--SELECT @caixa
+
+set @comando = 'Execute(
+''select caixa,mov.tipopagto as finalizador,
+moda.descricao as pagamento,
+status,
+sum(mov.valortot)  as total,
+case when status = 3 then sum(mov.valortot)else 0 end as liquido,
+sum(mov.descitem)  as descontoitem,
+case when status = 3 then count(*) else 0 end  as cupons,
+
+replace(replace(concat(format((case when status = 3 then sum(mov.valortot)else 0 end * 100/
+(select sum(valortot) 
+from movcaixa where data between "'+convert(char(8),@datade,112)+'" and "'+convert(char(8),@dataate,112)+'" and 
+status=03 and 
+caixa = mov.caixa and
+cancelado <>"s"
+ group by caixa )),4),""),","," "),".",",") as "por"
+
+from 
+movcaixa mov
+left join modalid moda on mov.tipopagto=moda.codigo
+
+where 
+mov.data between "'+convert(char(8),@datade,112)+'" and "'+convert(char(8),@dataate,112)+'" and 
+mov.status in (1,2,3) and 
+cancelado <>"s" and
+mov.caixa in('+@caixa+') 
+group by mov.tipopagto,moda.descricao,status,caixa
+order by caixa,mov.tipopagto,status'') at MYSQLGZ'
+--select @comando
+--format(case when status = 3 then sum(mov.valortot)else 0 end /
+--case when status = 3 then count(*) else 0 end ,2) as media
+exec(@comando)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- usando esse 
+declare @datade date, @dataate date, @caixa VARCHAR(20) , @comando varchar(MAX)
+
+set @datade = '20170112'
+set @dataate = '20170112'
+set @caixa = '3'
+
+set @comando = 'Execute(
+''select 
+caixa,
+ecf,
+mov.tipopagto as finalizador,
+ifnull(moda.descricao,"DESCONTO") as pagamento,
+status,
+sum(mov.valortot) - sum(abatpgto) as total,
+case when status = 3 then sum(mov.valortot) - sum(abatpgto) else 0 end as liquido,
+case when status = 12 then sum(mov.valortot) - sum(abatpgto) else 0 end as troco,
+case when status = 2 then sum(mov.valortot) - sum(abatpgto) else 0 end as desconto,
+case when status = 3 then count(*) else 0 end  as cupons
+
+from 
+movcaixa mov
+left join modalid moda on mov.tipopagto=moda.codigo
+
+where 
+mov.data between "'+convert(char(8),@datade,112)+'" and "'+convert(char(8),@dataate,112)+'" and 
+mov.status in (2,3,12) and 
+cancelado <>"s" and
+mov.caixa in('+@caixa+') 
+
+group by 
+mov.tipopagto,moda.descricao,status,caixa,ecf
+
+order by 
+caixa,mov.tipopagto,status'') at MYSQLGZ'
+
+if object_id('TempDB.dbo.#MSL002') is not null
+   drop table #MSL002
+    
+create table #MSL002 (M2_CXA INT, M2_ECF INT, M2_TIPPGT CHAR(3), M2_DESPGT VARCHAR(20), M2_STATUS INT, M2_VALTOT DECIMAL(10,4) ,
+M2_VALLIQ DECIMAL(10,4),M2_VALTRO DECIMAL(10,4),M2_VALDES DECIMAL(10,4),M2_QTDCUP INT)
+
+INSERT INTO #MSL002
+exec(@comando)
+
+SELECT * FROM #MSL002
+
+
+SELECT
+M2_CXA ,
+M2_ECF , 
+M2_TIPPGT , 
+M2_DESPGT ,
+sum(M2_VALTOT) AS VALTOT,
+SUM(M2_VALLIQ) AS VALLIQ,
+SUM(M2_VALTRO) AS VALTRO,
+SUM(M2_VALDES) AS VALDES,
+SUM(M2_QTDCUP) AS QTDCUP
+
+FROM #MSL002 
+
+GROUP BY 
+M2_CXA ,
+M2_ECF , 
+M2_TIPPGT , 
+M2_DESPGT 
+
+UNION 
+SELECT 
+M2_CXA ,
+M2_ECF , 
+'' , 
+'TROCO' ,
+sum(M2_VALTOT) AS VALTOT,
+SUM(M2_VALLIQ) AS VALLIQ,
+SUM(M2_VALTRO) AS VALTRO,
+SUM(M2_VALDES) AS VALDES,
+SUM(M2_QTDCUP) AS QTDCUP
+
+FROM 
+#MSL002
+
+WHERE
+M2_STATUS = '12'
+
+GROUP BY 
+M2_CXA ,
+M2_ECF 
+
+
+
+SELECT 0 as caixa,'' AS finalizador, '' AS pagamento,0 as status, 0 AS total, 0 as descontoitem ,0 as liquido ,0 AS cupons, 0 as medio , 0 as 'por'
+
+
+,
+
+replace(replace(concat(format((case when status = 3 then sum(mov.valortot)else 0 end * 100/
+(select sum(valortot) 
+from movcaixa where data between "'+convert(char(8),@datade,112)+'" and "'+convert(char(8),@dataate,112)+'" and 
+status=03 and 
+caixa = mov.caixa and
+cancelado <>"s"
+ group by caixa )),4),""),","," "),".",",") as "por"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+declare  @caixa VARCHAR(10) , @comando varchar(1000)
+
+set @caixa = '1,2'
+
+set @comando = 'Execute(
+''select caixa
+from 
+movcaixa 
+
+where 
+caixa in('+@caixa+') 
+group by caixa
+order by caixa'') at MYSQLGZ'
+
+exec(@comando)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+select * from gz2
+
+SELECT '' AS finalizador, '' AS pagamento,0 as status, 0 AS total, 0 as descontoitem ,0 as liquido ,0 AS cupons, 0 as medio , 0 as 'por'
+
+execute('
+select data, tipopagto, status,
+replace(replace(format(sum(valortot),2),'','',''''),".",",") as valortot
+from movcaixa mov
+       left join modalid moda on mov.tipopagto=moda.codigo
+where mov.data = "20160517" and mov.status in (03,02,01)  and cancelado <>"s" 
+group by mov.tipopagto,moda.descricao,status' ) at MYSQLGZ
+
+
+
+Execute('select ifnull(mov.tipopagto,00) as finalizador,
+ifnull(moda.descricao,"DESCONTO") as pagamento,
+case when status = 3 then sum(mov.valortot) else 0 end as total,
+case when status = 1 then sum(mov.desccupom) else 0 end as descontocumpom,
+case when status = 1 then sum(mov.descitem) else 0 end as descontoitem,
+count(*) as cupons,
+round(sum(mov.valortot)/count(*),2) as medio
+          
+  from movcaixa mov
+       left join modalid moda on mov.tipopagto=moda.codigo
+where mov.data = "20160517" and mov.status in (03,01) and mov.caixa=1 and cancelado <>"s" 
+group by mov.tipopagto,moda.descricao') at MYSQLGZ
+
+
+
+
+execute('
+select id,caixa,cupom,status,valortot,data,tipopagto, condicao, cancelado
+
+from movcaixa 
+where data = "20160517" and
+cancelado <>"s"  and 
+ cupom = 92089 and status = 2
+') at MYSQLGZ
+
+
+
+
+
+
+
+
+
+
+select caixa , tipopagto, status,cupom, valortot, descitem, desccupom , data , hora
+
+from 
+MYSQLGZ...movcaixa mov
+--inner join MYSQLGZ...modalid moda on mov.tipopagto=moda.codigo 
+
+where data between  '20160101' and '20160107'
+
+order by cupom
+--
+
+declare @datade date, @dataate date, @caixa int , @comando varchar(1000)
+
+set @datade = '20160101'
+set @dataate = '20160107'
+set @caixa = '2'
+				
+set @comando = 'execute(''
+select tipopagto,
+moda.descricao,
+ sum(valortot) as valortot,
+count(*) as cupons,
+ (select sum(valortot) from movcaixa b 
+ where
+ a.caixa = b.caixa and 
+ a.data = b.data and 
+ a.cancelado = b.cancelado and 
+ status = 2) as desccupom,
+  (select sum(descitem) from movcaixa b 
+ where a.cupom = b.cupom and a.loja = b.loja and a.caixa = b.caixa and a.data = b.data and a.ecf = b.ecf and a.cancelado = b.cancelado and status = 1) as descitem
+ 
+from 
+movcaixa a
+inner join modalid moda on a.tipopagto=moda.codigo
+
+where
+a.caixa= '+str(@caixa,3)+' and 
+a.data between "'+convert(char(8),@datade,112)+'" and "'+convert(char(8),@dataate,112)+'" and 
+a.status =3 and 
+a.cancelado <> "s"
+group by a.tipopagto,moda.descricao'') at MYSQLGZ'
+
+--select @comando
+
+exec(@comando)
+
+
+where cupom in  (64091 , 64092) and status =3 and caixa = 5 and cancelado <>"s") at MYSQLGZ
+
+
+execute('
+select a.caixa, b.tipopagto,a.cupom, a.valortot, a.status , sum(a.valortot) as val
+from movcaixa a join 
+(select tipopagto, cupom, loja, caixa, data, ecf, cancelado from movcaixa  
+where status = 3 and cancelado <> "s") as b on a.cupom = b.cupom and a.loja = b.loja and a.caixa = b.caixa and a.data = b.data and a.ecf = b.ecf and a.cancelado = b.cancelado and 
+
+where a.data between "20160101" and "20160107"  and a.cancelado <>"s" and a.status = 2 and a.caixa = 2 ' ) at MYSQLGZ
+
+
+
+execute('
+select tipopagto, cupom, sum(valortot), sum(desccupom)
+from movcaixa 
+where data between "20160101" and "20160107" and 
+cancelado <>"s"  and 
+status = 1 group by cupom') at MYSQLGZ
+
+
+
+
+
+execute('
+SELECT b.tipopagto,b.caixa , replace(replace(format(sum(b.valortot),2),'','',''''),".",",") as liquido, 
+replace(replace(ifnull(format(sum(a.valortot),2),0),'','',''''),".",",") as desconto, count(*)
+ 
+from(
+select id,tipopagto, caixa,cupom, sum(valortot) as valortot, sum(desccupom)
+from movcaixa 
+where data between "20160101" and "20160130" and 
+cancelado <>"s"  and 
+status = 2 group by cupom) as a
+right join
+(select id,tipopagto,caixa, cupom, sum(valortot) as valortot, sum(desccupom)
+from movcaixa 
+where data between "20160101" and "20160130" and 
+cancelado <>"s"  and 
+status = 3 
+group by cupom,tipopagto) as b on a.cupom = b.cupom and a.caixa = b.caixa and a.id+1=b.id
+
+where b.caixa = 5  and b.tipopagto = 7
+
+-- and b.cupom = 64125
+group by b.tipopagto, b.caixa') at MYSQLGZ
+ 
+
+
+execute('
+select id + 1 , id,tipopagto,caixa, sum(valortot) as valortot, sum(desccupom), count(*)
+from movcaixa 
+where data between "20160101" and "20160130" and 
+cancelado <>"s"  and 
+status = 3 and
+caixa = 5 
+and tipopagto = 7
+group by tipopagto,cupom') at MYSQLGZ
+
+
+
+
+
+
+
+
+
+
+
+
+
+execute('
+select *
+from movcaixa 
+where desccupom > 0
+') at MYSQLGZ
+
+
+
+
+
+
+
+
+select 0 as caixa, 0 as tipopagto , 0 as satatus , 0 as valortot, 

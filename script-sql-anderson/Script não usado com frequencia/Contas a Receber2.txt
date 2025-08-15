@@ -1,0 +1,226 @@
+--declare @DataDeE datetime, @DataAteE datetime,@TituloDe int, @TituloAte int , @Clinom char, @VencDe datetime, @VencAte datetime, @Opcao smallint
+--set @DataDeE = '17530101'
+--set @DataAteE = '20301231'
+--set @TituloDe = 0
+--set @TituloAte = 0
+--set @Clinom = ' '
+--set @VencDe = '17530101'
+--set @VencAte = '17530101'
+--set @Opcao = 1
+
+if object_id('sp_CONTAS_REC') is not null
+   drop procedure sp_CONTAS_REC
+go
+
+
+create procedure sp_CONTAS_REC  @DataDeE datetime, @DataAteE datetime,@TituloDe int, @TituloAte int , @VencDe datetime, @VencAte datetime, @Opcao smallint ,@Clinome CHAR(60),
+@Portador INT, @zero int
+as
+
+begin
+  if object_id('TempDB.dbo.#CONTAS_REC') is not null
+   drop table #CONTAS_REC
+
+CREATE TABLE #CONTAS_REC (PFX VARCHAR(4) DEFAULT '',TITULO INT DEFAULT 0, PAR CHAR(2) DEFAULT '', PORT SMALLINT DEFAULT '', EMISAO DATETIME DEFAULT '',
+VENC_REAL DATETIME DEFAULT '',DIAS_ATRASO INT DEFAULT 0, RECEBIDO DECIMAL(12,4) DEFAULT 0,ABATIMENTO DECIMAL(12,4) DEFAULT 0,RESIDUO DECIMAL(12,4) DEFAULT 0,
+VALOR_ORIGINAL DECIMAL (12,4) DEFAULT 0, NOSSO_NUM CHAR(20) DEFAULT '',CÓD_CLI INT DEFAULT 0, NOM_CLI CHAR(60) DEFAULT '',BAIXA DATETIME DEFAULT '', 
+TAXA DECIMAL (12,4) DEFAULT 0, JUROS DECIMAL (12,4) DEFAULT 0, ACRESCIMO DECIMAL (12,4) DEFAULT 0, BANCO DECIMAL (12,4) DEFAULT 0, SALDO DECIMAL (12,4) DEFAULT 0)
+  
+
+
+INSERT INTO #CONTAS_REC 
+
+SELECT 
+PFXCOD AS PFX,
+CRETIT AS TITULO,
+CREPAR AS PAR,
+PORCOD AS PORT,
+CREDATEMI AS EMISAO,
+CREDATVENREA AS VENC_REAL,
+dbo.CREDIAATR(CREEMPCOD,PFXEMPCOD,CLIEMPCOD,PFXCOD,CRETIT,CREPAR,CLICOD) AS DIAS_ATRASO,
+CREVALREC AS RECEBIDO,
+CREVALABT AS ABATIMENTO,
+CREVALRES AS RESIDUO,
+CREVAL AS VALOR_ORIGINAL,
+CRENOSNUM AS NOSSO_NUM,
+RTRIM(CLICOD) AS CÓD_CLI,
+RTRIM(CLINOM) AS NOM_CLI,
+CREDATBAI AS BAIXA,
+CRETAXJUR AS TAXA,
+dbo.CREVALJUR(CREEMPCOD,PFXEMPCOD,CLIEMPCOD,PFXCOD,CRETIT,CREPAR,CLICOD) AS JUROS,
+CREVALACR AS ACRESCIMO,
+CRERESBAN AS BANCO,
+dbo.CREVALSDO(CREEMPCOD,PFXEMPCOD,CLIEMPCOD,PFXCOD,CRETIT,CREPAR,CLICOD) AS SALDO
+
+
+FROM TBS056
+
+WHERE CREDATEMI BETWEEN @DataDeE AND @DataAteE  AND CRETIT between @TituloDe and case when @TituloAte = 0 then 999999 else @TituloAte end and
+CREDATVENREA BETWEEN @VencDe and case when @VencAte = '17530101' then '20301231' else @VencAte end AND 
+PORCOD <= CASE WHEN @zero=0 THEN 999 ELSE 0 END
+
+IF @Opcao = 1
+	IF (@Clinome ='' OR @Clinome IS NULL) AND @Portador =0
+		SELECT * FROM #CONTAS_REC 
+	ELSE
+		IF @Clinome <>'' AND @Portador=0
+			SELECT * FROM #CONTAS_REC
+			WHERE NOM_CLI LIKE(RTRIM(@Clinome))
+		ELSE
+			IF (@Clinome ='' OR @Clinome IS NULL) AND @Portador>0 
+				SELECT * FROM #CONTAS_REC
+				WHERE PORT =@Portador
+			ELSE
+				IF @Clinome <>'' AND @Portador>0
+					SELECT * FROM #CONTAS_REC
+					WHERE NOM_CLI LIKE(RTRIM(@Clinome)) AND PORT=@Portador
+IF @Opcao = 2
+	IF (@Clinome ='' OR @Clinome IS NULL) AND @Portador=0
+		select * from #CONTAS_REC 
+		where BAIXA = '17530101'
+	ELSE
+		IF @Clinome <>'' AND @Portador=0
+			select * from #CONTAS_REC
+			where BAIXA = '17530101' AND NOM_CLI LIKE(RTRIM(@Clinome))
+		ELSE
+			IF (@Clinome ='' OR @Clinome IS NULL) AND @Portador>0
+				select * from #CONTAS_REC
+				where BAIXA = '17530101' AND PORT = @Portador
+			ELSE
+				IF @Clinome <>'' AND @Portador>0
+					select * from #CONTAS_REC
+					where BAIXA = '17530101' AND NOM_CLI LIKE(RTRIM(@Clinome)) AND PORT = @Portador
+			
+IF @Opcao = 3
+	IF (@Clinome ='' OR @Clinome IS NULL) AND @Portador=0
+		SELECT * FROM #CONTAS_REC 
+		WHERE BAIXA = '17530101' AND VENC_REAL < GETDATE()-1
+	ELSE
+		IF @Clinome <>'' AND @Portador=0
+			SELECT * FROM #CONTAS_REC 
+			WHERE BAIXA = '17530101' AND VENC_REAL < GETDATE()-1 AND NOM_CLI LIKE(RTRIM(@Clinome))
+		ELSE
+			IF (@Clinome ='' OR @Clinome IS NULL) AND @Portador>0
+				SELECT * FROM #CONTAS_REC 
+				WHERE BAIXA = '17530101' AND VENC_REAL < GETDATE()-1 AND PORT = @Portador
+			ELSE
+				IF @Clinome <>'' AND @Portador>0
+					SELECT * FROM #CONTAS_REC 
+					WHERE BAIXA = '17530101' AND VENC_REAL < GETDATE()-1 AND PORT = @Portador AND NOM_CLI LIKE(RTRIM(@Clinome))
+
+IF @Opcao = 4 
+	IF (@Clinome ='' OR @Clinome IS NULL) AND @Portador=0
+		SELECT * FROM #CONTAS_REC 
+		WHERE BAIXA <> '17530101'
+	ELSE
+		IF @Clinome <>'' AND @Portador=0
+			SELECT * FROM #CONTAS_REC 
+			WHERE BAIXA <> '17530101' AND NOM_CLI LIKE(RTRIM(@Clinome))
+		ELSE
+			IF (@Clinome ='' OR @Clinome IS NULL) AND @Portador>0
+				SELECT * FROM #CONTAS_REC 
+				WHERE BAIXA <> '17530101' AND PORT = @Portador
+			ELSE
+				IF @Clinome <>'' AND @Portador>0
+					SELECT * FROM #CONTAS_REC 
+					WHERE BAIXA <> '17530101' AND PORT = @Portador AND NOM_CLI LIKE(RTRIM(@Clinome))
+		
+IF @Opcao = 5
+	IF (@Clinome ='' OR @Clinome IS NULL) AND @Portador=0
+		SELECT * FROM #CONTAS_REC 
+		WHERE BAIXA <> '17530101' AND BAIXA > VENC_REAL
+	ELSE
+		IF @Clinome <>'' AND @Portador=0
+			SELECT * FROM #CONTAS_REC 
+			WHERE BAIXA <> '17530101' AND BAIXA > VENC_REAL AND NOM_CLI LIKE(RTRIM(@Clinome))
+		ELSE
+			IF (@Clinome ='' OR @Clinome IS NULL) AND @Portador>0
+				SELECT * FROM #CONTAS_REC 
+				WHERE BAIXA <> '17530101' AND BAIXA > VENC_REAL AND PORT = @Portador
+			ELSE
+				IF @Clinome <>'' AND @Portador>0
+					SELECT * FROM #CONTAS_REC 
+					WHERE BAIXA <> '17530101' AND BAIXA > VENC_REAL AND PORT = @Portador AND NOM_CLI LIKE(RTRIM(@Clinome))
+	
+IF @Opcao = 6
+	IF (@Clinome ='' OR @Clinome IS NULL) AND @Portador=0
+		SELECT * FROM #CONTAS_REC 
+		WHERE BAIXA <> '17530101' AND BAIXA < VENC_REAL
+	ELSE
+		IF @Clinome <>'' AND @Portador=0
+			SELECT * FROM #CONTAS_REC 
+			WHERE BAIXA <> '17530101' AND BAIXA < VENC_REAL AND NOM_CLI LIKE(RTRIM(@Clinome))
+		ELSE
+			IF (@Clinome ='' OR @Clinome IS NULL) AND @Portador>0
+				SELECT * FROM #CONTAS_REC 
+				WHERE BAIXA <> '17530101' AND BAIXA < VENC_REAL AND PORT = @Portador
+			ELSE
+				IF @Clinome <>'' AND @Portador>0
+					SELECT * FROM #CONTAS_REC 
+					WHERE BAIXA <> '17530101' AND BAIXA < VENC_REAL AND PORT = @Portador AND NOM_CLI LIKE(RTRIM(@Clinome))	
+
+IF @Opcao = 7
+	IF (@Clinome ='' OR @Clinome IS NULL) AND @Portador=0
+		SELECT * FROM #CONTAS_REC 
+		WHERE BAIXA <> '17530101' AND BAIXA = VENC_REAL
+	ELSE
+		IF @Clinome <>'' AND @Portador=0
+			SELECT * FROM #CONTAS_REC 
+			WHERE BAIXA <> '17530101' AND BAIXA = VENC_REAL AND NOM_CLI LIKE(RTRIM(@Clinome))
+		ELSE
+			IF (@Clinome ='' OR @Clinome IS NULL) AND @Portador>0
+				SELECT * FROM #CONTAS_REC 
+				WHERE BAIXA <> '17530101' AND BAIXA = VENC_REAL AND PORT = @Portador
+			ELSE
+				IF @Clinome <>'' AND @Portador>0
+					SELECT * FROM #CONTAS_REC 
+					WHERE BAIXA <> '17530101' AND BAIXA = VENC_REAL AND PORT = @Portador AND NOM_CLI LIKE(RTRIM(@Clinome))
+		
+SELECT 
+PFX,
+TITULO,
+PAR,
+PORT,
+EMISAO,
+VENC_REAL,
+DIAS_ATRASO,
+RECEBIDO,
+ABATIMENTO,
+RESIDUO,
+VALOR_ORIGINAL,
+NOSSO_NUM,
+CÓD_CLI,
+NOM_CLI,
+BAIXA,
+TAXA,
+JUROS,
+ACRESCIMO,
+BANCO,
+SALDO
+
+FROM #CONTAS_REC
+ORDER BY TITULO
+
+end
+
+
+
+
+
+
+
+
+
+--if object_id('Contas_a_Receber') is not null
+----   drop procedure 'Contas_a_Receber'
+----go
+--create procedure Contas_a_Receber @dataDe date, @dataAte date, @TituloDe int, @TituloAte int , @Clinom char, @VencDe datetime, @VencAte datetime, @Opcao smallint
+--as
+--begin
+--
+--set nocount on
+--
+--if object_id('TempDB.dbo.#CONTAS_REC') is not null
+--   drop table #CONTAS_REC
+--
+--CREATE TABLE #CONTAS_REC (PFX 

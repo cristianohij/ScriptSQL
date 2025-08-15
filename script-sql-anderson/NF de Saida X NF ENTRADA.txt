@@ -1,0 +1,46 @@
+-- NF DE SAIDA
+
+declare @dataNFde datetime, @dataNFate datetime
+	set @dataNFde ='20150816'
+	set @dataNFate ='20150824'
+
+
+SELECT
+	NFSNUM  AS NF,
+	NFSCLINOM  AS DESTINATÁRIO,
+	CONVERT(NVARCHAR,NFSDATEMI,2) AS 'DATA SAIDA',
+	RTRIM(NFSOBS)  AS OBS_NF
+	
+FROM TBS067  
+	
+	WHERE NFSCLICOD IN (590,6709) AND NFSCAN = 'N'AND
+	NFSTIP IN ('N','T') 
+	AND NFSDATEMI  between @dataNFde and @dataNFate 
+	or (@dataNFde = '' and @dataNFate = '') 
+
+	
+order by NFSNUM 
+
+
+
+
+
+--NFE ENTRADA
+
+declare @dataNFde datetime, @dataNFate datetime, @numNF int
+set @dataNFde ='20150817'
+set @dataNFate ='20150824'
+
+SELECT 
+	NFENUM  AS 'NF',
+	NFENOM AS 'NOME FORNECEDOR',
+	CONVERT(NVARCHAR,NFEDATENT,2) AS 'DATA ENTRADA',
+	RTRIM(NFEOBS) AS 'OBS_NF'
+	
+FROM TBS059 B  
+	
+	
+	
+WHERE  NFECAN = 'N' AND NFECOD IN (669)AND
+	NFETIP IN ('N','T') AND NFEDATENT  between @dataNFde and @dataNFate 
+	or (@dataNFde = '' and @dataNFate = '')  

@@ -1,0 +1,11 @@
+select * from TBS056 (nolock) where CREOBS = 'IMPORTADO XML - PERDA DADOS'
+delete TBS056 where CREOBS = 'IMPORTADO XML - PERDA DADOS'
+
+select * from TBS060 (nolock) where HCRDES = 'INCLUSAO DE TITULO VIA IMPORTACAO XML'
+begin tran
+delete TBS060 where HCRDES = 'INCLUSAO DE TITULO VIA IMPORTACAO XML'
+commit tran
+
+select PFXCOD,CRETIT,CREPAR,CLICOD,CLINOM,CREDATEMI,CREDATVENREA,CREVAL from TBS056 (nolock) where CREOBS = 'IMPORTADO XML - PERDA DADOS'
+
+select * from TBS056 (nolock) where CREOBS = 'IMPORTADO XML - PERDA DADOS' and datePart(month ,CREDATEMI) = 6 order by CRETIT

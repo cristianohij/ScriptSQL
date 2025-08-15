@@ -1,0 +1,1 @@
+update TBS010 set PROSTBB = case when PROCSN = '101' then '00' when PROCSN = '102' then '00' when PROCSN = '500' then '60' end

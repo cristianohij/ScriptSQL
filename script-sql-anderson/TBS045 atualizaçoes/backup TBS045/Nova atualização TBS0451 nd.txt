@@ -1,0 +1,308 @@
+-- ATUALIZÇOES NA ND , SOMENTE DA TBS0451
+
+-- PEGAR OS REGISTROS MAIORES QUE O PDCINC DA TABLE TBS0451PDCINC 
+
+IF OBJECT_ID ('TempDB.dbo.#TBS0452') is not null
+drop table #TBS0452
+SELECT Scr.* INTO #TBS0452 FROM OPENROWSET('SQLNCLI','192.168.10.7';'si';'123','SELECT * FROM SIBD.dbo.TBS0451AUX ORDER BY PDCINC ') AS Scr
+WHERE PDCINC > ISNULL((SELECT PDCINC FROM TBS0451PDCINC),0)
+
+IF OBJECT_ID ('TempDB.dbo.#TBS0451') is not null
+drop table #TBS0451
+SELECT ROW_NUMBER() OVER(ORDER BY A.PDCINC ) AS RANK, * INTO #TBS0451 FROM #TBS0452 A 
+
+-- SELECT * FROM #TBS0451
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- RESERVAR NUMERO PARA OS LOGS NA TBS051
+			
+IF OBJECT_ID ('TempDB.dbo.#Tmp1') is not null
+drop table #Tmp1
+select COUNT(*) AS CNT INTO #Tmp1 FROM #TBS0451 
+
+BEGIN TRAN 
+	
+UPDATE TBS024 
+SET TBSVALINI = TBSVALSEQ,
+TBSVALSEQ = TBSVALSEQ + (SELECT CNT FROM #Tmp1)
+WHERE TBSNOM = 'TBS051'
+
+-- SELECT * FROM TBS024 WHERE TBSNOM = 'TBS051'
+
+COMMIT TRAN
+
+-- AQUI COLOCO O NOME DO ATRIBUTO DE TBSVALSEQ PARA NÃO TER QUE MUDAR TODO O SELECT, DAI GRAVO NA #T24
+
+IF OBJECT_ID ('TempDB.dbo.#T24') is not null
+drop table #T24
+select TBSVALINI AS TBSVALSEQ INTO #T24 FROM TBS024 WHERE TBSNOM = 'TBS051'
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+DECLARE @i INT, @PDCQTD DECIMAL(10,3), @PDCQTDEMB MONEY, @LESCOD smallint , @PROCOD CHAR(15)
+
+SET @i = 1
+
+WHILE (@i <= (SELECT CNT FROM #Tmp1))
+
+BEGIN 
+		-- 7 PRODUTOS QUE ENTRARAM ATRAVES DE NOTA FISCAL	
+	
+	IF (SELECT ISNULL(1,0) FROM #TBS0451 WHERE RANK = @i and PDCTIPALT = 'ENTROU') > 0
+		
+		BEGIN
+
+			begin tran 			
+			
+			INSERT INTO 
+				TBS051( 
+				LMEEMPCOD, 		-- 0
+				LMEREG, 		-- 1
+				LMEDOC, 		-- 2
+				LMEROT, 		-- 3
+				LMEDESROT, 		-- 4
+				LMEACA, 		-- 5
+				LMEDATHOR, 		-- 6
+				LMEUSU, 		-- 7
+				LMEMOD, 		-- 8
+				LMEINFALT, 		-- 9
+				PROCOD, 		-- 10
+				PROEMPCOD, 		-- 11
+				LMEQTDSAL, 		-- 12
+				LMEQTDMOV, 		-- 13
+				LMEQTDATU, 		-- 14
+				LMEQTDRES, 		-- 15
+				LMEQTDPEN, 		-- 16
+				LMEQTDCMP,  	-- 17
+				LMEUNI, 		-- 18
+				LMEQTDDIS, 		-- 19
+				LMELOCEST) 		-- 20
+	
+	
+				SELECT	
+				PDCEMPCOD, 																      					-- 0 LMEEMPCOD
+				A.RANK +(SELECT TBSVALSEQ FROM #T24 ), 															-- 1 LMEREG
+				PDCNUM, 																			  			-- 2 LMEDOC
+				'SQL', 																							-- 3 LMEROT
+				'SAIDA PEDIDO DE COMPRAS NFE', 																	-- 4 LMEDESROT
+				'S', 																							-- 5 LMEACA
+				GETDATE(), 																						-- 6 LMEDATHOR
+				'ANDERSONL',																					-- 7 LMEUSU
+				'NENHUM', 																						-- 8 LMEMOD
+				'C', 																							-- 9 LMEINFALT
+				A.PROCOD, 																						-- 10 PROCOD
+				A.PROEMPCOD, 																					-- 11 PROEMPCOD
+				ESTQTDCMP - (PDCQTDENT*PDCQTDEMB) ,																-- 12 LMEQTDSAL
+				(PDCQTDENT*PDCQTDEMB), 				 															-- 13 LMEQTDMOV
+				ESTQTDATU, 																						-- 14 LMEQTDATU
+				ESTQTDRES, 																						-- 15 LMEQTDRES
+				ESTQTDPEN, 																						-- 16 LMEQTDPEN
+				ESTQTDCMP, 																						-- 17 LMEQTDCMP
+				(SELECT PROUM1 FROM TBS010 C (NOLOCK) WHERE A.PROCOD collate Latin1_General_CI_AS = C.PROCOD), 	-- 18 LMEUNI
+				ESTQTDATU - ESTQTDRES, 																			-- 19 LMEQTDDIS
+				A.LESCOD 																						-- 20 LMELOCEST
+			
+				from #TBS0451 A
+				LEFT JOIN TBS032 B (NOLOCK) ON A.PROCOD collate Latin1_General_CI_AS = B.PROCOD AND A.LESCOD = B.ESTLOC
+				
+				WHERE 
+				A.PDCTIPALT = 'ENTROU' AND RANK = @i
+					
+				ORDER BY 
+				A.RANK
+				
+				commit tran 
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+				-- 7.1 ATUALIZA SALDO DOS PRODUTOS QUE ENTROU NA ND 
+				
+				begin tran 
+	
+				SELECT 
+				@PROCOD = PROCOD,
+				@PDCQTD = PDCQTDENT,
+				@PDCQTDEMB = PDCQTDEMB,
+				@LESCOD = LESCOD
+	
+				FROM #TBS0451 A
+				
+				WHERE 
+				A.PDCTIPALT = 'ENTROU' AND 
+				RANK = @i
+				
+				UPDATE TBS032
+				SET ESTQTDCMP = ESTQTDCMP - (@PDCQTD * @PDCQTDEMB)
+				
+				WHERE 
+				ESTLOC = @LESCOD AND
+							
+				PROCOD COLLATE Latin1_General_CI_AS = @PROCOD
+
+				commit tran 				
+				
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+				-- 7.2 ATUALIZA TBS0451	
+				
+				begin tran 		
+				
+				MERGE TBS0451 A 				-- DESTINO
+				USING #TBS0451 B WITH (NOLOCK) 	-- ORIGEM 
+				ON A.PDCNUM = B.PDCNUM AND A.PDCEMPCOD = B.PDCEMPCOD AND A.PDCITE = B.PDCITE AND 
+				A.PROCOD collate Latin1_General_CI_AS = B.PROCOD AND A.LESCOD = B.LESCOD
+				
+				WHEN MATCHED AND A.PDCQTD - A.PDCQTDENT - A.PDCQTDRES > 0 and  A.PDCQTDENT + A.PDCQTDRES + B.PDCQTDENT <= A.PDCQTD AND
+				B.PDCTIPALT = 'ENTROU' AND B.RANK = @i
+						
+				THEN UPDATE SET 
+				A.PDCQTDENT = A.PDCQTDENT + B.PDCQTDENT
+											
+				OUTPUT 
+				GETDATE() ,
+				UPPER($action),
+				INSERTED.*,
+				DELETED.*
+				INTO LOGTBS0451 ;	
+				
+				commit tran	
+		
+		END
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+		-- 8 PRODUTOS QUE FOI CANCELADO ATRAVES DE NOTA FISCAL	
+	
+	IF (SELECT ISNULL(1,0) FROM #TBS0451 WHERE RANK = @i and PDCTIPALT = 'CANCEL') > 0
+		
+		BEGIN
+		
+			begin tran 
+			
+			INSERT INTO 
+				TBS051( 
+				LMEEMPCOD, 		-- 0
+				LMEREG, 		-- 1
+				LMEDOC, 		-- 2
+				LMEROT, 		-- 3
+				LMEDESROT, 		-- 4
+				LMEACA, 		-- 5
+				LMEDATHOR, 		-- 6
+				LMEUSU, 		-- 7
+				LMEMOD, 		-- 8
+				LMEINFALT, 		-- 9
+				PROCOD, 		-- 10
+				PROEMPCOD, 		-- 11
+				LMEQTDSAL, 		-- 12
+				LMEQTDMOV, 		-- 13
+				LMEQTDATU, 		-- 14
+				LMEQTDRES, 		-- 15
+				LMEQTDPEN, 		-- 16
+				LMEQTDCMP,  	-- 17
+				LMEUNI, 		-- 18
+				LMEQTDDIS, 		-- 19
+				LMELOCEST) 		-- 20
+	
+	
+				SELECT	
+				PDCEMPCOD, 																      					-- 0 LMEEMPCOD
+				A.RANK +(SELECT TBSVALSEQ FROM #T24 ), 															-- 1 LMEREG
+				PDCNUM, 																			  			-- 2 LMEDOC
+				'SQL', 																							-- 3 LMEROT
+				'ENTRADA PEDIDO DE COMPRAS CAN', 																-- 4 LMEDESROT
+				'E', 																							-- 5 LMEACA
+				GETDATE(), 																						-- 6 LMEDATHOR
+				'ANDERSONL',																					-- 7 LMEUSU
+				'NENHUM', 																						-- 8 LMEMOD
+				'C', 																							-- 9 LMEINFALT
+				A.PROCOD, 																						-- 10 PROCOD
+				A.PROEMPCOD, 																					-- 11 PROEMPCOD
+				ESTQTDCMP + (PDCQTDENT*PDCQTDEMB) ,																-- 12 LMEQTDSAL
+				(PDCQTDENT*PDCQTDEMB), 				 															-- 13 LMEQTDMOV
+				ESTQTDATU, 																						-- 14 LMEQTDATU
+				ESTQTDRES, 																						-- 15 LMEQTDRES
+				ESTQTDPEN, 																						-- 16 LMEQTDPEN
+				ESTQTDCMP, 																						-- 17 LMEQTDCMP
+				(SELECT PROUM1 FROM TBS010 C (NOLOCK) WHERE A.PROCOD collate Latin1_General_CI_AS = C.PROCOD), 	-- 18 LMEUNI
+				ESTQTDATU - ESTQTDRES, 																			-- 19 LMEQTDDIS
+				A.LESCOD 																						-- 20 LMELOCEST
+			
+				from #TBS0451 A
+				LEFT JOIN TBS032 B (NOLOCK) ON A.PROCOD collate Latin1_General_CI_AS = B.PROCOD AND A.LESCOD = B.ESTLOC
+				
+				WHERE 
+				A.PDCTIPALT = 'CANCEL' AND RANK = @i
+					
+				ORDER BY 
+				A.RANK
+				
+				commit tran 
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+				-- 8.1 ATUALIZA SALDO DOS PRODUTOS QUE CANCELOU NA ND 
+				
+				begin tran 
+	
+				SELECT 
+				@PROCOD = PROCOD,
+				@PDCQTD = PDCQTDENT,
+				@PDCQTDEMB = PDCQTDEMB,
+				@LESCOD = LESCOD
+	
+				FROM #TBS0451 A
+				
+				WHERE 
+				A.PDCTIPALT = 'CANCEL' AND 
+				RANK = @i
+				
+				UPDATE TBS032
+				SET ESTQTDCMP = ESTQTDCMP + (@PDCQTD * @PDCQTDEMB)
+				
+				WHERE 
+				ESTLOC = @LESCOD AND							
+				PROCOD COLLATE Latin1_General_CI_AS = @PROCOD
+				
+				commit tran 
+				
+---------------------------------------------------------------------------------------------------------------------------------------------------
+
+				-- 8.2 ATUALIZA TBS0451	
+				
+				begin tran 			
+				
+				MERGE TBS0451 A 				-- DESTINO
+				USING #TBS0451 B WITH (NOLOCK) 	-- ORIGEM 
+				ON A.PDCNUM = B.PDCNUM AND A.PDCEMPCOD = B.PDCEMPCOD AND A.PDCITE = B.PDCITE AND 
+				A.PROCOD collate Latin1_General_CI_AS = B.PROCOD AND A.LESCOD = B.LESCOD
+				
+				WHEN MATCHED AND B.PDCTIPALT = 'CANCEL' AND B.RANK = @i
+						
+				THEN UPDATE SET 
+				A.PDCQTDENT = A.PDCQTDENT - B.PDCQTDENT
+											
+				OUTPUT 
+				GETDATE() ,
+				UPPER($action),
+				INSERTED.*,
+				DELETED.*
+				INTO LOGTBS0451 ;
+				
+				commit tran 
+		END	
+
+SET @i = @i + 1
+
+END 
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+begin tran
+
+-- UPDATE PARA GRAVAR ULTIMO REGISTRO DA TABELA DO CD
+UPDATE TBS0451PDCINC
+SET PDCINC = ISNULL((SELECT MAX(PDCINC) FROM #TBS0451),PDCINC)
+
+COMMIT TRAN 

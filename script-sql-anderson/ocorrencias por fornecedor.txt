@@ -1,0 +1,180 @@
+
+--- ENTRADA POR DIA, POR FONECEDOR, ND, TTE E CD
+declare @dateDe datetime, @dateAte datetime , @NFEFORCOD INT, @NFEFORNOM CHAR(60), @UTEL INT
+
+SET @NFEFORCOD = 0
+SET @NFEFORNOM =''
+set @dateDe = '20170101'
+set @dateAte = '20171006'
+SET @UTEL = (SELECT dbo.FCNDIASUTEIS(@dateDe,@dateAte))
+--- ENTRADA POR DIA, POR FONECEDOR, ND, TTE E CD
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA DE COMPRADORES 
+
+--if object_id('TempDB.dbo.#TBS046') is not null 
+--drop table #TBS046
+--
+--SELECT 
+--COMCOD,
+--COMNOM
+--
+--INTO #TBS046
+--FROM TBS046 NOLOCK
+--
+--INSERT INTO #TBS046
+--SELECT 0,'SEM COMPRADOR'
+--
+--SELECT * FROM #TBS046
+
+
+
+
+-- TABELA BASE DE FILTROS
+
+if object_id('TempDB.dbo.#TBS010') is not null 
+drop table #TBS010
+
+SELECT 
+PROCOD,
+PRODES,
+PROUM1,
+-- MARCOD,
+-- MARNOM,
+-- PROUM1QTD,
+FORCOD,
+ISNULL(COMCOD,0) AS COMCOD, 
+ISNULL((SELECT COMNOM FROM TBS046 B (NOLOCK) WHERE A.COMCOD = B.COMCOD),'') AS COMNOM
+
+INTO #TBS010
+FROM TBS010 A (NOLOCK)
+
+/*WHERE 
+PROCOD = CASE WHEN @PROCOD = '' THEN PROCOD ELSE @PROCOD END AND
+MARCOD = CASE WHEN @MARCOD = 0 THEN MARCOD ELSE @MARCOD END AND
+MARNOM LIKE(CASE WHEN @MARNOM = '' THEN MARNOM ELSE RTRIM(UPPER(@MARNOM)) + '%' END) AND
+PRODES LIKE(CASE WHEN @PRODES = '' THEN PRODES ELSE RTRIM(UPPER(@PRODES)) + '%' END) AND
+COMCOD IN (@COMCOD)*/
+-- AND 
+--PROSTATUS IN (@PROSTATUS)
+
+ORDER BY 
+PROCOD
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- GRUPO DE FRONECEDORES DO GRUPO, NÃO CONTABIIZAR 
+
+if object_id('TempDB.dbo.#GRUPOFOR') is not null
+   begin
+      drop table #GRUPOFOR
+   end
+
+select 
+FORCOD into #GRUPOFOR
+
+FROM 
+TBS006 (nolock) 
+
+WHERE FORCGC Like('65069593%') or FORCGC Like('05118717%') or FORCGC Like('52080207%') or FORCGC Like('44125185%');
+ 	 			-- TANBYS			       -- BAG			           -- MISAS			               -- PAPE
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#NFE') is not null
+   begin
+      drop table #NFE
+   end
+   
+		SELECT
+		IDENTITY(INT,1,1) 				AS ORDEM ,
+		CONVERT(CHAR (10), NFEDATEMI,103) AS NFEDATEMI,
+		CONVERT(CHAR (10), NFEDATEFE,103) AS NFEDATEFE,
+		-- CONVERT(CHAR (10), NFEDATEFE,102) AS DATA,
+		B.NFECOD, 
+		B.NFENOM,
+		A.NFENUM,
+		A.PROCOD,
+		C.PRODES,
+		C.PROUM1,
+		A.NFEQTD * A.NFEQTDEMB AS QTD,
+		LTRIM(RTRIM(STR(COMCOD))) + RTRIM(LTRIM(COMNOM)) AS COMNOM
+		
+		INTO #NFE		 
+		FROM 
+		TBS0591 A (NOLOCK)
+		LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND A.NFENUM = B.NFENUM AND 
+		A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND  A.SEREMPCOD = B.SEREMPCOD
+		LEFT JOIN #TBS010 C (NOLOCK) ON A.PROCOD = C.PROCOD
+		  
+		WHERE 
+		A.LESCOD= 7 AND
+		NFEDATEFE between @dateDe and @dateAte and 
+		A.NFETIP ='N' and 
+		NFECAN <> 'S' AND
+		-- B.NFENOM NOT LIKE ('%TANBY%') AND
+		--A.NFECOD NOT IN ((SELECT FORCOD FROM #GRUPOFOR)) AND 
+		--A.NFECFOP IN ('1.102','2.102','1.202','2.202','1.403','2.403','2.411','1.411','1.653','2.653','1.922','2.922') AND
+		A.PROCOD IN (SELECT PROCOD FROM #TBS010)
+
+		--GROUP BY 
+		--NFEDATEFE, A.PROCOD, A.NFENUM,C.PRODES,C.PROUM1, COMCOD, COMNOM
+		
+		ORDER BY 
+		B.NFENOM, CONVERT(CHAR (10), NFEDATEMI,102)
+
+SELECT 
+NFECOD AS 'Código do Fornecedor', 
+NFENOM as 'Nome do Fornecedor',
+COUNT(*) AS 'Ocorrências'
+
+FROM #NFE
+
+GROUP BY 
+NFECOD, 
+NFENOM
+
+order by 'Ocorrências' desc 
+
+
+select 
+ORDEM as 'Ordem',
+NFEDATEMI as 'Data de Emissão',
+NFEDATEFE as 'Data de Efetivação',
+NFECOD as 'Código do Fornecedor', 
+NFENOM as 'Nome do Fornecedor',
+NFENUM as 'NF',
+PROCOD as 'Código Produto',
+PRODES as 'Descrição',
+PROUM1 as 'Uni1',
+replace(QTD,'.',',') as 'Quantidade',
+COMNOM as 'Comprador'
+from #NFE
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+---SELECT * FROM TBS034
+
+--SELECT * FROM TBS051
+
+SELECT 
+A.PROCOD as 'Código do Produto', 
+B.PRODES as 'Descrição', 
+count(*) AS 'Ocorrências'
+
+FROM TBS051 A(NOLOCK)
+LEFT JOIN #TBS010 B (NOLOCK) ON A.PROCOD = B.PROCOD
+
+WHERE 
+LMELOCEST = 7 AND 
+LMEDATHOR > '20170101' AND 
+LMEINFALT = 'E' AND 
+LMEACA = 'E' AND 
+LMEQTDMOV <> 0 
+
+GROUP BY 
+A.PROCOD,
+B.PRODES
+
+order by 'Ocorrências' desc 

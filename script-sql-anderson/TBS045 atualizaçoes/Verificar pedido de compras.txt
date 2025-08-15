@@ -1,0 +1,329 @@
+-- arrumar reserva
+if not exists(select name from sysobjects where name = 'tmpres' and type='U')
+   begin
+      create table tmpres
+         (empresa tinyint not null default 0, localEstoque tinyint not null default 0, codigoProduto char(15) not null default '',
+          qReservaAnterior money default 0, qReservaPedidos money default 0, qReservaSolCompras money default 0, qReservaMovInternos money default 0,
+          constraint itmpres primary key(empresa, localEstoque, codigoProduto))
+   end
+      else delete from tmpres
+
+	  
+insert into tmpres
+select 
+PROEMPCOD,
+ESTLOC,
+PROCOD,
+ESTQTDRES,
+(select 
+	isNull(sum(PRPQTD * PRPQTDEMB),0) 
+from 
+	TBS058 (nolock)
+where 
+	PRPSIT = 'R' and 
+	PRPESTLOC = ESTLOC and 
+	PRPMOVEST = 'S' and 
+	PRPEMP = TBS032.PROEMPCOD and 
+	TBS058.PROCOD = TBS032.PROCOD),
+(select 
+	isNull(sum((SDCQTDATD - SDCQTDBAI) * SDCQTDEMB),0) 
+from 
+	TBS0761 (nolock)
+where 
+	LESCOD = ESTLOC and 
+	SDCQTDRES = 0 and 
+	TBS0761.PROEMPCOD = TBS032.PROEMPCOD and 
+	TBS0761.PROCOD = TBS032.PROCOD),
+(select 
+	isnull(sum(TBS0371.MVIQTDATD*TBS0371.MVIQTDEMB),0)
+from 
+	TBS0371 (nolock) 
+join TBS037 (nolock) on TBS037.MVIEMPCOD=TBS0371.MVIEMPCOD and TBS037.MVIDOC=TBS0371.MVIDOC and TBS037.MVIDATEFE is null and TBS037.MVILOCORI=TBS032.ESTLOC
+join TBS033 (nolock) on TBS033.TMVEMPCOD=TBS037.TMVEMPCOD and TBS033.TMVCOD=TBS037.TMVCOD and TBS033.TMVMOVAUT='N' and TBS033.TMVTIP='S'
+where 
+	TBS0371.PROEMPCOD=TBS032.PROEMPCOD and TBS0371.PROCOD=TBS032.PROCOD)
+
+from 
+	TBS032 (noLock)
+where 
+ESTQTDRES <>
+       (select isNull(sum(PRPQTD * PRPQTDEMB),0) from TBS058 (nolock)
+         where PRPSIT = 'R' and PRPESTLOC = ESTLOC and PRPMOVEST = 'S' and PRPEMP = TBS032.PROEMPCOD and TBS058.PROCOD=TBS032.PROCOD) +
+       (select isNull(sum((SDCQTDATD - SDCQTDBAI) * SDCQTDEMB),0) from TBS0761 (nolock)
+         where LESCOD = ESTLOC and SDCQTDRES = 0 and TBS0761.PROEMPCOD = TBS032.PROEMPCOD and TBS0761.PROCOD = TBS032.PROCOD) +
+       (select isnull(sum(TBS0371.MVIQTDATD*TBS0371.MVIQTDEMB),0)
+          from TBS0371 (nolock) join TBS037 (nolock) on TBS037.MVIEMPCOD=TBS0371.MVIEMPCOD and TBS037.MVIDOC=TBS0371.MVIDOC and TBS037.MVIDATEFE is null and
+                                                        TBS037.MVILOCORI=TBS032.ESTLOC
+                                join TBS033 (nolock) on TBS033.TMVEMPCOD=TBS037.TMVEMPCOD and TBS033.TMVCOD=TBS037.TMVCOD and TBS033.TMVMOVAUT='N' and
+                                                        TBS033.TMVTIP='S'
+         where TBS0371.PROEMPCOD=TBS032.PROEMPCOD and TBS0371.PROCOD=TBS032.PROCOD)
+order by PROCOD
+
+
+update TBS032 set ESTQTDRES = qReservaPedidos + qReservaSolCompras from tmpres where empresa = PROEMPCOD and localEstoque = ESTLOC and codigoProduto = PROCOD
+
+
+
+
+-- arrumar pendencias
+if not exists(select name from sysobjects where name = 'tmppen' and type='U')
+   begin
+      create table tmppen
+         (empresa tinyint not null default 0, localEstoque tinyint not null default 0, codigoProduto char(15) not null default '', qPendenteAnterior money default 0,
+          qPendentePedidos money default 0, qPendenteSolCompras money default 0,
+          constraint itmppen primary key(empresa, localEstoque, codigoProduto))
+   end
+      else delete from tmppen
+	  
+insert into tmppen
+select PROEMPCOD,ESTLOC,PROCOD,ESTQTDPEN,
+       (select isNull(sum(PRPQTD * PRPQTDEMB),0) from TBS058 (nolock)
+         where PRPSIT = 'P' and PRPESTLOC = ESTLOC and PRPMOVEST = 'S' and PRPEMP = TBS032.PROEMPCOD and TBS058.PROCOD = TBS032.PROCOD),
+       (select isNull(sum((SDCQTDPED - (SDCQTDATD + SDCQTDRES)) * SDCQTDEMB),0) from TBS0761 (nolock)
+         where LESCOD = ESTLOC and TBS0761.PROEMPCOD = TBS032.PROEMPCOD and TBS0761.PROCOD = TBS032.PROCOD)
+ from TBS032 (noLock)
+ where ESTQTDPEN <>
+       (select isNull(sum(PRPQTD * PRPQTDEMB),0) from TBS058 (nolock)
+         where PRPSIT = 'P' and PRPESTLOC = ESTLOC and PRPMOVEST = 'S' and PRPEMP = TBS032.PROEMPCOD and TBS058.PROCOD = TBS032.PROCOD) +
+       (select isNull(sum((SDCQTDPED - (SDCQTDATD + SDCQTDRES)) * SDCQTDEMB),0) from TBS0761 (nolock)
+         where LESCOD = ESTLOC and TBS0761.PROEMPCOD = TBS032.PROEMPCOD and TBS0761.PROCOD = TBS032.PROCOD)
+ order by PROCOD
+ 
+
+update TBS032 set ESTQTDPEN = qPendentePedidos + qPendenteSolCompras from tmppen where empresa = PROEMPCOD and localEstoque = ESTLOC and codigoProduto = PROCOD
+
+
+
+-- arrumar compras
+if not exists(select name from sysobjects where name = 'tmpcmp' and type='U')
+   begin
+      create table tmpcmp
+         (empresa tinyint not null default 0, localEstoque tinyint not null default 0, codigoProduto char(15) not null default '',
+          qCompraAnterior money default 0, qCompraPedidos money default 0,
+          constraint itmpcmp primary key(empresa, localEstoque, codigoProduto))
+   end
+      else delete from tmpcmp
+
+
+insert into tmpcmp
+select 
+A.PROEMPCOD,
+A.ESTLOC,
+A.PROCOD,
+A.ESTQTDCMP,
+isNull(sum((B.PDCQTD - (B.PDCQTDENT + B.PDCQTDRES)) * B.PDCQTDEMB),0)
+
+from TBS032 A (nolock) 
+full outer join TBS0451 B (nolock) on B.PROEMPCOD = A.PROEMPCOD and B.PROCOD = A.PROCOD and B.LESCOD = A.ESTLOC
+
+group by A.PROEMPCOD,A.ESTLOC,A.PROCOD,A.ESTQTDCMP
+having A.ESTQTDCMP <> isNull(sum((B.PDCQTD - (B.PDCQTDENT + B.PDCQTDRES)) * B.PDCQTDEMB),0)
+
+
+
+update TBS032 set ESTQTDCMP = qCompraPedidos from tmpcmp where empresa = PROEMPCOD and localEstoque = ESTLOC and codigoProduto = PROCOD
+
+
+
+
+
+
+-------------------------------------------------------------------------
+-- para verificar 
+
+select 
+A.PDCITE,
+A.PROCOD,
+A.PDCNUM AS NDPDCDNUM,
+B.PDCNUM AS CDPDCNUM,
+A.PDCQTD AS NDPDCQTD,
+B.PDCQTD AS CDPDCQTD,
+A.PDCQTDENT AS NDPCQTDENT,
+B.PDCQTDENT AS CDPDCQTDENT,
+A.PDCQTDRES AS NDPDCQTDRES,
+B.PDCQTDRES AS CDPDCQTDRES
+
+FROM TBS0451 A (NOLOCK) 
+FULL JOIN cd.SIBD.dbo.TBS0451 B (NOLOCK) ON A.PDCNUM = B.PDCNUM AND A.PROCOD COLLATE Latin1_General_CI_AS = B.PROCOD AND A.PDCITE = B.PDCITE
+
+WHERE 
+A.PDCQTD <> B.PDCQTD OR
+A.PDCQTDENT <> B.PDCQTDENT OR
+A.PDCQTDRES <> B.PDCQTDRES/* OR
+A.PDCNUM IS NULL OR
+A.PROCOD IS NULL OR 
+A.PDCITE IS NULL OR
+B.PDCNUM IS NULL OR
+B.PROCOD IS NULL OR 
+B.PDCITE IS NULL */
+
+
+select * FROM TBS051 NOLOCK WHERE PROCOD = '8060193' AND LMEDOC = 43740
+
+BEGIN TRAN 
+UPDATE TBS051 
+SET LMEQTDSAL = 0 ,
+LMEQTDMOV = 72
+WHERE LMEREG = 1067807
+
+BEGIN TRAN 
+DELETE TBS051 
+WHERE LMEREG = 5249365
+
+
+--BEGIN TRAN 
+UPDATE TBS0451
+SET PDCQTDENT = 3.6,
+PDCQTDRES = 14.4
+WHERE PROCOD = '8060193' AND PDCNUM = 43740
+
+---------------------------------------------------------
+
+-- ARRUMAR ESTOQUE
+
+--BEGIN TRAN 
+UPDATE TBS032
+SET ESTQTDCMP = 0 
+WHERE PROCOD = '8060193' AND ESTLOC = 1 
+
+
+
+
+
+
+
+
+
+
+DECLARE @PDCNUM INT, @PDCITE INT 
+
+SET @PDCNUM = 43740
+SET @PDCITE = 2
+
+SELECT 
+'ND' COLLATE Latin1_General_BIN AS EMP, 
+PDCNUM  , 
+PDCITE , 
+PROCOD COLLATE Latin1_General_BIN AS PROCOD, 
+PDCDES COLLATE Latin1_General_BIN AS PDCDES, 
+PDCUNI COLLATE Latin1_General_BIN AS PDCUNI, 
+PDCQTD , 
+PDCQTDENT  AS PDCQTDENT , 
+PDCQTDRES 
+
+FROM TBS0451 NOLOCK WHERE PDCNUM = @PDCNUM AND PDCITE = @PDCITE
+
+UNION
+
+SELECT 
+'CD'  AS EMP, 
+PDCNUM , 
+PDCITE , 
+PROCOD ,
+PDCDES ,
+PDCUNI , 
+PDCQTD , 
+PDCQTDENT, 
+PDCQTDRES  
+
+FROM cd.SIBD.dbo.TBS0451 NOLOCK 
+WHERE PDCNUM = @PDCNUM AND PDCITE = @PDCITE
+
+
+
+
+
+
+
+
+
+
+-----------------------------------------------------------------------------
+
+
+
+	
+
+begin tran 
+INSERT INTO 
+TBS051( 
+	LMEEMPCOD, -- 0
+	LMEREG, --1
+	LMEDOC, --2
+	LMEROT, --3
+	LMEDESROT, --4
+	LMEACA, --5
+	LMEDATHOR, --6
+	LMEUSU, --7
+	LMEMOD, --8
+	LMEINFALT, --9
+	PROCOD, --10
+	PROEMPCOD, --11
+	LMEQTDSAL, -- 12
+	LMEQTDMOV, -- 13
+	LMEQTDATU, -- 14
+	LMEQTDRES, -- 15
+	LMEQTDPEN, -- 16
+	LMEQTDCMP,  -- 17
+	LMEUNI, -- 18
+	LMEQTDDIS, -- 19
+	LMELOCEST) -- 20
+
+select	
+	0, 										--0 LMEEMPCOD
+	(SELECT MAX(LMEREG) FROM TBS051 )+1, 	-- 1 LMEREG
+	42762, 										-- 2 LMEDOC
+	'SQL', 									-- 3 LMEROT
+	'SAIDA PEDIDO DE COMPRAS', 				-- 4 LMEDESROT
+	'S', 									--5 LMEACA
+	GETDATE(), 								-- 6 LMEDATHOR
+	'ANDERSONL', 							-- 7 LMEUSU
+	'NENHUM', 								-- 8 LMEMOD
+	'C', 									-- 9 LMEINFALT
+	A.PROCOD, 								-- 10 PROCOD
+	A.PROEMPCOD, 							-- 11 PROEMPCOD
+	0,										-- 12 LMEQTDSAL
+	1, 			 						-- 13 LMEQTDMOV
+	ESTQTDATU, 								-- 14 LMEQTDATU
+	ESTQTDRES, 								--15 LMEQTDRES
+	ESTQTDPEN, 								-- 16 LMEQTDPEN
+	ESTQTDCMP, 								-- 17 LMEQTDCMP
+	PROUM1, 								-- 18 LMEUNI
+	ESTQTDATU - ESTQTDRES, 					-- 19 LMEQTDDIS
+	B.ESTLOC 
+		
+	from TBS032 B (NOLOCK)
+	LEFT JOIN TBS010 A (NOLOCK) ON B.PROCOD collate Latin1_General_CI_AS = A.PROCOD
+		
+	WHERE -- VEJO SE ESTÁ MENOR A QTD ATUAL COM A QTDANT 
+	A.PROCOD = '10360257'
+	AND B.ESTLOC = 1 
+		
+	--GROUP BY 
+	--A.PROEMPCOD,A.PROCOD,ESTQTDCMP,ESTQTDRES,ESTQTDATU,ESTQTDPEN,PROUM1,B.ESTLOC,PROPESAVEL--,PDCNUM
+		
+	ORDER BY 
+	A.PROCOD
+
+
+UPDATE TBS024 
+SET TBSVALSEQ = (SELECT MAX(LMEREG) FROM TBS051) 
+WHERE TBSNOM = 'TBS051'
+
+--------------------------------------------------------------
+
+-- ARRUMAR PEDIDO 
+
+--BEGIN TRAN 
+UPDATE TBS0451
+SET PDCQTDRES = 1
+WHERE PROCOD = '10360257' AND PDCNUM = 42762
+
+---------------------------------------------------------
+
+-- ARRUMAR ESTOQUE
+
+--BEGIN TRAN 
+UPDATE TBS032
+SET ESTQTDCMP = 0 
+WHERE PROCOD = '10360257' AND ESTLOC = 1 

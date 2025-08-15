@@ -1,0 +1,15 @@
+select NFEITE
+       ,NFENCMXML
+       ,NFECESTXML
+       ,NFEGARENCMMVA
+       ,NFEGAREICMSST
+	 ,NFEGAREICMSINT
+       ,NFEGAREVALICMSST
+       ,NFETOTOPEITE
+       ,NFEDES
+  from TBS0591 with (nolock)
+ where NFENUM=299650
+       and NFECOD=1426
+       and NFETIP='N'
+	   and NFEGAREVALICMSST > 0
+ order by NFEITE

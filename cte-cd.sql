@@ -1,0 +1,15 @@
+select * from TBS0991 (nolock) where NEETIPEVE='610600' and NEECHAACE='35170107295059000101550010000043081051176000'
+
+select * from TBS099 (nolock) where NEECHAACE='35170107295059000101550010000043081051176000'
+
+select * from TBS0991 (nolock) where NEECHAACE='35170107295059000101550010000043081051176000'
+
+select max(NEENSU) from TBS099 (nolock)
+
+select * from TBS025 (nolock) where PARCHV=1281
+
+begin tran
+update TBS025 set PARVAL='46170' where PARCHV=1281
+commit tran
+
+select * from TBS099 (nolock) where NEENSU=46434

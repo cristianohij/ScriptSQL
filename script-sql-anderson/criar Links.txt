@@ -1,0 +1,140 @@
+
+USE master
+GO
+/* Criando o Linked Server */
+EXEC master.dbo.sp_addlinkedserver
+@server = N'CD', -- Nome do Linked
+@srvproduct=N'SQLSERVER',  -- Descrição
+@provider=N'SQLNCLI', -- Provider para SQL Server Native Client 10.0
+@datasrc=N'192.168.10.7' -- Caminho do banco, ou no caso, IP do Servidor
+
+
+--exculir links
+
+
+EXEC master.sys.sp_dropserver 'INT'
+GO
+
+
+
+
+
+
+---todas as unidades
+
+select * from sys.servers
+
+
+select * from py.SIBD.dbo.TBS010
+
+--best bag
+USE master
+GO
+/* Criando o Linked Server */
+EXEC master.dbo.sp_addlinkedserver
+@server = N'bb2', -- Nome do Linked
+@srvproduct=N'SQLOLEDB',  -- Descrição
+@provider=N'SQLNCLI', -- Provider para SQL Server Native Client 10.0
+@datasrc=N'192.168.0.3' -- Caminho do banco, ou no caso, IP do Servidor
+
+
+
+
+
+--best office
+USE master
+GO
+/* Criando o Linked Server */
+EXEC master.dbo.sp_addlinkedserver
+@server = N'bo', -- Nome do Linked
+@srvproduct=N'SQLOLEDB',  -- Descrição
+@provider=N'SQLNCLI', -- Provider para SQL Server Native Client 10.0
+@datasrc=N'192.168.7.5' -- Caminho do banco, ou no caso, IP do Servidor
+
+
+
+-- integros teste
+USE master
+GO
+/* Criando o Linked Server */
+EXEC master.dbo.sp_addlinkedserver
+@server = N'INTG', -- Nome do Linked
+@srvproduct=N'SQLOLEDB',  -- Descrição
+@provider=N'SQLNCLI', -- Provider para SQL Server Native Client 10.0
+@datasrc=N'192.168.1.182' -- Caminho do banco, ou no caso, IP do Servidor
+
+
+
+
+
+
+-- ND
+USE master
+GO
+/* Criando o Linked Server */
+EXEC master.dbo.sp_addlinkedserver
+@server = N'nd', -- Nome do Linked
+@srvproduct=N'SQLOLEDB',  -- Descrição
+@provider=N'SQLNCLI', -- Provider para SQL Server Native Client 10.0
+@datasrc=N'192.168.1.205' 
+
+
+
+--taubaté
+USE master
+GO
+/* Criando o Linked Server */
+EXEC master.dbo.sp_addlinkedserver
+@server = N'tt', -- Nome do Linked
+@srvproduct=N'SQLOLEDB',  -- Descrição
+@provider=N'SQLNCLI', -- Provider para SQL Server Native Client 10.0
+@datasrc=N'192.168.3.205' 
+
+
+--- misaspel
+
+USE master
+GO
+/* Criando o Linked Server */
+EXEC master.dbo.sp_addlinkedserver
+@server = N'mi', -- Nome do Linked
+@srvproduct=N'SQLOLEDB',  -- Descrição
+@provider=N'SQLNCLI', -- Provider para SQL Server Native Client 10.0
+@datasrc=N'192.168.0.2' 
+
+
+--papelyna
+USE master
+GO
+/* Criando o Linked Server */
+EXEC master.dbo.sp_addlinkedserver
+@server = N'py', -- Nome do Linked
+@srvproduct=N'SQLOLEDB',  -- Descrição
+@provider=N'SQLNCLI', -- Provider para SQL Server Native Client 10.0
+@datasrc=N'192.168.0.7' 
+
+
+--cd
+USE master
+GO
+/* Criando o Linked Server */
+EXEC master.dbo.sp_addlinkedserver
+@server = N'cd', -- Nome do Linked
+@srvproduct=N'SQLOLEDB',  -- Descrição
+@provider=N'SQLNCLI', -- Provider para SQL Server Native Client 10.0
+@datasrc=N'192.168.10.7' 
+
+
+
+
+
+
+
+EXEC master.sys.sp_dropserver 'INT'
+GO
+
+
+select * from sys.servers
+
+
+select * from bo.SIBD.dbo.TBS010

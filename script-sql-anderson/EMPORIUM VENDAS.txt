@@ -1,0 +1,66 @@
+with 
+emp1 as 
+(SELECT --start_time as DATA,
+case when len(plu_id) < '7' 
+	then 
+	ltrim(replicate('0', 7 - len(convert(char,plu_id)))) + rtrim(convert(char,plu_id))
+	else 
+	CASE WHEN len(plu_id) > '8'
+		THEN 
+		CASE WHEN LEFT(plu_id,2)= '99'
+			THEN SUBSTRING(CONVERT(CHAR,plu_id),3,7)
+			ELSE SUBSTRING(CONVERT(CHAR,plu_id),2,7)
+			END
+		ELSE RTRIM(LTRIM(plu_id))
+		END
+	end   as  COD, 
+desc_plu as DESCRICAO,
+sum((si.quantity - (select siquantity FROM EMPORIUM...sale_item si (nolock) left join EMPORIUM...plu p (nolock) on si.plu_id = p.id
+									  left join EMPORIUM...sale s (nolock) on s.ticket_number = si.ticket_number
+
+where si.voided = 1 or s.voided = 1 and si.start_time > '20151201' or s.post_sale_void = 1 *p.quantity) as QTD,
+avg(unit_price/p.quantity) as MDpreco,
+sum(amount) as Valor,
+sum(cost) as Custo
+
+FROM EMPORIUM...sale_item si (nolock) left join EMPORIUM...plu p (nolock) on si.plu_id = p.id
+									  left join EMPORIUM...sale s (nolock) on s.ticket_number = si.ticket_number
+
+where si.voided = 0 and s.voided = 0 and si.start_time > '20151201' and s.post_sale_void = 0
+
+group by plu_id,desc_plu)
+
+select COD,DESCRICAO,
+sum(QTD) as qtd , 
+AVG(MDpreco) as MDpre,
+sum(Valor), 
+sum(Custo)  
+from emp1 A FULL OUTER JOIN BOFFICE.SIBD.dbo.MSL002 B ON A.COD = M2_PROCOD
+group by COD, DESCRICAO
+
+
+SELECT * FROM TBS010
+
+select * from sys.server
+
+
+
+
+
+/*
+select * from EMPORIUM...sale_item
+where ticket_number = 121445
+
+
+select * from EMPORIUM...sale_nfce*/
+--
+select len(plu_id), plu_id 
+FROM EMPORIUM...sale_item
+where LEFT(plu_id,2)= '99'
+
+
+SELECT        plu_key, id, base_plu_key, commercial_description, unit_key, price_decimals, department_key, suggested_prompt, data_entry_key, id_required, negative, quantity_min, quantity_max
+
+FROM EMPORIUM...plu
+
+ORDER BY plu_key DESC

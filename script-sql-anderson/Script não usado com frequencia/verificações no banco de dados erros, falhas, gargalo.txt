@@ -1,0 +1,100 @@
+-- ver o tanto de memoria que o servidor usa
+
+select counter_name ,cntr_value,cast((cntr_value/1024.0)/1024.0 as numeric(8,2)) as Gb
+from sys.dm_os_performance_counters
+where counter_name like '%server_memory%'
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+-- expectativad de vida da pagina buffer da memoria 
+
+SELECT cntr_value AS 'Page Life Expectancy'
+FROM sys.dm_os_performance_counters
+WHERE object_name = 'SQLServer:Buffer Manager'
+AND counter_name = 'Page life expectancy'
+
+------------------------------------------------------------------------------------------------------------------------------------
+
+-- consumo de memoria no servidor 
+
+-- Executando as querys abaixo, foi possível identificar o quanto de memória estava sendo utilizado por alguns tipos de Cache do SQL Server:
+
+SELECT type, SUM(single_pages_kb)/1024. AS [SPA Mem, MB],SUM(Multi_pages_kb)/1024. AS [MPA Mem,MB] FROM sys.dm_os_memory_clerks
+GROUP BY type
+HAVING SUM(single_pages_kb) + sum(Multi_pages_kb) > 40000 -- Só os maiores consumidores de memória
+ORDER BY SUM(single_pages_kb) DESC 
+
+SELECT SUM(single_pages_kb)/1024. AS [SPA Mem, KB],SUM(Multi_pages_kb)/1024. AS [MPA Mem, KB] FROM sys.dm_os_memory_clerks
+
+------------------------------------------------------------------------------------------------------------------------------------
+
+-- verifca o buffer pool
+
+SELECT DB_NAME(database_id) AS [Database Name],
+COUNT(*) * 8/1024.0 AS [Cached Size (MB)]
+FROM sys.dm_os_buffer_descriptors
+WHERE database_id > 4 -- exclude system databases
+AND database_id <> 32767 -- exclude ResourceDB
+GROUP BY DB_NAME(database_id)
+ORDER BY [Cached Size (MB)] DESC;
+
+
+
+SELECT 
+CASE WHEN database_id = 32767 THEN 'ResourceDB' ELSE DB_NAME(database_id) END AS DatabaseName,
+COUNT(*) AS cached_pages,
+(COUNT(*) * 8.0) / 1024 AS MBsInBufferPool
+FROM
+sys.dm_os_buffer_descriptors
+GROUP BY
+database_id
+ORDER BY
+MBsInBufferPool DESC
+GO 
+
+---------------------------------------------------------------------------------------------------------------------------
+
+-- verifica aonde está o gargalo do banco
+
+;WITH Waits AS (SELECT
+wait_type,
+wait_time_ms / 1000.0 AS WaitS,
+(wait_time_ms - signal_wait_time_ms) / 1000.0 AS ResourceS,
+signal_wait_time_ms / 1000.0 AS SignalS,
+waiting_tasks_count AS WaitCount,
+100.0 * wait_time_ms / SUM (wait_time_ms) OVER() AS Percentage,
+ROW_NUMBER() OVER(ORDER BY wait_time_ms DESC) AS RowNum
+FROM sys.dm_os_wait_stats
+
+WHERE wait_type NOT IN ('BROKER_EVENTHANDLER','BROKER_RECEIVE_WAITFOR','BROKER_TASK_STOP','BROKER_TO_FLUSH','BROKER_TRANSMITTER','CHECKPOINT_QUEUE',
+'CHKPT','CLR_AUTO_EVENT','CLR_MANUAL_EVENT','CLR_SEMAPHORE','DBMIRROR_DBM_EVENT','DBMIRROR_EVENTS_QUEUE','DBMIRROR_WORKER_QUEUE','DBMIRRORING_CMD',
+'DIRTY_PAGE_POLL','DISPATCHER_QUEUE_SEMAPHORE','EXECSYNC','FSAGENT','FT_IFTS_SCHEDULER_IDLE_WAIT','FT_IFTSHC_MUTEX','HADR_CLUSAPI_CALL',
+'HADR_FILESTREAM_IOMGR_IOCOMPLETION','HADR_LOGCAPTURE_WAIT','HADR_NOTIFICATION_DEQUEUE','HADR_TIMER_TASK','HADR_WORK_QUEUE','KSOURCE_WAKEUP',
+'LAZYWRITER_SLEEP','LOGMGR_QUEUE','ONDEMAND_TASK_QUEUE','PWAIT_ALL_COMPONENTS_INITIALIZED','QDS_PERSIST_TASK_MAIN_LOOP_SLEEP',
+'QDS_CLEANUP_STALE_QUERIES_TASK_MAIN_LOOP_SLEEP','REQUEST_FOR_DEADLOCK_SEARCH','RESOURCE_QUEUE','SERVER_IDLE_CHECK','SLEEP_BPOOL_FLUSH','SLEEP_DBSTARTUP',
+'SLEEP_DCOMSTARTUP','SLEEP_MASTERDBREADY','SLEEP_MASTERMDREADY','SLEEP_MASTERUPGRADED','SLEEP_MSDBSTARTUP','SLEEP_SYSTEMTASK','SLEEP_TASK','SLEEP_TEMPDBSTARTUP',
+'SNI_HTTP_ACCEPT','SP_SERVER_DIAGNOSTICS_SLEEP', N'SQLTRACE_BUFFER_FLUSH',N'SQLTRACE_INCREMENTAL_FLUSH_SLEEP',N'SQLTRACE_WAIT_ENTRIES',N'WAIT_FOR_RESULTS',N'WAITFOR',
+N'WAITFOR_TASKSHUTDOWN',N'WAIT_XTP_HOST_WAIT',N'WAIT_XTP_OFFLINE_CKPT_NEW_LOG',
+N'WAIT_XTP_CKPT_CLOSE',N'XE_DISPATCHER_JOIN',N'XE_DISPATCHER_WAIT',N'XE_TIMER_EVENT')
+)
+
+sELECT
+[W1].[wait_type] AS [WaitType],CAST ([W1].[WaitS] AS DECIMAL (16, 2)) AS [Wait_S],
+CAST ([W1].[ResourceS] AS DECIMAL (16, 2)) AS [Resource_S],
+CAST ([W1].[SignalS] AS DECIMAL (16, 2)) AS [Signal_S],
+[W1].[WaitCount] AS [WaitCount],
+CAST ([W1].[Percentage] AS DECIMAL (5, 2)) AS [Percentage],
+CAST (([W1].[WaitS] / [W1].[WaitCount]) AS DECIMAL (16, 4)) AS [AvgWait_S],
+CAST (([W1].[ResourceS] / [W1].[WaitCount]) AS DECIMAL (16, 4)) AS [AvgRes_S],
+CAST (([W1].[SignalS] / [W1].[WaitCount]) AS DECIMAL (16, 4)) AS [AvgSig_S]
+
+FROM [Waits] AS [W1]
+
+INNER JOIN [Waits] AS [W2]
+ON [W2].[RowNum] <= [W1].[RowNum]
+
+GROUP BY [W1].[RowNum], [W1].[wait_type], [W1].[WaitS],
+[W1].[ResourceS], [W1].[SignalS], [W1].[WaitCount], [W1].[Percentage]
+HAVING SUM ([W2].[Percentage]) - [W1].[Percentage] < 95; -- percentage threshold
+
+GO

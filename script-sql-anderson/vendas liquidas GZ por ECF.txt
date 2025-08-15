@@ -1,0 +1,106 @@
+-- usando esse 
+declare @datade date, @dataate date, @caixa VARCHAR(20) 
+
+set @datade = '20161001'
+set @dataate = '20170331'
+set @caixa = '1,2,3,4,5,6,7,8,9'
+
+
+declare @comando varchar(MAX)
+set @comando = 'Execute(
+''select 
+data,
+
+ecf,
+
+-- sum(mov.valortot)  as total,
+case when status = 3 then sum(mov.valortot)else 0 end as liquido,
+case when status = 12 then sum(mov.valortot)else 0 end as troco,
+case when status = 2 then sum(mov.valortot)else 0 end as desconto
+
+from 
+movcaixa mov
+
+where 
+mov.data between "'+convert(char(8),@datade,112)+'" and "'+convert(char(8),@dataate,112)+'" and 
+mov.status in (2,3,12) and 
+cancelado <>"s" and
+mov.caixa in('+@caixa+') 
+
+group by 
+ecf, data, status
+
+order by 
+data, ecf'') at MYSQLGZ'
+
+if object_id('TempDB.dbo.#MSL002') is not null
+   drop table #MSL002
+    
+create table #MSL002 (M2_DAT CHAR(10),M2_ECF INT, --M2_VALTOT DECIMAL(10,4) ,
+M2_VALLIQ DECIMAL(10,4),M2_VALTRO DECIMAL(10,4),M2_VALDES DECIMAL(10,4))
+
+INSERT INTO #MSL002
+exec(@comando)
+
+SELECT 
+CONVERT(DATE,M2_DAT) AS DATA,
+M2_ECF as ECF,
+REPLACE(SUM(M2_VALLIQ) + SUM(M2_VALDES),'.',',') AS 'VALOR BRUTO',
+REPLACE(SUM(M2_VALTRO),'.',',') AS 'VALOR TROCO',
+REPLACE(SUM(M2_VALDES),'.',',') AS 'VALOR DESCONTO',
+REPLACE(SUM(M2_VALLIQ),'.',',') AS 'VALOR LIQUIDO'
+
+FROM #MSL002
+
+GROUP BY 
+M2_DAT,
+M2_ECF 
+
+ORDER BY 
+M2_DAT,
+M2_ECF 
+
+
+--
+--SELECT
+--M2_DAT,
+--M2_CXA ,
+--M2_ECF , 
+--M2_TIPPGT , 
+--M2_DESPGT ,
+--sum(M2_VALTOT) AS VALTOT,
+--SUM(M2_VALLIQ) AS VALLIQ,
+--SUM(M2_VALTRO) AS VALTRO,
+--SUM(M2_VALDES) AS VALDES,
+--SUM(M2_QTDCUP) AS QTDCUP
+--
+--FROM #MSL002 
+--
+--GROUP BY 
+--M2_DAT,
+--M2_CXA ,
+--M2_ECF , 
+--M2_TIPPGT , 
+--M2_DESPGT 
+--
+--UNION 
+--SELECT 
+--M2_DAT, 
+--M2_CXA ,
+--M2_ECF , 
+--'' , 
+--'TROCO' ,
+--M2_VALTOT, 
+--M2_VALLIQ,
+--M2_VALTRO,
+--M2_VALDES,
+--M2_QTDCUP
+--
+--FROM 
+--#MSL002
+--
+--WHERE
+--M2_STATUS = '12'
+--
+--
+--SELECT 0 as caixa,'' AS finalizador, '' AS pagamento,0 as status, 0 AS total, 0 as descontoitem ,0 as liquido ,0 AS cupons, 0 as medio , 0 as 'por'

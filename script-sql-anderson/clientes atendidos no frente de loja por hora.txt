@@ -1,0 +1,67 @@
+-- clientes atendidos no frente de loja
+
+declare @dataDe datetime, @dataAte datetime, @caixa int, @comando varchar(max)
+
+set @datade = '20170101'
+set @dataate = '20170111'
+set @caixa = 0
+
+
+-- VENDAS DA LOJA 1° PERIODO
+
+SET @comando = 'EXECUTE(''
+select 
+data,
+hora,
+caixa,
+operador,
+sum(valortot-desccupom+acrescupom) as VAL
+
+FROM movcaixa
+where
+data between "'+convert(char(8), @datade ,112)+'" and "'+convert(char(8), @dataate,112)+'"  and 
+status = 03 and 
+cancelado <> "S"
+group by caixa,operador,data,hora '') at MYSQLGZ' 
+
+if object_id('TempDB.dbo.#MSL002') is not null
+   drop table #MSL002
+    
+create table #MSL002 (M2_DAT DATE, M2_HOR CHAR(10), M2_CXA INT, M2_OPE INT, M2_VALTOT decimal(10,3))
+INSERT INTO #MSL002
+exec(@comando)
+
+-- SELECT * FROM #MSL002
+-----------------------------------------------------------------------------------------------------------------------------
+
+SELECT 
+convert(char(8),M2_DAT,3) as 'data',
+subString(M2_HOR,1,2)+':00'+'~'+subString(M2_HOR,1,2)+':59' as 'hora',
+M2_CXA as 'caixa',
+M2_OPE as 'operador',
+count(*) as 'clientes',
+SUM(M2_VALTOT) as 'valor'
+
+FROM #MSL002 nolock
+
+WHERE 
+M2_CXA between @caixa and case when @caixa=0 then 999 else @caixa end
+
+GROUP BY
+M2_DAT,
+subString(M2_HOR,1,2),
+M2_CXA,
+M2_OPE
+
+
+--select 
+--subString(M2_HOR,1,2)+':00'+'~'+subString(M2_HOR,1,2)+':59' as 'hora',
+--count(*) as 'clientes'
+--
+--FROM #MSL002 nolock
+--
+--WHERE 
+--M2_CXA between @caixa and case when @caixa=0 then 999 else @caixa end
+--
+--GROUP BY
+--subString(M2_HOR,1,2)

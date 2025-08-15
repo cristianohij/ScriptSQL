@@ -1,0 +1,1 @@
+select 'insert into TBS085 (CSNCOD, CSNDES, CSNICMS, CSNMSG, CSNDATCAD, CSNCRT, CSNCOBST, CSNPERCRE, CSNTRIB) values ('''+CSNCOD+''','''+rtrim(CSNDES)+''','''+CSNICMS+''','''+isnull(rtrim(CSNMSG),'')+''','''+replace(convert(char(10),CSNDATCAD,120),'-','')+''','''+CSNCRT+''','''+rtrim(CSNCOBST)+''','''+CSNPERCRE+''','''+CSNTRIB+''')' from TBS085

@@ -1,0 +1,205 @@
+--select TDPPROCOD, TDPPRELOJ1, TDPPRELOJ2 FROM TBS031 (NOLOCK) WHERE TDPPROCOD IN ('1640054','1080067')
+--
+--select PROCOD, ESTQTDATU , ESTLOC FROM TBS032 (NOLOCK) WHERE PROCOD IN ('1640054','1080067')
+--
+--
+--exec ('select * from barrarel') at MYSQLGZ
+--exec (
+--'select 
+--rtrim(ltrim(cdprod)) 
+--into #t
+--from estoque' ) at MYSQLGZ
+--
+--select rtrim(ltrim(cdprod)) 
+--
+--from MYSQLGZ...estoque
+--
+--select * from sys.servers
+
+if object_id ('TempDB.dbo.#T') is not null 
+	drop table #T;
+
+select 
+rtrim(c.PROCOD) as Código,
+rtrim(ltrim(c.PRODES)) as Descrição,
+case when len(c.MARCOD) = 4 then 
+	rtrim(c.MARCOD) + ' - ' + rtrim(c.MARNOM) 
+	else right(('00' + ltrim(str(c.MARCOD))),3) + ' - ' + rtrim(c.MARNOM) end as 'MARCA',
+CASE WHEN PROUM1QTD = 1
+	THEN RTRIM((SELECT UNIDES FROM TBS011 D (NOLOCK) WHERE c.PROUM1 = D.UNICOD))   
+	ELSE
+		CASE WHEN PROUM1QTD > 1 
+		THEN rtrim(PROUM1) + ' C/' + rtrim(CAST(PROUM1QTD AS DECIMAL(10,0))) +''+ RTRIM(PROUMV) 
+		ELSE '' 
+	END 
+END  as UN1,
+a.termvenda as 'Preço GZ 1',
+CASE WHEN d.TDPVALPROI<=GETDATE() AND d.TDPVALPROF >= GETDATE() AND d.TDPPROLOJ = 'S' 
+	THEN d.TDPPREPRO1 
+	ELSE d.TDPPRELOJ1 
+END AS 'Preço 1',
+
+CASE WHEN PROUM2QTD > 0 and TDPPRELOJ2 > 0
+	THEN rtrim(PROUM2) + ' C/' + rtrim(CAST(PROUM2QTD AS DECIMAL(10,0)))+''+ RTRIM(PROUM1) 
+	ELSE '' 
+END  as UN2,
+b.termvenda*c.PROUM2QTD as 'Preço GZ 2' ,
+CASE WHEN c.PROUM2QTD > 0 
+		THEN CASE WHEN d.TDPVALPROI<=GETDATE() AND d.TDPVALPROF >= GETDATE() AND d.TDPPROLOJ = 'S'
+				THEN d.TDPPREPRO2*c.PROUM2QTD 
+				ELSE d.TDPPRELOJ2*c.PROUM2QTD 
+			END
+		ELSE 0 
+END AS 'Preço 2'
+--into #T  
+from 
+MYSQLGZ...estoque a
+left join TBS010 c on CONVERT(NUMERIC,c.PROCOD) = a.cdprod
+left join MYSQLGZ...barrarel b on c.PROUM2QTD = b.multiplos and CONVERT(NUMERIC,c.PROCOD) = b.cdprod
+left join TBS031 d on CONVERT(NUMERIC,d.TDPPROCOD) = a.cdprod
+
+where 
+a.cdprod in (1640054,1080067,1640020,0470438)
+
+
+
+
+
+
+select 
+D.TDPPROCOD, 
+D.TDPPRELOJ1 AS LOJA1,
+D.TDPPRELOJ2 AS LOJA2,
+D.TDPPRELOJ3 AS LOJA3,
+D.TDPPRELOJ4 AS LOJA4,
+D.TDPPREPRO1 AS PRO1,
+D.TDPPREPRO2 AS PRO2,
+D.TDPVALPROI AS PROINI,
+D.TDPVALPROF AS PROFIN
+FROM TBS031 D (NOLOCK) 
+WHERE D.TDPPROLOJ = 'S' AND 
+D.TDPPREPRO1 <> D.TDPPREPRO2 AND 
+TDPPREPRO2 > 0
+
+,--D.TDPPROCOD IN (1640054,1080067,1640020)
+
+
+--SELECT CONVERT(NUMERIC,PROCOD) FROM TBS010 WHERE PROCOD = 	'0470438'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--------------------------------------------
+select A.PROCOD, A.PRODES , A.PRODATCAD, A.PROUSUALT, NFSNUM
+
+FROM TBS010 A (NOLOCK)
+LEFT JOIN TBS0671 B (NOLOCK) ON A.PROCOD = B.PROCOD 
+
+WHERE
+LEN(A.PROCOD)<7
+
+GROUP BY 
+A.PROCOD, A.PRODES
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SELECT l.name as grantee_name, p.state_desc, p.permission_name 
+FROM sys.server_permissions AS p JOIN sys.server_principals AS l 
+ON   p.grantee_principal_id = l.principal_id
+WHERE permission_name = 'VIEW ANY DATABASE' ;
+GO
+
+
+
+use master 
+GO
+deny view any database TO Loja
+GO
+use master
+GO
+drop user loja
+GO
+alter authorization on database:: Master to loja
+GO
+
+
+
+
+Deny
+
+VIEW DATABASE master To Loja
+
+
+
+Deny
+
+VIEW DEFINITION To Loja
+
+
+
+-- não vera as tabelas 
+Deny
+View Any Database To Loja
+
+-- voltar a ver as tabelas
+REVOKE VIEW ANY DATABASE TO loja
+
+
+-- negando select 
+deny select on TBS010 to Loja
+
+-- permitindo select 
+grant select on TBS010 to Loja

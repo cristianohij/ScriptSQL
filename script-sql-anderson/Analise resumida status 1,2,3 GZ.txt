@@ -1,0 +1,174 @@
+declare @dateDe datetime, @dateAte datetime ,@comando varchar(1000)
+
+set @dateDe = '20161203'
+set @dateAte = '20161203'
+
+
+SET @comando = 'EXECUTE(''
+select
+coo,
+ecf,
+data,
+valortot - abatpgto as valortot
+
+FROM movcaixa
+where
+data between "'+convert(char(8),@dateDe,112)+'" and "'+convert(char(8),@dateAte,112)+'" and 
+status = 03 and
+cancelado <> "S" 
+
+'') at MYSQLGZ' 
+-- exec(@comando)
+
+if object_id('TempDB.dbo.#MSL002') is not null
+   drop table #MSL002
+   
+create table #MSL002 (coo int, ecf int, datas DATETIME, valortot decimal(10,4))
+INSERT INTO #MSL002
+exec(@comando)
+
+
+
+SET @comando = 'EXECUTE(''
+select
+coo,
+ecf,
+data,
+valortot - abatpgto as valortot
+
+FROM movcaixa
+where
+data between "'+convert(char(8),@dateDe,112)+'" and "'+convert(char(8),@dateAte,112)+'" and 
+status = 2 and
+cancelado <> "S" 
+
+ '') at MYSQLGZ' 
+-- exec(@comando)
+
+if object_id('TempDB.dbo.#MSL0021') is not null
+   drop table #MSL0021
+   
+create table #MSL0021 (coo int, ecf int, datas DATETIME, valortot decimal(10,4))
+INSERT INTO #MSL0021
+exec(@comando)
+
+
+
+SET @comando = 'EXECUTE(''
+select
+coo,
+ecf,
+data,
+valortot - abatpgto as valortot
+
+FROM movcaixa
+where
+data between "'+convert(char(8),@dateDe,112)+'" and "'+convert(char(8),@dateAte,112)+'" and 
+status = 1 and
+cancelado <> "S" 
+
+'') at MYSQLGZ' 
+-- exec(@comando)
+
+if object_id('TempDB.dbo.#MSL0022') is not null
+   drop table #MSL0022
+   
+create table #MSL0022 (coo int, ecf int, datas DATETIME, valortot decimal(10,4))
+INSERT INTO #MSL0022
+exec(@comando)
+
+
+
+
+
+
+
+if object_id('TempDB.dbo.#NFSLOJA') is not null
+   drop table #NFSLOJA
+   
+		SELECT 
+		DISTINCT 
+		C.NFSNFRCOO AS COO ,
+		C.NFSNFRECF AS ECF
+		
+		into #NFSLOJA
+		FROM 
+		TBS0671 A (NOLOCK)
+		LEFT JOIN TBS067 B (NOLOCK) ON A.NFSEMPCOD = B.NFSEMPCOD AND A.NFSNUM = B.NFSNUM AND A.SNEEMPCOD = B.SNEEMPCOD AND A.SNESER = B.SNESER
+		LEFT JOIN TBS0674 C (NOLOCK) ON A.NFSEMPCOD = C.NFSEMPCOD AND A.NFSNUM = C.NFSNUM AND A.SNEEMPCOD = C.SNEEMPCOD AND A.SNESER = C.SNESER
+		LEFT JOIN TBS080 D (NOLOCK) ON A.NFSEMPCOD = D.ENFEMPCOD AND A.NFSNUM = D.ENFNUM AND A.SNEEMPCOD = D.SNEEMPCOD AND A.SNESER = D.SNESER
+		
+		WHERE
+		B.NFSTIP = 'L' AND 
+		B.NFSDATEMI BETWEEN @dateDe and @dateAte and
+		D.ENFSIT = 6 	
+----------------------------------------------------------------
+	
+		SELECT 
+		--A.coo,
+		--A.ecf,
+		replace(SUM(valortot),'.',',') AS VALORTOT
+		
+		FROM 
+		#MSL002 A
+		
+		GROUP BY 
+		A.coo,
+		A.ecf
+		
+		LEFT JOIN #NFSLOJA B ON A.coo = B.COO AND A.ecf = B.ECF
+		
+		WHERE
+		B.COO IS NULL 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+select 
+NFSNUM,
+NFSITE, 
+PROCOD,
+REPLACE(NFSPRE,'.',',') AS NFSPRE,
+NFSQTD,
+REPLACE(NFSQTD * NFSPRE,'.',',') AS VALORBRUTO,
+REPLACE(dbo.NFSVDDITE(NFSEMPCOD,NFSNUM,SNEEMPCOD,SNESER,NFSITE),'.',',') AS DESCONTO,
+REPLACE(dbo.NFSPRELIQ(NFSEMPCOD,NFSNUM,SNEEMPCOD,SNESER,NFSITE),'.',',') AS NFSPRELIQ,
+REPLACE(dbo.NFSTOTITEST(NFSEMPCOD,NFSNUM,SNEEMPCOD,SNESER,NFSITE),'.',',') AS TOTAL
+
+FROM TBS0671 NOLOCK WHERE NFSNUM = 31035
+
+
+EXECUTE('
+select
+cupom,
+item,
+cdprod,
+replace(desccupom,".",",") as desccupom,
+replace(valortot,".",",") as valortot
+
+FROM movcaixa
+where
+data >= "20161201" and
+cancelado <> "S" AND
+cupom = 110274 and 
+caixa = 2
+
+ ') at MYSQLGZ 
+ 

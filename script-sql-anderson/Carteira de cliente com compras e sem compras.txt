@@ -1,0 +1,305 @@
+declare @dateDe datetime, @dateAte datetime , @CLINOM char (50), @CLICOD smallint,
+@VENCOD INT, @VENNOM char(60), @VENDAS CHAR(6)
+
+set @dateDe = '20160901'
+set @dateAte = '20170306'
+set @CLICOD = 0
+set @CLINOM = ''
+set @VENCOD = 32
+set @VENNOM = ''
+SET @VENDAS = 'NUNCA'
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- CLIENTES DO GRUPO
+
+if object_id('TempDB.dbo.#GRUPOCLI') is not null
+   drop table #GRUPOCLI
+
+SELECT CLICOD INTO #GRUPOCLI FROM TBS002 NOLOCK 
+WHERE CLICGC LIKE('65069593000%') OR CLICGC LIKE('05118717000%') OR CLICGC LIKE('44125185000%') OR CLICGC LIKE('52080207000%')
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- DADOS DO VENDEDOR / CLIENTE
+
+if object_id('TempDB.dbo.#TBS004') is not null
+   drop table #TBS004
+
+SELECT 
+ISNULL(B.VENCOD,0) AS VENCOD, 
+ISNULL(VENNOM,'SEM VENDEDOR') AS VENNOM,
+CLICOD,
+CLINOM
+
+INTO #TBS004
+FROM TBS002 A (NOLOCK) 
+LEFT JOIN TBS004 B (NOLOCK) ON A.VENCOD = B.VENCOD
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+-- FILTROS VENDEDOR / CLIENTES
+
+if object_id('TempDB.dbo.#CLI') is not null
+   drop table #CLI
+
+SELECT 
+* 
+INTO #CLI
+FROM #TBS004
+
+WHERE 
+VENNOM LIKE (CASE WHEN @VENNOM = '' THEN VENNOM ELSE RTRIM(UPPER(@VENNOM)) + '%' END) AND
+--VENCOD IN (@VENCOD) AND
+CLICOD IN (CASE WHEN @CLICOD = 0 THEN CLICOD ELSE @CLICOD END) AND
+CLINOM LIKE(CASE WHEN @CLINOM = '' THEN CLINOM ELSE RTRIM(UPPER(@CLINOM))+'%' END) AND
+CLICOD NOT IN ((SELECT CLICOD FROM #GRUPOCLI))
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+-- DADOS DA TABELA DE CLIENTE
+
+if object_id('TempDB.dbo.#TBS002') is not null
+   drop table #TBS002
+   
+SELECT  
+A.VENCOD,
+A.VENNOM,
+CLICGC,
+B.CLICOD, 
+B.CLINOM, 
+CLITEL, 
+CLICONTAT, 
+CLIDATCAD, 
+CLIEMAIL,
+CLIPRICOM,
+CLIPCPVAL,
+CLIPCPNFS,
+CLIMCPDAT,
+CLIMCPVAL,
+CLIMCPNFS,
+CLIUCPDAT,
+CLIUCPVAL,
+CLIUCPNFS,
+CLISIT,
+CLIOBS,
+CLIPORCOD,
+ISNULL((SELECT PORNOM FROM TBS063 C (NOLOCK) WHERE B.CLIPORCOD = C.PORCOD),'') AS PORNOM,
+B.CLICLA,
+B.CLILIC,
+B.CLILICVEN
+
+INTO #TBS002 
+FROM 
+#CLI A 
+INNER JOIN TBS002 B (NOLOCK) ON A.CLICOD = B.CLICOD 
+
+-- SELECT * FROM #TBS002
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TBS080
+
+if object_id('TempDB.dbo.#TBS080') is not null
+   drop table #TBS080
+
+SELECT ENFNUM , SNEEMPCOD , SNESER , ENFDATEMI  INTO #TBS080 FROM TBS080 NOLOCK 
+WHERE 
+ENFDATEMI BETWEEN @dateDe AND @dateAte AND
+ENFSIT = 6 AND
+ENFTIPDOC = 1 AND 
+SNESER NOT IN (2) -- SEM TRANSFERENCIA 
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA DE VENDAS SEM O GRUPO E SEM TRANSEFERNCIA 
+
+if object_id('TempDB.dbo.#TBS067') is not null
+   drop table #TBS067
+
+SELECT 
+NFSCLICOD,
+CASE WHEN ROW_NUMBER() OVER (Partition by NFSCLICOD order by NFSCLICOD , NFSDATEMI) = 1 	
+	THEN  1
+	ELSE 0
+END AS CLIQTD,
+NFSDATEMI  AS NFSDATEMI,
+ISNULL(CASE SUBSTRING(CONVERT(CHAR(12),NFSDATEMI,103),4,2)
+	WHEN '01' THEN '01 JANEIRO'
+	WHEN '02' THEN '02 FEVEREIRO'
+	WHEN '03' THEN '03 MARÇO'
+	WHEN '04' THEN '04 ABRIL'
+	WHEN '05' THEN '05 MAIO'
+	WHEN '06' THEN '06 JUNHO'
+	WHEN '07' THEN '07 JULHO'
+	WHEN '08' THEN '08 OUTUBRO'
+	WHEN '09' THEN '09 SETEMBRO'
+	WHEN '10' THEN '10 OUTUBRO'
+	WHEN '11' THEN '11 NOVEMBRO'
+	WHEN '12' THEN '12 DEZEMBRO' 
+END,'') AS MES, 
+ISNULL(SUBSTRING(CONVERT(CHAR(12),NFSDATEMI,111),1,4),'') AS ANO,
+ISNULL(COUNT(B.NFSNUM),0) AS QTD, 
+CASE WHEN COUNT(B.NFSNUM) = 0  
+	THEN 'NÃO'
+	ELSE 'SIM'
+END AS COMVENDAS,
+ISNULL(SUM(dbo.NFSTOTLIQ(B.NFSEMPCOD,B.NFSNUM,B.SNEEMPCOD,B.SNESER)),0) AS VALTOTNFS,
+ISNULL(SUM(dbo.NFSTOTVALDEV(B.NFSEMPCOD,B.NFSNUM,B.SNEEMPCOD,B.SNESER)),0) AS VALDEVNFS
+
+INTO #TBS067
+FROM 
+TBS067 B (NOLOCK) 
+LEFT JOIN #TBS080 D (NOLOCK) ON B.NFSNUM = D.ENFNUM AND B.SNEEMPCOD = D.SNEEMPCOD AND B.SNESER = D.SNESER 
+			  
+WHERE 
+NFSDATEMI BETWEEN @dateDe AND @dateAte AND
+NFSFINNFE NOT IN (4) AND 
+NFSCLICOD NOT IN (SELECT CLICOD FROM #GRUPOCLI) AND
+NFSCLICOD IN ((SELECT DISTINCT CLICOD FROM #TBS002))
+
+GROUP BY 
+NFSCLICOD,
+SUBSTRING(CONVERT(CHAR(12),NFSDATEMI,103),4,2),
+ISNULL(SUBSTRING(CONVERT(CHAR(12),NFSDATEMI,111),1,4),''),
+NFSDATEMI
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- UNIR DADOS DA TAB CLIENTE COM A TABELA DE VENDAS
+
+if object_id('TempDB.dbo.#TELE') is not null
+   drop table #TELE
+
+SELECT 
+A.VENCOD,
+VENNOM,
+ISNULL(CONVERT(DATE,NFSDATEMI),'') AS NFSDATEMI,
+ISNULL(MES,'') AS MES, 
+ISNULL(ANO,'') AS ANO,
+ISNULL(QTD,0) AS QTD, 
+CASE WHEN ISNULL(COMVENDAS,'NÃO') = 'NÃO' AND CLIUCPVAL = 0 
+	THEN 'NUNCA'
+	ELSE
+		CASE WHEN ISNULL(COMVENDAS,'NÃO') = 'NÃO' AND CLIUCPVAL > 0  
+			THEN 'NÃO'
+			ELSE 'SIM'
+		END
+END AS COMVENDAS,
+CLICOD,
+ISNULL(CLIQTD,0) AS CLIQTD,
+CLINOM,
+ISNULL(VALTOTNFS,0) AS VALTOTNFS,
+ISNULL(VALDEVNFS,0) AS VALDEVNFS,
+CLITEL, 
+CLICONTAT, 
+CONVERT(DATE,CLIDATCAD) AS CLIDATCAD, 
+CLIEMAIL,
+CONVERT(DATE,CLIPRICOM) AS CLIPRICOM,
+CLIPCPVAL,
+CLIPCPNFS,
+CONVERT(DATE,CLIMCPDAT) AS CLIMCPDAT,
+CLIMCPVAL,
+CLIMCPNFS,
+CONVERT(DATE,CLIUCPDAT) AS CLIUCPDAT,
+CLIUCPVAL,
+CLIUCPNFS,
+CLISIT,
+CLIOBS,
+CLIPORCOD,
+PORNOM,
+CLICLA,
+CLILIC,
+CLILICVEN
+
+INTO #TELE
+FROM 
+#TBS002 A 
+LEFT JOIN #TBS067 B (NOLOCK) ON A.CLICOD = B.NFSCLICOD 
+
+ORDER BY 
+NFSDATEMI
+
+------------------------------------------------------------------------------------------------------------
+
+-- TABELA FINAL	
+	
+SELECT 
+ISNULL(CASE COMVENDAS
+		WHEN 'NÃO' THEN 1
+	END,0) as NAO,
+ISNULL(CASE COMVENDAS
+		WHEN 'NUNCA' THEN 1
+	END,0) as NUNCA,
+*
+
+FROM #TELE 
+
+--WHERE COMVENDAS IN (CASE WHEN @VENDAS = 'T' THEN COMVENDAS ELSE RTRIM(UPPER(@VENDAS)) END)
+	
+			  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SELECT * FROM #TBS067 WHERE COMVENDAS IN (CASE WHEN @VENDAS = 'TOD' THEN COMVENDAS ELSE RTRIM(UPPER(@VENDAS)) END)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SELECT COMVENDAS, count(DISTINCT CLICOD) 
+
+FROM 
+#TBS067 
+
+WHERE 
+COMVENDAS IN (CASE WHEN @VENDAS = '' THEN COMVENDAS ELSE RTRIM(UPPER(@VENDAS)) END)
+
+GROUP BY COMVENDAS
+
+
+SELECT COUNT(*) FROM TBS002 NOLOCK WHERE VENCOD = 72
+
+
+
+
+CONTAR CLIENTES ATIVOS - COM VENDAS, E INATIVOS - SEM VENDAS 

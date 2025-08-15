@@ -1,0 +1,205 @@
+declare 
+@marca int, 
+@periodo01de datetime, @periodo01ate datetime, 
+@periodo02de datetime, @periodo02ate datetime, 
+@periodo03de datetime, @periodo03ate datetime, 
+@periodo04de datetime, @periodo04ate datetime, 
+@periodo05de datetime, @periodo05ate datetime, 
+@periodo06de datetime, @periodo06ate datetime
+-- --------------------------------------------
+-- Começo do Filtro
+-- --------------------------------------------
+-- Marca
+set @marca = '730'
+-- Periodo 01
+set @periodo01de = '20141001' --AAAAMMDD
+set @periodo01ate = '20141031' --AAAAMMDD
+-- Periodo 02
+set @periodo02de = '20141101' --AAAAMMDD
+set @periodo02ate = '20141130' --AAAAMMDD
+-- Periodo 03
+set @periodo03de = '20141201' --AAAAMMDD
+set @periodo03ate = '20141231' --AAAAMMDD
+-- Periodo 04
+set @periodo04de = '20150101' --AAAAMMDD
+set @periodo04ate = '20150131' --AAAAMMDD
+-- Periodo 05
+set @periodo05de = '20150201' --AAAAMMDD
+set @periodo05ate = '20150228' --AAAAMMDD
+-- Periodo 06
+set @periodo06de = '20150301' --AAAAMMDD
+set @periodo06ate = '20150321' --AAAAMMDD
+-- --------------------------------------------
+-- Fim do Filtro
+-- --------------------------------------------
+select 
+rtrim(PROCOD) as 'PRODUTO',
+rtrim(PRODES) as 'DESCRICAO',
+--rtrim(PROREFFOR) as 'REFERENCIA DO FORNECEDOR',
+rtrim(MARCOD) + ' - ' + rtrim(MARNOM) as 'MARCA',
+PROUM1 as 'UNID. MEDIDA',
+'.',
+--str(isnull(Saldo.SESTQTDATU,0)) as 'QTDE ATUAL',
+--str(isnull(Saldo.SESTQTDRES,0)) as 'QTDE RESERVADA',
+str(isnull(Saldo.SESTQTDDIS,0)) as 'QTDE DISPONIVEL',
+str(isnull(Saldo.SESTQTDPEN,0)) as 'QTDE PENDENTE',
+str(isnull(Saldo.SESTQTDCMP,0)) as 'QTDE COMPRAS',
+replace(str(isnull(GPeriodo01.QTDE,0)), '.', ',') as 'VENDA GZ PERIODO 01', replace(str(isnull(IPeriodo01.QTDE,0)), '.', ',') as 'VENDA INTEGROS PERIODO 01',
+'=('+
+'I'+ltrim(str((select count(*) from TBS010 R where R.PROCOD <= P.PROCOD and (MARCOD = @marca or (@marca = '')))+4))+
+'+'+
+'J'+ltrim(str((select count(*) from TBS010 R where R.PROCOD <= P.PROCOD and (MARCOD = @marca or (@marca = '')))+4))+
+')/K$2',
+replace(str(isnull(GPeriodo02.QTDE,0)), '.', ',') as 'VENDA GZ PERIODO 02', replace(str(isnull(IPeriodo02.QTDE,0)), '.', ',') as 'VENDA INTEGROS PERIODO 02',
+'=('+
+'L'+ltrim(str((select count(*) from TBS010 R where R.PROCOD <= P.PROCOD and (MARCOD = @marca or (@marca = '')))+4))+
+'+'+
+'M'+ltrim(str((select count(*) from TBS010 R where R.PROCOD <= P.PROCOD and (MARCOD = @marca or (@marca = '')))+4))+
+')/N$2',
+replace(str(isnull(GPeriodo03.QTDE,0)), '.', ',') as 'VENDA GZ PERIODO 03', replace(str(isnull(IPeriodo03.QTDE,0)), '.', ',') as 'VENDA INTEGROS PERIODO 03',
+'=('+
+O'+ltrim(str((select count(*) from TBS010 R where R.PROCOD <= P.PROCOD and (MARCOD = @marca or (@marca = '')))+4))+
++'+
+'P'+ltrim(str((select count(*) from TBS010 R where R.PROCOD <= P.PROCOD and (MARCOD = @marca or (@marca = '')))+4))+
+')/Q$2',
+replace(str(isnull(GPeriodo04.QTDE,0)), '.', ',') as 'VENDA GZ PERIODO 04', replace(str(isnull(IPeriodo04.QTDE,0)), '.', ',') as 'VENDA INTEGROS PERIODO 04',
+'=('+
+'R'+ltrim(str((select count(*) from TBS010 R where R.PROCOD <= P.PROCOD and (MARCOD = @marca or (@marca = '')))+4))+
+'+'+
+'S'+ltrim(str((select count(*) from TBS010 R where R.PROCOD <= P.PROCOD and (MARCOD = @marca or (@marca = '')))+4))+
+')/T$2',
+replace(str(isnull(GPeriodo05.QTDE,0)), '.', ',') as 'VENDA GZ PERIODO 05', replace(str(isnull(IPeriodo05.QTDE,0)), '.', ',') as 'VENDA INTEGROS PERIODO 05',
+'=('+
+'U'+ltrim(str((select count(*) from TBS010 R where R.PROCOD <= P.PROCOD and (MARCOD = @marca or (@marca = '')))+4))+
+'+'+
+'V'+ltrim(str((select count(*) from TBS010 R where R.PROCOD <= P.PROCOD and (MARCOD = @marca or (@marca = '')))+4))+
+')/W$2',
+replace(str(isnull(GPeriodo06.QTDE,0)), '.', ',') as 'VENDA GZ PERIODO 06', replace(str(isnull(IPeriodo06.QTDE,0)), '.', ',') as 'VENDA INTEGROS PERIODO 06',
+'=('+
+'X'+ltrim(str((select count(*) from TBS010 R where R.PROCOD <= P.PROCOD and (MARCOD = @marca or (@marca = '')))+4))+
+'+'+
+'Y'+ltrim(str((select count(*) from TBS010 R where R.PROCOD <= P.PROCOD and (MARCOD = @marca or (@marca = '')))+4))+
+')/Z$2'
+from TBS010 P 
+left join 
+(select rtrim(A.PROCOD) as SPROCOD, replace(str(sum(A.ESTQTDATU)), '.', ',') as SESTQTDATU, replace(str(sum(A.ESTQTDRES)), '.', ',') as SESTQTDRES, replace(str(sum(A.ESTQTDATU-A.ESTQTDRES)), '.', ',') as SESTQTDDIS, replace(str(sum(A.ESTQTDPEN)), '.', ',') as SESTQTDPEN, replace(str(sum(A.ESTQTDCMP)), '.', ',') as SESTQTDCMP
+from TBS032 A
+join TBS010 B on A.PROCOD = B.PROCOD
+join TBS034 C on A.ESTLOC = C.LESCOD
+where
+A.ESTLOC in (1,2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0) and (B.MARCOD = @marca or (@marca = ''))
+group by A.PROCOD)
+as Saldo
+on PROCOD = Saldo.SPROCOD
+left join
+(select M2_PROCOD as PRO, sum(M2_QTD) as QTDE
+from MSL002 A join TBS010 B on M2_PROCOD = B.PROCOD 
+where M2_TIPREG = '01' and M2_REGCAN = 'F'
+and (M2_DAT between @periodo01de and @periodo01ate or (@periodo01de = '' and @periodo01ate = ''))
+and (MARCOD = @marca or (@marca = ''))
+group by M2_PROCOD)
+as GPeriodo01
+on PROCOD = GPeriodo01.PRO
+left join
+(select A.PROCOD as PRO, sum(NFSQTD * NFSQTDEMB) as QTDE
+from TBS0671 A(nolock)join TBS067 B(nolock) on A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+join TBS042 C(nolock) on C.TESCOD = A.TESCOD
+join TBS010 D(nolock) on A.PROCOD = D.PROCOD
+where NFSTIP = 'N' and NFSCAN = 'N' and TESCNTVEN = 'S'
+and (NFSDATEMI between @periodo01de and @periodo01ate or (@periodo01de = '' and @periodo01ate = '')) 
+and (MARCOD = @marca or (@marca = ''))
+group by A.PROCOD)
+as IPeriodo01
+on P.PROCOD = IPeriodo01.PRO
+left join
+(select M2_PROCOD as PRO, sum(M2_QTD) as QTDE
+from MSL002 A join TBS010 B on M2_PROCOD = B.PROCOD 
+where M2_TIPREG = '01' and M2_REGCAN = 'F'
+and (M2_DAT between @periodo02de and @periodo02ate or (@periodo02de = '' and @periodo02ate = ''))
+and (MARCOD = @marca or (@marca = ''))
+group by M2_PROCOD) as GPeriodo02
+on PROCOD = GPeriodo02.PRO
+left join
+(select A.PROCOD as PRO, sum(NFSQTD * NFSQTDEMB) as QTDE
+from TBS0671 A(nolock)join TBS067 B(nolock) on A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+join TBS042 C(nolock) on C.TESCOD = A.TESCOD
+join TBS010 D(nolock) on A.PROCOD = D.PROCOD
+where NFSTIP = 'N' and NFSCAN = 'N' and TESCNTVEN = 'S'
+and (NFSDATEMI between @periodo02de and @periodo02ate or (@periodo02de = '' and @periodo02ate = '')) 
+and (MARCOD = @marca or (@marca = ''))
+group by A.PROCOD) as IPeriodo02
+on P.PROCOD = IPeriodo02.PRO
+left join
+(select M2_PROCOD as PRO, sum(M2_QTD) as QTDE
+from MSL002 A join TBS010 B on M2_PROCOD = B.PROCOD 
+where M2_TIPREG = '01' and M2_REGCAN = 'F'
+and (M2_DAT between @periodo03de and @periodo03ate or (@periodo03de = '' and @periodo03ate = ''))
+and (MARCOD = @marca or (@marca = ''))
+group by M2_PROCOD) as GPeriodo03
+on PROCOD = GPeriodo03.PRO
+left join
+(select A.PROCOD as PRO, sum(NFSQTD * NFSQTDEMB) as QTDE
+from TBS0671 A(nolock)join TBS067 B(nolock) on A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+join TBS042 C(nolock) on C.TESCOD = A.TESCOD
+join TBS010 D(nolock) on A.PROCOD = D.PROCOD
+where NFSTIP = 'N' and NFSCAN = 'N' and TESCNTVEN = 'S'
+and (NFSDATEMI between @periodo03de and @periodo03ate or (@periodo03de = '' and @periodo03ate = '')) 
+and (MARCOD = @marca or (@marca = ''))
+group by A.PROCOD) as IPeriodo03
+on P.PROCOD = IPeriodo03.PRO
+left join
+(select M2_PROCOD as PRO, sum(M2_QTD) as QTDE
+from MSL002 A join TBS010 B on M2_PROCOD = B.PROCOD 
+where M2_TIPREG = '01' and M2_REGCAN = 'F'
+and (M2_DAT between @periodo04de and @periodo04ate or (@periodo04de = '' and @periodo04ate = ''))
+and (MARCOD = @marca or (@marca = ''))
+group by M2_PROCOD) as GPeriodo04
+on PROCOD = GPeriodo04.PRO
+left join
+(select A.PROCOD as PRO, sum(NFSQTD * NFSQTDEMB) as QTDE
+from TBS0671 A(nolock)join TBS067 B(nolock) on A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+join TBS042 C(nolock) on C.TESCOD = A.TESCOD
+join TBS010 D(nolock) on A.PROCOD = D.PROCOD
+where NFSTIP = 'N' and NFSCAN = 'N' and TESCNTVEN = 'S'
+and (NFSDATEMI between @periodo04de and @periodo04ate or (@periodo04de = '' and @periodo04ate = '')) 
+and (MARCOD = @marca or (@marca = ''))
+group by A.PROCOD) as IPeriodo04
+on P.PROCOD = IPeriodo04.PRO
+left join
+(select M2_PROCOD as PRO, sum(M2_QTD) as QTDE
+from MSL002 A join TBS010 B on M2_PROCOD = B.PROCOD 
+where M2_TIPREG = '01' and M2_REGCAN = 'F'
+and (M2_DAT between @periodo05de and @periodo05ate or (@periodo05de = '' and @periodo05ate = ''))
+and (MARCOD = @marca or (@marca = ''))
+group by M2_PROCOD) as GPeriodo05
+on PROCOD = GPeriodo05.PRO
+left join
+(select A.PROCOD as PRO, sum(NFSQTD * NFSQTDEMB) as QTDE
+from TBS0671 A(nolock)join TBS067 B(nolock) on A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+join TBS042 C(nolock) on C.TESCOD = A.TESCOD
+join TBS010 D(nolock) on A.PROCOD = D.PROCOD
+where NFSTIP = 'N' and NFSCAN = 'N' and TESCNTVEN = 'S'
+and (NFSDATEMI between @periodo05de and @periodo05ate or (@periodo05de = '' and @periodo05ate = '')) 
+and (MARCOD = @marca or (@marca = ''))
+group by A.PROCOD) as IPeriodo05
+on P.PROCOD = IPeriodo05.PRO
+left join
+(select M2_PROCOD as PRO, sum(M2_QTD) as QTDE
+from MSL002 A join TBS010 B on M2_PROCOD = B.PROCOD 
+where M2_TIPREG = '01' and M2_REGCAN = 'F'
+and (M2_DAT between @periodo06de and @periodo06ate or (@periodo06de = '' and @periodo06ate = ''))
+and (MARCOD = @marca or (@marca = ''))
+group by M2_PROCOD) as GPeriodo06
+on PROCOD = GPeriodo06.PRO
+left join
+(select A.PROCOD as PRO, sum(NFSQTD * NFSQTDEMB) as QTDE
+from TBS0671 A(nolock)join TBS067 B(nolock) on A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+join TBS042 C(nolock) on C.TESCOD = A.TESCOD
+join TBS010 D(nolock) on A.PROCOD = D.PROCOD
+where NFSTIP = 'N' and NFSCAN = 'N' and TESCNTVEN = 'S'
+and (NFSDATEMI between @periodo06de and @periodo06ate or (@periodo06de = '' and @periodo06ate = '')) 
+and (MARCOD = @marca or (@marca = ''))
+group by A.PROCOD) as IPeriodo06
+on P.PROCOD = IPeriodo06.PRO
+where (MARCOD = @marca or (@marca = ''))
+order by PROCOD

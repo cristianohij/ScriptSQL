@@ -1,0 +1,174 @@
+if not exists(select name from sysobjects where name = 'tmpcmp' and type='U')
+   begin
+      create table tmpcmp
+         (empresa tinyint not null default 0, localEstoque tinyint not null default 0, codigoProduto char(15) not null default '',
+          qCompraAnterior money default 0, qCompraPedidos money default 0,
+          constraint itmpcmp primary key(empresa, localEstoque, codigoProduto))
+   end
+      else delete from tmpcmp
+	  
+	  
+	  
+	  
+insert into tmpcmp
+select A.PROEMPCOD,A.ESTLOC,A.PROCOD,A.ESTQTDCMP,isNull(sum((B.PDCQTD - (B.PDCQTDENT + B.PDCQTDRES)) * B.PDCQTDEMB),0)
+  from TBS032 A (nolock) join TBS0451 B (nolock) on B.PROEMPCOD = A.PROEMPCOD and B.PROCOD = A.PROCOD and B.LESCOD = A.ESTLOC
+ group by A.PROEMPCOD,A.ESTLOC,A.PROCOD,A.ESTQTDCMP
+having A.ESTQTDCMP <> isNull(sum((B.PDCQTD - (B.PDCQTDENT + B.PDCQTDRES)) * B.PDCQTDEMB),0)
+
+
+
+update TBS032 set ESTQTDCMP = qCompraPedidos from tmpcmp where empresa = PROEMPCOD and localEstoque = ESTLOC and codigoProduto = PROCOD
+
+
+
+if object_id('TempDB.dbo.#cmplog') is not null
+   drop table #cmplog
+select 
+Identity(INT,1,1) as ordem,
+A.PROEMPCOD,
+A.ESTLOC,
+A.PROCOD,
+A.ESTQTDCMP,
+A.ESTQTDATU,
+A.ESTQTDRES,
+A.ESTQTDPEN,
+C.PROUM1,
+A.ESTQTDATU-A.ESTQTDRES AS DISPONIVEL,
+isNull(sum((B.PDCQTD - (B.PDCQTDENT + B.PDCQTDRES)) * B.PDCQTDEMB),0) AS CMPQTDATU,
+isNull(sum((B.PDCQTD - (B.PDCQTDENT + B.PDCQTDRES)) * B.PDCQTDEMB),0) - A.ESTQTDCMP AS QTDMOV
+
+into #cmplog
+from TBS032 A (nolock) 
+join TBS0451 B (nolock) on B.PROEMPCOD = A.PROEMPCOD and B.PROCOD = A.PROCOD and B.LESCOD = A.ESTLOC
+left join TBS010 C (nolock) on A.PROCOD = C.PROCOD
+
+group by 
+A.PROEMPCOD,
+A.ESTLOC,
+A.PROCOD,
+A.ESTQTDCMP,
+A.ESTQTDATU,
+A.ESTQTDRES,
+A.ESTQTDPEN,
+C.PROUM1
+
+having A.ESTQTDCMP <> isNull(sum((B.PDCQTD - (B.PDCQTDENT + B.PDCQTDRES)) * B.PDCQTDEMB),0) 
+
+select * from #cmplog
+
+-- 4° GRAVAR LOG DE MOVIMENTAÇÃO TBS051
+begin tran 
+INSERT INTO 
+TBS051( LMEEMPCOD, -- 0
+		LMEREG, --1
+		LMEDOC, --2
+		LMEROT, --3
+		LMEDESROT, --4
+		LMEACA, --5
+		LMEDATHOR, --6
+		LMEUSU, --7
+		LMEMOD, --8
+		LMEINFALT, --9
+		PROCOD, --10
+		PROEMPCOD, --11
+		LMEQTDSAL, -- 12
+		LMEQTDMOV, -- 13
+		LMEQTDATU, -- 14
+		LMEQTDRES, -- 15
+		LMEQTDPEN, -- 16
+		LMEQTDCMP,  -- 17
+		LMEUNI, -- 18
+		LMEQTDDIS, -- 19
+		LMELOCEST) -- 20
+
+
+select PROEMPCOD, --0 LMEEMPCOD
+	   ROW_NUMBER() OVER(ORDER BY A.ordem )+(SELECT MAX(LMEREG) FROM TBS051 (NOLOCK)), -- 1 LMEREG
+	   0, -- 2 LMEDOC
+	   'SQL', -- 3 LMEROT
+	   'ATUALIZA PEDIDO DE COMPRAS', -- 4 LMEDESROT
+	   'E', --5 LMEACA
+	   GETDATE(), -- 6 LMEDATHOR
+	   'ANDERSONL', -- 7 LMEUSU
+	   'NENHUM', -- 8 LMEMOD
+	   'C', -- 9 LMEINFALT
+	   A.PROCOD, -- 10 PROCOD
+	   A.PROEMPCOD, -- 11 PROEMPCOD
+	   CMPQTDATU, -- 12 LMEQTDSAL
+	   QTDMOV, -- 13 LMEQTDMOV
+	   ESTQTDATU, -- 14 LMEQTDATU
+	   ESTQTDRES, --15 LMEQTDRES
+	   ESTQTDPEN, -- 16 LMEQTDPEN
+	   ESTQTDCMP, -- 17 LMEQTDCMP
+	   PROUM1, -- 18 LMEUNI
+	   ESTQTDATU - ESTQTDRES, -- 19 LMEQTDDIS
+	   ESTLOC 
+	   from #cmplog A
+	   WHERE 
+	   QTDMOV > 0 AND PROCOD = '11490010'
+	   
+-- 5° GRAVAR SEQUENCIAL NA TBS024
+UPDATE TBS024 
+SET TBSVALSEQ = (SELECT MAX(LMEREG) FROM TBS051 (NOLOCK))
+WHERE TBSNOM = 'TBS051'
+
+
+
+
+-- 6 CASO DE SAIDA DE COMPRAS
+
+begin tran 
+INSERT INTO 
+TBS051( LMEEMPCOD, -- 0
+		LMEREG, --1
+		LMEDOC, --2
+		LMEROT, --3
+		LMEDESROT, --4
+		LMEACA, --5
+		LMEDATHOR, --6
+		LMEUSU, --7
+		LMEMOD, --8
+		LMEINFALT, --9
+		PROCOD, --10
+		PROEMPCOD, --11
+		LMEQTDSAL, -- 12
+		LMEQTDMOV, -- 13
+		LMEQTDATU, -- 14
+		LMEQTDRES, -- 15
+		LMEQTDPEN, -- 16
+		LMEQTDCMP,  -- 17
+		LMEUNI, -- 18
+		LMEQTDDIS, -- 19
+		LMELOCEST) -- 20
+
+
+select PROEMPCOD, --0 LMEEMPCOD
+	   ROW_NUMBER() OVER(ORDER BY A.ordem )+(SELECT MAX(LMEREG) FROM TBS051 (NOLOCK)), -- 1 LMEREG
+	   0, -- 2 LMEDOC
+	   'SQL', -- 3 LMEROT
+	   'ATUALIZA PEDIDO DE COMPRAS', -- 4 LMEDESROT
+	   'S', --5 LMEACA
+	   GETDATE(), -- 6 LMEDATHOR
+	   'ANDERSONL', -- 7 LMEUSU
+	   'NENHUM', -- 8 LMEMOD
+	   'C', -- 9 LMEINFALT
+	   A.PROCOD, -- 10 PROCOD
+	   A.PROEMPCOD, -- 11 PROEMPCOD
+	   CMPQTDATU, -- 12 LMEQTDSAL
+	   QTDMOV*(-1), -- 13 LMEQTDMOV
+	   ESTQTDATU, -- 14 LMEQTDATU
+	   ESTQTDRES, --15 LMEQTDRES
+	   ESTQTDPEN, -- 16 LMEQTDPEN
+	   ESTQTDCMP, -- 17 LMEQTDCMP
+	   PROUM1, -- 18 LMEUNI
+	   ESTQTDATU - ESTQTDRES, -- 19 LMEQTDDIS
+	   ESTLOC 
+	   from #cmplog A
+	   WHERE 
+	   QTDMOV < 0 AND PROCOD = '0050253'
+	   
+-- 7° GRAVAR SEQUENCIAL NA TBS024
+UPDATE TBS024 
+SET TBSVALSEQ = (SELECT MAX(LMEREG) FROM TBS051 (NOLOCK))
+WHERE TBSNOM = 'TBS051'

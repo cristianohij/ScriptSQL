@@ -1,0 +1,15 @@
+
+-- só trocar o numero da NOTA
+
+select NFEVALICMS,* from TBS0591 WHERE NFENUM = 1205 AND NFETIP = 'D'
+
+
+select * from TBS059 WHERE NFENUM = 1205 AND NFETIP = 'D'
+
+
+begin tran
+update TBS0591 
+set NFEVALICMS=dbo.NFEVALICMS(0,NFETIP,NFENUM,NFECOD,0,SERCOD,NFEITE)
+ from TBS0591 (nolock) where NFETIP='D' and NFENUM= 1205
+commit tran 
+

@@ -1,0 +1,663 @@
+-- formulas da nota fiscal de saída de DEVOLUÇÃO
+
+-- NFDQTD = quantidade do produto
+-- NFDPRE = preco do produto
+
+-- NFDPERDES = percentual do desconto por item
+-- NFDTOTPRO = valor total do produto = NFSPRE * NFSQTD
+
+drop function NFDTOTPROITE -- PARA CANCELAR A FUNÇÃO
+go
+
+create function NFDTOTPROITE(@empresa smallint ,@seremp smallint ,@serie smallint ,@nfd int,@empnfent smallint ,@nfetipent char(3),@nfeent int,
+@empsernfeent smallint,@sernfeent char(3),@item smallint) returns decimal(11,4) as
+   begin
+      declare @retorno decimal(11,4)
+      set @retorno = (select NFDPRE * NFDQTD from TBS1172 (nolock)
+                       where NFDEMPCOD = @empresa and SNEEMPCOD = @seremp and SNESER = @serie and NFDNUM = @nfd and
+					   NFDNFEEMP = @empnfent and NFDNFETIP = @nfetipent and NFDNFENUM = @nfeent and 
+					   NFDSEREMP = @empsernfeent and NFDSERCOD = @sernfeent and NFDITE = @item )
+      return @retorno
+   end
+go
+
+
+ 
+--TOTAL LIQUIDO , DE DEVOLUÇÃO 
+--NFDTOTPROITE-NFDVALDES + NFDVALFRE + NFDVALSEG + NFDVALOUTDES + NFDVALIPI 
+--drop function NFDTOTLIQITE -- PARA CANCELAR A FUNÇÃO
+--go
+
+create function NFDTOTLIQITE(@empresa smallint ,@seremp smallint ,@serie smallint ,@nfd int,@empnfent smallint ,@nfetipent char(3),@nfeent int,
+@empsernfeent smallint,@sernfeent char(3),@item smallint) returns decimal(11,4) as
+   begin
+      declare @retorno decimal(11,4)
+      set @retorno = (select dbo.NFDTOTPROITE(@empresa,@seremp,@serie,@nfd,@empnfent,@nfetipent,@nfeent,@empsernfeent,@sernfeent,@item )- NFDVALDES + NFDVALFRE + NFDVALSEG + NFDVALOUTDES + NFDVALIPI
+	  					 from TBS1172 (nolock)
+                       where NFDEMPCOD = @empresa and SNEEMPCOD = @seremp and SNESER = @serie and NFDNUM = @nfd and
+					   NFDNFEEMP = @empnfent and NFDNFETIP = @nfetipent and NFDNFENUM = @nfeent and 
+					   NFDSEREMP = @empsernfeent and NFDSERCOD = @sernfeent and NFDITE = @item )
+      return @retorno
+   end
+go
+
+
+--TOTAL ITEM , DE DEVOLUÇÃO 
+-- NFDTOTLIQTE + NFDVALICMSST
+--drop function NFDTOTITE -- PARA CANCELAR A FUNÇÃO
+--go
+
+create function NFDTOTITE(@empresa smallint ,@seremp smallint ,@serie smallint ,@nfd int,@empnfent smallint ,@nfetipent char(3),@nfeent int,
+@empsernfeent smallint,@sernfeent char(3),@item smallint) returns decimal(11,4) as
+   begin
+      declare @retorno decimal(11,4)
+      set @retorno = (select case when NFDPERICMSST > 0 then  
+	  dbo.NFDTOTLIQITE(@empresa,@seremp,@serie,@nfd,@empnfent,@nfetipent,@nfeent,@empsernfeent,@sernfeent,@item ) + NFDVALICMSST else dbo.NFDTOTLIQITE(@empresa,@seremp,@serie,@nfd,@empnfent,@nfetipent,@nfeent,@empsernfeent,@sernfeent,@item ) end
+	  					 from TBS1172 (nolock)
+                       where NFDEMPCOD = @empresa and SNEEMPCOD = @seremp and SNESER = @serie and NFDNUM = @nfd and
+					   NFDNFEEMP = @empnfent and NFDNFETIP = @nfetipent and NFDNFENUM = @nfeent and 
+					   NFDSEREMP = @empsernfeent and NFDSERCOD = @sernfeent and NFDITE = @item )
+      return @retorno
+   end
+go
+
+
+--VALOR DO PIS
+-- NFDVALPIS = NFDTOTLIQTE * NFDPERPIS / 100
+--drop function NFDVALPIS -- PARA CANCELAR A FUNÇÃO
+--go
+--
+create function NFDVALPIS(@empresa smallint ,@seremp smallint ,@serie smallint ,@nfd int,@empnfent smallint ,@nfetipent char(3),@nfeent int,
+@empsernfeent smallint,@sernfeent char(3),@item smallint) returns decimal(11,4) as
+   begin
+      declare @retorno decimal(11,4)
+      set @retorno = ( select dbo.NFDTOTLIQITE(@empresa,@seremp,@serie,@nfd,@empnfent,@nfetipent,@nfeent,@empsernfeent,@sernfeent,@item ) * NFDPERPIS / 100
+	  				 
+					  from TBS1172 (nolock)
+					  
+                       where NFDEMPCOD = @empresa and SNEEMPCOD = @seremp and SNESER = @serie and NFDNUM = @nfd and
+					   NFDNFEEMP = @empnfent and NFDNFETIP = @nfetipent and NFDNFENUM = @nfeent and 
+					   NFDSEREMP = @empsernfeent and NFDSERCOD = @sernfeent and NFDITE = @item )
+      return @retorno
+   end
+go
+
+
+
+--VALOR DO PIS ST
+-- NFDVALPISST = NFDTOTLIQTE * NFDPERPISST / 100
+--drop function NFDVALPISST -- PARA CANCELAR A FUNÇÃO
+--go
+--
+create function NFDVALPISST(@empresa smallint ,@seremp smallint ,@serie smallint ,@nfd int,@empnfent smallint ,@nfetipent char(3),@nfeent int,
+@empsernfeent smallint,@sernfeent char(3),@item smallint) returns decimal(11,4) as
+   begin
+      declare @retorno decimal(11,4)
+      set @retorno = ( select dbo.NFDTOTLIQITE(@empresa,@seremp,@serie,@nfd,@empnfent,@nfetipent,@nfeent,@empsernfeent,@sernfeent,@item ) * NFDPERPISST / 100
+	  				 
+					  from TBS1172 (nolock)
+					  
+                       where NFDEMPCOD = @empresa and SNEEMPCOD = @seremp and SNESER = @serie and NFDNUM = @nfd and
+					   NFDNFEEMP = @empnfent and NFDNFETIP = @nfetipent and NFDNFENUM = @nfeent and 
+					   NFDSEREMP = @empsernfeent and NFDSERCOD = @sernfeent and NFDITE = @item )
+      return @retorno
+   end
+go
+
+
+--VALOR DO COFINS
+-- NFDVALCOFINS = NFDTOTLIQTE * NFDPERCOFINS / 100
+--drop function NFDVALCOFINS -- PARA CANCELAR A FUNÇÃO
+--go
+--
+create function NFDVALCOFINS(@empresa smallint ,@seremp smallint ,@serie smallint ,@nfd int,@empnfent smallint ,@nfetipent char(3),@nfeent int,
+@empsernfeent smallint,@sernfeent char(3),@item smallint) returns decimal(11,4) as
+   begin
+      declare @retorno decimal(11,4)
+      set @retorno = ( select dbo.NFDTOTLIQITE(@empresa,@seremp,@serie,@nfd,@empnfent,@nfetipent,@nfeent,@empsernfeent,@sernfeent,@item ) * NFDPERCOFINS / 100
+	  				 
+					  from TBS1172 (nolock)
+					  
+                       where NFDEMPCOD = @empresa and SNEEMPCOD = @seremp and SNESER = @serie and NFDNUM = @nfd and
+					   NFDNFEEMP = @empnfent and NFDNFETIP = @nfetipent and NFDNFENUM = @nfeent and 
+					   NFDSEREMP = @empsernfeent and NFDSERCOD = @sernfeent and NFDITE = @item )
+      return @retorno
+   end
+go
+
+
+
+--VALOR DO COFINS ST
+-- NFDVALCOFINSST = NFDTOTLIQTE * NFDPERCOFINSST / 100
+--drop function NFDVALCOFINSST -- PARA CANCELAR A FUNÇÃO
+--go
+--
+create function NFDVALCOFINSST(@empresa smallint ,@seremp smallint ,@serie smallint ,@nfd int,@empnfent smallint ,@nfetipent char(3),@nfeent int,
+@empsernfeent smallint,@sernfeent char(3),@item smallint) returns decimal(11,4) as
+   begin
+      declare @retorno decimal(11,4)
+      set @retorno = ( select dbo.NFDTOTLIQITE(@empresa,@seremp,@serie,@nfd,@empnfent,@nfetipent,@nfeent,@empsernfeent,@sernfeent,@item ) * NFDPERCOFINSST / 100
+	  				 
+					  from TBS1172 (nolock)
+					  
+                       where NFDEMPCOD = @empresa and SNEEMPCOD = @seremp and SNESER = @serie and NFDNUM = @nfd and
+					   NFDNFEEMP = @empnfent and NFDNFETIP = @nfetipent and NFDNFENUM = @nfeent and 
+					   NFDSEREMP = @empsernfeent and NFDSERCOD = @sernfeent and NFDITE = @item )
+      return @retorno
+   end
+go
+
+
+
+--VALOR DO ICMS ST COMPLEMENTAR
+-- NFDVALICMSSTCOM = NFDPERICMS * NFDBASICMSSTCOM / 100
+--drop function NFDVALICMSSTCOM -- PARA CANCELAR A FUNÇÃO
+--go
+--
+create function NFDVALICMSSTCOM(@empresa smallint ,@seremp smallint ,@serie smallint ,@nfd int,@empnfent smallint ,@nfetipent char(3),@nfeent int,
+@empsernfeent smallint,@sernfeent char(3),@item smallint) returns decimal(11,4) as
+   begin
+      declare @retorno decimal(11,4)
+      set @retorno = ( select NFDPERICMS * NFDBASICMSSTCOM / 100
+	  				 
+					  from TBS1172 (nolock)
+					  
+                       where NFDEMPCOD = @empresa and SNEEMPCOD = @seremp and SNESER = @serie and NFDNUM = @nfd and
+					   NFDNFEEMP = @empnfent and NFDNFETIP = @nfetipent and NFDNFENUM = @nfeent and 
+					   NFDSEREMP = @empsernfeent and NFDSERCOD = @sernfeent and NFDITE = @item )
+      return @retorno
+   end
+go
+
+
+
+ 
+--VALOR DO ICMS COMPLEMENTAR
+-- NFDVALICMSCOM = NFDPERICMS * NFDBASICMSCOM / 100
+--drop function NFDVALICMSCOM -- PARA CANCELAR A FUNÇÃO
+--go
+--
+create function NFDVALICMSCOM(@empresa smallint ,@seremp smallint ,@serie smallint ,@nfd int,@empnfent smallint ,@nfetipent char(3),@nfeent int,
+@empsernfeent smallint,@sernfeent char(3),@item smallint) returns decimal(11,4) as
+   begin
+      declare @retorno decimal(11,4)
+      set @retorno = ( select NFDPERICMS * NFDBASICMSCOM / 100
+	  				 
+					  from TBS1172 (nolock)
+					  
+                       where NFDEMPCOD = @empresa and SNEEMPCOD = @seremp and SNESER = @serie and NFDNUM = @nfd and
+					   NFDNFEEMP = @empnfent and NFDNFETIP = @nfetipent and NFDNFENUM = @nfeent and 
+					   NFDSEREMP = @empsernfeent and NFDSERCOD = @sernfeent and NFDITE = @item )
+      return @retorno
+   end
+go
+
+
+
+--- CONTAS A PAGAR 
+
+drop view DataAtual
+go
+
+create view DataAtual as select getdate() as 'data'
+go
+
+DROP FUNCTION CPADIAATR
+GO
+--CPADIAATR - DIAS EM ATRASO NO PAGAMENTO
+create function CPADIAATR(@emptit smallint ,@empprefix smallint ,@empfor smallint ,@prefi char(3) ,@titulo decimal(10,0) ,@parcela char(2) ,@fornece int)
+        returns int as
+   begin
+      declare @retorno int ,@datatu datetime
+      set @datatu = (select top 1 data from DataAtual)
+      set @retorno = (select case 
+	  							when CPADATBAI = '17530101' then
+								case 
+									when datediff(day,CPADATVENREA,@datatu) < 0 then 0
+										else
+                                        	datediff(day,CPADATVENREA,@datatu)
+                                 	end
+								   		else
+                                   			case
+                                     			when datediff(day,CPADATVENREA,CPADATBAI) < 0 then
+                                         0
+                                      else
+                                         datediff(day,CPADATVENREA,CPADATBAI)
+                                   end
+                                end
+								FROM TBS057 (nolock)
+								where CPAEMPCOD = @emptit and PFXEMPCOD = @empprefix and FOREMPCOD = @empfor and PFXCOD = @prefi and CPATIT = @titulo and
+                             CPAPAR = @parcela and FORCOD = @fornece)
+      return @retorno
+   end
+go
+
+
+--função
+--saldo em aberto
+DROP FUNCTION CPAVALSDO
+go
+
+create function CPAVALSDO(@emptit smallint ,@empprefix smallint ,@empfor smallint ,@prefi char(3) ,@titulo decimal(10,0) ,@parcela char(2) ,@fornece int)
+        returns decimal(11,4) as
+   begin
+      declare @retorno decimal(11,4)
+      set @retorno = (select convert(decimal(11,4),CPAVAL) - convert(decimal(11,4),CPAVALABT) - convert(decimal(11,4),CPAVALPAG) + convert(decimal(11,4),CPAVALACR) - convert(decimal(11,4),CPAVALRES)
+                        from TBS057 (nolock)
+                       where CPAEMPCOD = @emptit and PFXEMPCOD = @empprefix and FOREMPCOD = @empfor and PFXCOD = @prefi and CPATIT = @titulo and
+                             CPAPAR = @parcela and FORCOD = @fornece)
+      return @retorno
+   end
+go
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- FUNÇÃO DIAS UTEIS 
+
+DROP FUNCTION dbo.FCNDIASUTEIS
+
+CREATE FUNCTION dbo.FCNDIASUTEIS (@DATAINICIAL DATETIME, @DATAFINAL DATETIME)
+RETURNS INT
+AS
+BEGIN
+
+DECLARE @CONT INT, @DIASUTEIS INT 
+
+SET @CONT = 0
+
+DECLARE @TAB AS TABLE (SEMANA INT, DATA DATETIME, CONT INT )
+
+WHILE @CONT <= (SELECT DATEDIFF(DD, @DATAINICIAL, @DATAFINAL ))
+
+BEGIN 
+INSERT INTO @TAB SELECT DATEPART(DW,(DATEADD(DD, @CONT, @DATAINICIAL))), DATEADD(DD, @CONT, @DATAINICIAL), @CONT
+
+SET @CONT = @CONT+1
+
+END
+
+SET @DIASUTEIS =( SELECT COUNT(SEMANA) FROM @TAB WHERE SEMANA NOT IN (1) ) - 
+(SELECT count(*) 
+FROM 
+FERIADO -- CRIEI ESSA TABELA EM CADA UNIDADE, NA FORMULA MUDEI O Sg_UF DE ACORDO COM O LOCAL DA UNIDADE (08/08/2017)
+
+WHERE
+(Sg_UF = 'SJ' or Tp_Feriado = 1 ) and 
+case when Nr_Ano = 0 
+	then convert(date,(convert(char(4),YEAR(GETDATE()))+convert(char(2),right(('0' + ltrim(str(Nr_Mes))),2))+convert(char(2),right(('0' + ltrim(str(Nr_Dia))),2))))
+	else convert(date,(convert(char(4),Nr_Ano)+convert(char(2),right(('0' + ltrim(str(Nr_Mes))),2))+convert(char(2),right(('0' + ltrim(str(Nr_Dia))),2))))
+end between @DATAINICIAL and @DATAFINAL)
+
+RETURN @DIASUTEIS
+end 
+
+-- TESTE SELECT dbo.FCNDIASUTEIS ('20170430', '20170503')
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+-- FUNÇÃO PARA PEGAR VALOR DO ITEM COM TODOS OS IMPOSTOS + OS DESCONTOS
+-- PARA GERAR O DESCONTO CORRETO NAS NOTAS DE LOJA, POIS NO INTEGROS ESTÁ DIFERENTE
+
+create function NFSTOTITESTSEMDES(@empresa smallint ,@nf int ,@seremp smallint ,@serie smallint ,@item smallint) returns decimal(11,4) as
+   begin
+      declare @retorno decimal(11,4)
+      set @retorno = (select case
+                                when NFSPERICMSST > 0
+                                   then
+                                      dbo.NFSTOTITE(@empresa,@nf,@seremp,@serie,@item) + dbo.NFSVALICMSSTRET(@empresa,@nf,@seremp,@serie,@item) + 
+									  dbo.NFSVDDITE(@empresa,@nf,@seremp,@serie,@item)
+                                   else
+                                      dbo.NFSTOTITE(@empresa,@nf,@seremp,@serie,@item) + dbo.NFSVDDITE(@empresa,@nf,@seremp,@serie,@item)
+                             end
+                        from TBS0671 (nolock)
+                       where NFSEMPCOD = @empresa and NFSNUM = @nf and SNEEMPCOD = @seremp and SNESER = @serie and NFSITE = @item)
+      return @retorno
+   end
+go
+
+
+
+
+-- NFSTOTVALDEV  = valor TOTAL DA devolução SUM(NFSVALDEV)
+
+drop function NFSTOTVALDEV
+go
+
+create function NFSTOTVALDEV(@empresa smallint ,@nf int ,@seremp smallint ,@serie smallint) returns decimal(11,4) as
+   begin
+      declare @retorno decimal(11,4)
+      set @retorno = ((select isnull(sum(dbo.NFSVALDEV(@empresa,@nf,@seremp,@serie,NFSITE)),0) from TBS0671 (nolock)
+                       where NFSEMPCOD = @empresa and NFSNUM = @nf and SNEEMPCOD = @seremp and SNESER = @serie))
+      return @retorno
+   end
+go
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- dia hora e minuto 
+
+DROP FUNCTION dbo.DIAHORMIN
+
+CREATE FUNCTION dbo.DIAHORMIN (@DATAINICIAL DATETIME, @DATAFINAL DATETIME)
+
+RETURNS VARCHAR(20)
+AS 
+BEGIN 
+	DECLARE @TEMPO VARCHAR(20)
+	
+SET @TEMPO = (select rtrim(ltrim(str((DATEDIFF(minute, @DATAINICIAL, @DATAFINAL) / 60 / 24)))) + 'D ' + 
+right('00' +rtrim(ltrim(str(CONVERT(INT,((convert(money,DATEDIFF(minute, @DATAINICIAL, @DATAFINAL)) / 60 / 24) - (DATEDIFF(minute, @DATAINICIAL, @DATAFINAL) / 60 / 24)) * 24)))),2) +'H '+
+right('00' +rtrim(ltrim(str(round(((convert(money,DATEDIFF(minute, @DATAINICIAL, @DATAFINAL)) / 60) - (DATEDIFF(minute, @DATAINICIAL, @DATAFINAL) / 60)) * 60,2)))),2)+'M' )
+
+RETURN @TEMPO
+END 
+
+SELECT dbo.DIAHORMIN('20170202 01:10', '20170202 01:11')
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+-- FUNÇÃO HORAS UTEIS TRABALHADAS 
+
+DROP FUNCTION dbo.HORASTRABA
+
+CREATE FUNCTION dbo.HORASTRABA (@data1de DATETIME, @data1ate DATETIME)
+
+RETURNS VARCHAR(10)
+AS 
+BEGIN 
+	DECLARE @TEMPO VARCHAR(10)
+	
+SET @TEMPO = (
+select 
+right('    '+ltrim(rtrim(str((
+(case when @data1ate = '17530101'
+	then 
+		case when dbo.FCNDIASUTEIS (@data1de, getdate()) - 2 > 0 
+			then dbo.FCNDIASUTEIS (@data1de, getdate()) - 2
+			else 0
+		end
+	
+	else
+	
+		case when dbo.FCNDIASUTEIS (@data1de, @data1ate) - 2 > 0 
+			then dbo.FCNDIASUTEIS (@data1de, @data1ate) - 2
+			else 0
+		end
+end *11 *60)  +
+
+case when @data1ate = '17530101' 
+	then
+		case when convert(date,@data1de) = convert(date,getdate())
+			then 
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),getdate(),114),'-',''))) 
+			else
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '18:00','-',''))) 
+						+
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '07:00','-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),getdate(),114),'-','')))
+		end
+	else
+		case when convert(date,@data1de) = convert(date,@data1ate)	
+			then 
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1ate,114),'-',''))) 
+			else
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '18:00','-',''))) 
+						+
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '07:00','-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1ate,114),'-','')))
+		end
+end  ) / 60 ))),4) + 'H' +
+
+right('00'+ltrim(rtrim(str(
+((convert(money,
+case when @data1ate = '17530101' 
+	then
+		case when convert(date,@data1de) = convert(date,getdate())
+			then 
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),getdate(),114),'-',''))) 
+			else
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '18:00','-',''))) 
+						+
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '07:00','-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),getdate(),114),'-','')))
+		end
+	else
+		case when convert(date,@data1de) = convert(date,@data1ate)	
+			then 
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1ate,114),'-',''))) 
+			else
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '18:00','-',''))) 
+						+
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '07:00','-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1ate,114),'-','')))
+		end
+end) / 60) -
+ 
+((case when @data1ate = '17530101' 
+	then
+		case when convert(date,@data1de) = convert(date,getdate())
+			then 
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),getdate(),114),'-',''))) 
+			else
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '18:00','-',''))) 
+						+
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '07:00','-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),getdate(),114),'-','')))
+		end
+	else
+		case when convert(date,@data1de) = convert(date,@data1ate)	
+			then 
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1ate,114),'-',''))) 
+			else
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '18:00','-',''))) 
+						+
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '07:00','-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1ate,114),'-','')))
+		end
+end) / 60 )) * 60 ))),2) + 'M')
+
+RETURN @TEMPO
+END 
+
+-- SELECT dbo.HORASTRABA('20170711 07:56:14','20170711 08:16:15')
+
+-- teste da função HORASTRABA
+
+declare @data1de DATETIME, @data1ate DATETIME
+
+set @data1de = '01/07/2017 10:44'
+set @data1ate = '16/07/2017 10:44'
+
+--select dbo.FCNDIASUTEIS (@data1de, getdate()) - 1 ,
+--convert(date,@data1de) , convert(date,getdate())
+
+select 
+right('    '+ltrim(rtrim(str((
+(case when @data1ate = '17530101'
+	then 
+		case when dbo.FCNDIASUTEIS (@data1de, getdate()) - 2 > 0 
+			then dbo.FCNDIASUTEIS (@data1de, getdate()) - 2
+			else 0
+		end
+	
+	else
+	
+		case when dbo.FCNDIASUTEIS (@data1de, @data1ate) - 2 > 0 
+			then dbo.FCNDIASUTEIS (@data1de, @data1ate) - 2
+			else 0
+		end
+end *11 *60)  +
+
+case when @data1ate = '17530101' 
+	then
+		case when convert(date,@data1de) = convert(date,getdate())
+			then 
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),getdate(),114),'-',''))) 
+			else
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '18:00','-',''))) 
+						+
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '07:00','-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),getdate(),114),'-','')))
+		end
+	else
+		case when convert(date,@data1de) = convert(date,@data1ate)	
+			then 
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1ate,114),'-',''))) 
+			else
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '18:00','-',''))) 
+						+
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '07:00','-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1ate,114),'-','')))
+		end
+end  ) / 60 ))),4) + 'H' +
+
+right('00'+ltrim(rtrim(str(
+((convert(money,
+case when @data1ate = '17530101' 
+	then
+		case when convert(date,@data1de) = convert(date,getdate())
+			then 
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),getdate(),114),'-',''))) 
+			else
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '18:00','-',''))) 
+						+
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '07:00','-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),getdate(),114),'-','')))
+		end
+	else
+		case when convert(date,@data1de) = convert(date,@data1ate)	
+			then 
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1ate,114),'-',''))) 
+			else
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '18:00','-',''))) 
+						+
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '07:00','-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1ate,114),'-','')))
+		end
+end) / 60) -
+ 
+((case when @data1ate = '17530101' 
+	then
+		case when convert(date,@data1de) = convert(date,getdate())
+			then 
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),getdate(),114),'-',''))) 
+			else
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '18:00','-',''))) 
+						+
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '07:00','-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),getdate(),114),'-','')))
+		end
+	else
+		case when convert(date,@data1de) = convert(date,@data1ate)	
+			then 
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1ate,114),'-',''))) 
+			else
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1de,114),'-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '18:00','-',''))) 
+						+
+				DATEDIFF(MINUTE,
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ '07:00','-','')),
+				CONVERT(DATETIME,REPLACE(CONVERT(CHAR(11),CONVERT(DATE,@data1de))+ CONVERT(CHAR(20),@data1ate,114),'-','')))
+		end
+end) / 60 )) * 60 ))),2) + 'M' 
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+-- NFSVALDEV = valor da devolução NA MENOR UNIDADE
+
+drop function NFSVALDEVMEN
+go
+
+create function NFSVALDEVMEN(@empresa smallint ,@nf int ,@seremp smallint ,@serie smallint ,@item smallint) returns decimal(11,4) as
+   begin
+      declare @retorno decimal(11,4)
+      set @retorno = (select NFSQTDDEV * (NFSPRE/NFSQTDEMB)
+                        from TBS0671 (nolock)
+                       where NFSEMPCOD = @empresa and NFSNUM = @nf and SNEEMPCOD = @seremp and SNESER = @serie and NFSITE = @item)
+      return @retorno
+   end
+go
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- NFSTOTDEV = valor total das devolucoes = SUM(NFSVALDEV) NA MENOR UNIDADE
+
+drop function NFSTOTDEVMEN
+go
+
+create function NFSTOTDEVMEN(@empresa smallint ,@nf int ,@seremp smallint ,@serie smallint) returns decimal(11,4) as
+   begin
+      declare @retorno decimal(11,4)
+      set @retorno = (select isnull(sum(dbo.NFSVALDEVMEN(@empresa,@nf,@seremp,@serie,NFSITE)),0) from TBS0671 (nolock)
+                       where NFSEMPCOD = @empresa and NFSNUM = @nf and SNEEMPCOD = @seremp and SNESER = @serie)
+      return @retorno
+   end
+go

@@ -1,0 +1,116 @@
+-- criar URL dos relatorios
+
+-- tanby 182 - Matriz
+
+SELECT 
+Name ,
+'http://192.168.1.182/Reports/Pages/Report.aspx?ItemPath=%2fRelat%c3%b3rios+Tanby+Matriz'+
+REPLACE(REPLACE(SUBSTRING(PATH,25,200),'/','%2f'),' ','+') as URL
+
+FROM Catalog
+ 
+WHERE 
+SUBSTRING(PATH,1,25) = '/Relatórios Tanby Matriz/' AND 
+Name <> '' and 
+Name not in ('Estoque','Loja','Compras','Financeiro','Contábil','Vendas')
+
+
+-- Taubaté
+
+SELECT 
+-- SUBSTRING(PATH,1,20),
+--PATH,
+Name ,
+'http://192.168.3.205:8081/Reports/Pages/Report.aspx?ItemPath=%2fRelat%c3%b3rios+Taubat%c3%a9'+
+REPLACE(REPLACE(SUBSTRING(PATH,20,200),'/','%2f'),' ','+') as URL
+
+FROM Catalog
+ 
+WHERE 
+SUBSTRING(PATH,1,20) = '/Relatórios Taubaté/' AND 
+Name <> '' and 
+Name not in ('Estoque','Loja','Compras','Financeiro','Contábil','Vendas')
+
+-- Tanby CD
+
+SELECT 
+--SUBSTRING(PATH,1,21),
+--PATH,
+Name ,
+'http://192.168.10.7/Reports/Pages/Report.aspx?ItemPath=%2fRelat%c3%b3rios+Tanby+CD'+
+REPLACE(REPLACE(SUBSTRING(PATH,21,200),'/','%2f'),' ','+') as URL
+
+FROM Catalog
+ 
+WHERE 
+SUBSTRING(PATH,1,21) = '/Relatórios Tanby CD/' AND 
+Name <> '' and 
+Name not in ('Estoque','Loja','Compras','Financeiro','Contábil','Vendas')
+
+-- Best Office
+
+SELECT 
+--SUBSTRING(PATH,1,24),
+--PATH,
+Name ,
+'http://192.168.7.5/Reports/Pages/Report.aspx?ItemPath=%2fRelat%c3%b3rios+Best+Office'+
+REPLACE(REPLACE(SUBSTRING(PATH,24,200),'/','%2f'),' ','+') as URL
+
+FROM Catalog
+ 
+WHERE 
+SUBSTRING(PATH,1,24) = '/Relatórios Best Office/' AND 
+Name <> '' and 
+Name not in ('Estoque','Loja','Compras','Financeiro','Contábil','Vendas')
+
+-- Papelyna 
+
+SELECT 
+--SUBSTRING(PATH,1,21),
+--PATH,
+Name ,
+'http://192.168.0.7/Reports/Pages/Report.aspx?ItemPath=%2fRelat%c3%b3rios+Papelyna'+
+REPLACE(REPLACE(SUBSTRING(PATH,21,200),'/','%2f'),' ','+') as URL
+
+FROM Catalog
+ 
+WHERE 
+SUBSTRING(PATH,1,21) = '/Relatórios Papelyna/' AND 
+Name <> '' and 
+Name not in ('Estoque','Loja','Compras','Financeiro','Contábil','Vendas')
+
+
+-- Best Bag
+
+SELECT 
+--SUBSTRING(PATH,1,21),
+--PATH,
+Name ,
+'http://192.168.0.3/Reports/Pages/Report.aspx?ItemPath=%2fRelat%c3%b3rios+Best+Bag'+
+REPLACE(REPLACE(SUBSTRING(PATH,21,200),'/','%2f'),' ','+') as URL
+
+FROM Catalog
+ 
+WHERE 
+SUBSTRING(PATH,1,21) = '/Relatórios Best Bag/' AND 
+Name <> '' and 
+Name not in ('Estoque','Loja','Compras','Financeiro','Contábil','Vendas')
+
+-- Misaspel
+
+SELECT 
+--SUBSTRING(PATH,1,21),
+--PATH,
+Name ,
+'http://192.168.0.2:8081/Reports/Pages/Report.aspx?ItemPath=%2fRelat%c3%b3rios+Misaspel'+
+REPLACE(REPLACE(SUBSTRING(PATH,21,200),'/','%2f'),' ','+') as URL
+
+FROM Catalog
+ 
+WHERE 
+SUBSTRING(PATH,1,21) = '/Relatórios Misaspel/' AND 
+Name <> '' and 
+Name not in ('Estoque','Loja','Compras','Financeiro','Contábil','Vendas')
+
+
+

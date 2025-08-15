@@ -1,0 +1,169 @@
+declare @data1de datetime, @data1ate datetime, @comando varchar (max), @PROCOD CHAR(15) , @GRUCOD INT , @SUBGRUCOD INT , @marcod INT, @marcanom CHAR(60) ,
+@PRODES CHAR (60), @GRUPO INT, @SQL VARCHAR(8000), @DEV VARCHAR(8000), @EMPCOD varchar(7)
+
+SET @GRUPO = 0 -- "0 - SIM" , "1 - NAO"
+SET @data1de  ='20170601'
+SET @data1ate ='20170627'
+--SET @EMPCOD = (SELECT CONVERT(INT,RTRIM(LTRIM(PARVAL))) AS PARVAL FROM TBS025 NOLOCK WHERE PARCHV = 1330)
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--declare @EMPCOD varchar(7) , @SQL VARCHAR(MAX)
+--
+--SET @EMPCOD = (SELECT CONVERT(INT,RTRIM(LTRIM(PARVAL))) AS PARVAL FROM TBS025 NOLOCK WHERE PARCHV = 1330)
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#CFOP') is not null
+   drop table #CFOP
+   
+create table #CFOP (TIPO CHAR (1), CFOP CHAR(5) )
+
+-- CFOP DE SAIDA DE DEVOLUÇÃO
+--
+--INSERT INTO #CFOP VALUES ('S','5.201')
+--INSERT INTO #CFOP VALUES ('S','5.202')
+--INSERT INTO #CFOP VALUES ('S','5.411')
+--INSERT INTO #CFOP VALUES ('S','5.412')
+--INSERT INTO #CFOP VALUES ('S','5.556')
+--INSERT INTO #CFOP VALUES ('S','5.918')
+--
+--INSERT INTO #CFOP VALUES ('S','6.201')
+--INSERT INTO #CFOP VALUES ('S','6.202')
+--INSERT INTO #CFOP VALUES ('S','6.411')
+--INSERT INTO #CFOP VALUES ('S','6.412')
+--INSERT INTO #CFOP VALUES ('S','6.556')
+--INSERT INTO #CFOP VALUES ('S','6.918')
+
+-- CFOP DE COMPRA 
+
+INSERT INTO #CFOP VALUES ('E','1.100')
+INSERT INTO #CFOP VALUES ('E','1.101')
+INSERT INTO #CFOP VALUES ('E','1.102')
+INSERT INTO #CFOP VALUES ('E','1.122')
+INSERT INTO #CFOP VALUES ('E','1.400')
+INSERT INTO #CFOP VALUES ('E','1.401')
+INSERT INTO #CFOP VALUES ('E','1.403')
+INSERT INTO #CFOP VALUES ('E','1.922')
+INSERT INTO #CFOP VALUES ('E','1.949')
+
+INSERT INTO #CFOP VALUES ('E','2.100')
+INSERT INTO #CFOP VALUES ('E','2.101')
+INSERT INTO #CFOP VALUES ('E','2.102')
+INSERT INTO #CFOP VALUES ('E','2.122')
+INSERT INTO #CFOP VALUES ('E','2.400')
+INSERT INTO #CFOP VALUES ('E','2.401')
+INSERT INTO #CFOP VALUES ('E','2.403')
+INSERT INTO #CFOP VALUES ('E','2.922')
+INSERT INTO #CFOP VALUES ('E','2.949')
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA DE FORNECEDORES 
+if object_id('TempDB.dbo.#TBS006') is not null
+   drop table #TBS006
+   
+SELECT 
+FORCOD,
+FORNOM,
+MUNCOD
+
+INTO #TBS006
+FROM 
+TBS006 NOLOCK 
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA DE FORNECEDORES 
+if object_id('TempDB.dbo.#TBS010') is not null
+   drop table #TBS010
+   
+SELECT 
+PROCOD,
+PROUM1
+
+INTO #TBS010
+FROM 
+TBS010 NOLOCK 
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- CLIENTES DO GRUPO
+
+if object_id('TempDB.dbo.#GRUPOCLI') is not null
+   begin
+      drop table #GRUPOCLI
+   end
+   
+CREATE TABLE #GRUPOCLI (CLICOD INT)   
+
+-- GRUPO DE CLIENTES DO GRUPO, CONTABIIZAR ?
+
+IF @GRUPO = 0 -- SIM 
+
+BEGIN 
+SET @SQL = 'SELECT TOP 1
+			-1 AS CLICOD			
+			FROM TBS010'
+END
+
+IF @GRUPO = 1 -- NÃO
+
+BEGIN 
+SET @SQL = 'SELECT FORCOD AS CLICOD 
+			FROM TBS006 (nolock)
+			WHERE 
+			FORCGC Like(''65069593%'') or FORCGC Like(''05118717%'') or FORCGC Like(''52080207%'') or FORCGC Like(''44125185%'')'
+                        -- TANBYS                     -- BAG                           -- MISAS                      -- PAPE
+END
+
+INSERT INTO #GRUPOCLI
+EXEC (@SQL)
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- contabilizar COMPRAS
+
+if object_id('TempDB.dbo.#NFE') is not null
+   drop table #NFE
+
+SELECT
+B.NFEESTORI AS UF,
+C.MUNCOD,
+(SELECT MUNNOM FROM TBS003 E (NOLOCK) WHERE E.MUNCOD = C.MUNCOD) AS MUNNOM,
+B.NFECOD as NFSCLICOD,
+B.NFENOM AS NFSCLINOM,
+B.NFENUM AS NFSNUM,
+A.PROCOD ,
+A.NFEDES AS NFSPRODES,
+D.PROUM1,
+sum(ROUND(NFETOTOPEITE,2)) / sum(A.NFEQTD * A.NFEQTDEMB) AS NFSPREMED,
+sum(A.NFEQTD * A.NFEQTDEMB) AS NFSQTDVEN,
+sum(ROUND(NFETOTOPEITE,2)) AS NFSTOTITEST
+
+INTO #NFE
+FROM TBS0591 A (NOLOCK)
+LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND A.NFENUM = B.NFENUM AND 
+A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND  A.SEREMPCOD = B.SEREMPCOD
+LEFT JOIN #TBS006 C (NOLOCK) ON B.NFECOD = C.FORCOD
+LEFT JOIN #TBS010 D (NOLOCK) ON A.PROCOD = D.PROCOD
+		
+WHERE
+B.NFEDATEFE BETWEEN @data1de and @data1ate and 
+B.NFETIP NOT IN ('T','D') AND 
+B.NFECAN <> 'S' AND 
+NFEDATEFE <> '' AND 
+A.NFECFOP COLLATE DATABASE_DEFAULT IN (SELECT CFOP FROM #CFOP WHERE TIPO = 'E') AND 
+B.NFECOD NOT IN (SELECT CLICOD FROM #GRUPOCLI)
+
+GROUP BY 
+B.NFEESTORI ,
+C.MUNCOD,
+B.NFECOD,
+B.NFENOM,
+B.NFENUM ,
+A.PROCOD,
+A.NFEDES,
+D.PROUM1
+
+SELECT * FROM #NFE

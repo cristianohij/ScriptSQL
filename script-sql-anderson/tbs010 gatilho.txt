@@ -1,0 +1,30 @@
+USE [SIBD]
+GO
+/****** Object:  Trigger [dbo].[GravaTesProduto]    Script Date: 03/09/2016 14:42:04 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER OFF
+GO
+ALTER TRIGGER [dbo].[GravaTesProduto] ON [dbo].[TBS010] 
+FOR INSERT, UPDATE
+AS
+update TBS010 
+set PROSAICOD = case when ((A.PROCSN = '500' and A.PROSTBB in ('10', '60', '70')) or A.PROSTBB in ('10', '60', '70'))
+					 then 537
+					 else A.PROSAICOD
+				end,
+	PROCSN    = case when A.PROSTBB in ('00', '20')
+					 then '101'
+					 when A.PROSTBB in ('40', '41')
+					 then '103'
+					 when A.PROSTBB in ('10', '60', '70')
+					 then '500'
+					 when A.PROSTBB = '90'
+					 then '900'
+					 else A.PROSTBB
+				end
+from inserted A, TBS010 B(nolock)
+where A.PROCOD = B.PROCOD
+
+
+

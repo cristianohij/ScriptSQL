@@ -1,0 +1,265 @@
+-- clientes atendidos no frente de loja
+
+declare @dataDe datetime, @dataAte datetime, @caixa int, @comando varchar(max)
+
+set @datade = '20170201'
+set @dataate = '20170203'
+set @caixa = 0
+
+
+-- VENDAS DA LOJA 1° PERIODO
+
+SET @comando = 'EXECUTE(''
+select 
+cupom,
+cdprod,
+caixa,
+operador,
+data,
+hora
+
+FROM movcaixa
+where
+data between "'+convert(char(8), @datade - 20 ,112)+'" and "'+convert(char(8), @dataate,112)+'"  and 
+status = 01 and 
+cancelado <> "S"
+
+group by cupom,cdprod, caixa, operador ,data, hora'') at MYSQLGZ' 
+
+if object_id('TempDB.dbo.#MSL002') is not null
+   drop table #MSL002
+    
+create table #MSL002 (M2_CUP INT,M2_PROCOD INT,M2_CXA INT, M2_OPE INT, M2_DAT DATE,M2_HOR CHAR(10))
+INSERT INTO #MSL002
+exec(@comando)
+
+-- SELECT * FROM #MSL002
+
+---------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#NEG') is not null
+   drop table #NEG
+
+select
+LMEREG, 
+LMEDATHOR AS LMEDATHOR,
+ROW_NUMBER() OVER (Partition by CONVERT(CHAR (10),LMEDATHOR,103), A.PROCOD order by A.PROCOD,LMEREG) AS COUNTT,
+A.PROCOD,
+PRODES = (SELECT PRODES FROM TBS010 D (NOLOCK) WHERE A.PROCOD = D.PROCOD),
+A.LMEUNI,
+LMEQTDATU,
+CASE WHEN LMEACA = 'S' THEN 'SAIU' ELSE 'ENTROU' END AS LMEACA,
+LMEQTDMOV,
+'=' as IGUAL, 
+LMEQTDSAL,
+C.ESTQTDATU - C.ESTQTDRES AS DISPONÍVEL,
+ISNULL(B.M2_CXA,(SELECT TOP 1 M2_CXA FROM #MSL002 C WHERE A.LMEDOC = C.M2_CUP and CONVERT(INT,A.PROCOD) = C.M2_PROCOD ORDER BY A.PROCOD, LMEREG)) AS CAIXA,
+LMEDOC,
+-- ISNULL(B.M2_OPE,0) AS OPERADOR,
+CONVERT(CHAR(10),ISNULL(B.M2_DAT,(SELECT TOP 1 M2_DAT FROM #MSL002 C WHERE A.LMEDOC = C.M2_CUP and CONVERT(INT,A.PROCOD) = C.M2_PROCOD ORDER BY A.PROCOD, LMEREG)),103)
++ ' ' + ISNULL(B.M2_HOR,(SELECT TOP 1 M2_HOR FROM #MSL002 C WHERE A.LMEDOC = C.M2_CUP and CONVERT(INT,A.PROCOD) = C.M2_PROCOD ORDER BY A.PROCOD, LMEREG)) AS DATHORACUP, 
+CASE WHEN LMEQTDSAL < 0 
+	THEN CONVERT(CHAR (10),LMEDATHOR,103)
+	ELSE 'ANTES'
+END NEGATIVOU
+
+INTO #NEG
+FROM 
+TBS051 A (NOLOCK) 
+LEFT JOIN #MSL002 B ON A.LMEDOC = B.M2_CUP and CONVERT(INT,A.PROCOD) = B.M2_PROCOD and CONVERT(CHAR(10),A.LMEDATHOR,103) = B.M2_DAT
+LEFT JOIN TBS032 C ON A.PROCOD = C.PROCOD AND A.LMELOCEST = C.ESTLOC
+
+
+WHERE 
+A.PROCOD NOT IN ('          0.000','          09/01', '2.000 PAGINAS  ','DISPONÍVEL EM 1') AND 
+LMELOCEST = 2 AND
+A.LMEINFALT = 'E' AND
+CONVERT(CHAR (10),LMEDATHOR,103) BETWEEN @datade AND @dataate AND  
+LMEQTDSAL < 0 AND
+LMEACA = 'S' AND
+ESTQTDATU - ESTQTDRES < 0
+-- (LMEQTDATU < 0 OR LMEQTDSAL < 0 ) 
+
+-- AND LMEQTDATU > 0 AND LMEQTDSAL < 0
+
+ORDER BY PROCOD, LMEREG
+
+
+
+SELECT 
+	CASE ISNULL(B.PROCOD,'') WHEN ''
+		THEN 0
+		ELSE 1 
+	END + 
+	CASE ISNULL(C.PROCOD,'') WHEN ''
+		THEN 0
+		ELSE 1 
+	END + 
+	CASE ISNULL(D.PROCOD,'') WHEN ''
+		THEN 0
+		ELSE 1 
+	END + 
+	CASE ISNULL(E.PROCOD,'') WHEN ''
+		THEN 0
+		ELSE 1 
+	END + 
+	CASE ISNULL(F.PROCOD,'') WHEN ''
+		THEN 0
+		ELSE 1 
+	END + 
+	CASE ISNULL(G.PROCOD,'') WHEN ''
+		THEN 0
+		ELSE 1 
+	END + 
+	CASE ISNULL(H.PROCOD,'') WHEN ''
+		THEN 0
+		ELSE 1 
+	END +
+	CASE ISNULL(I.PROCOD,'') WHEN ''
+		THEN 0
+		ELSE 1 
+	END AS OCORRENCIA ,
+A.*
+
+
+FROM #NEG A 
+LEFT JOIN
+(SELECT DISTINCT PROCOD, NEGATIVOU 
+FROM #NEG 
+WHERE CONVERT(DATETIME,NEGATIVOU) = CONVERT(DATETIME,(SELECT TOP 1 NEGATIVOU FROM #NEG ORDER BY CONVERT(DATE,NEGATIVOU)))) AS B ON A.PROCOD = B.PROCOD
+
+LEFT JOIN
+(SELECT DISTINCT PROCOD, NEGATIVOU 
+FROM #NEG 
+WHERE CONVERT(DATETIME,NEGATIVOU) = CONVERT(DATETIME,(SELECT TOP 1 NEGATIVOU FROM #NEG ORDER BY CONVERT(DATE,NEGATIVOU)))+1) AS C ON A.PROCOD = C.PROCOD
+
+LEFT JOIN
+(SELECT DISTINCT PROCOD, NEGATIVOU 
+FROM #NEG 
+WHERE CONVERT(DATETIME,NEGATIVOU) = CONVERT(DATETIME,(SELECT TOP 1 NEGATIVOU FROM #NEG ORDER BY CONVERT(DATE,NEGATIVOU)))+2) AS D ON A.PROCOD = D.PROCOD
+
+LEFT JOIN
+(SELECT DISTINCT PROCOD, NEGATIVOU 
+FROM #NEG 
+WHERE CONVERT(DATETIME,NEGATIVOU) = CONVERT(DATETIME,(SELECT TOP 1 NEGATIVOU FROM #NEG ORDER BY CONVERT(DATE,NEGATIVOU)))+3) AS E 
+ON A.PROCOD = E.PROCOD
+
+LEFT JOIN
+(SELECT DISTINCT PROCOD, NEGATIVOU 
+FROM #NEG 
+WHERE CONVERT(DATETIME,NEGATIVOU) = CONVERT(DATETIME,(SELECT TOP 1 NEGATIVOU FROM #NEG ORDER BY CONVERT(DATE,NEGATIVOU)))+4) AS F ON A.PROCOD = F.PROCOD
+
+LEFT JOIN
+(SELECT DISTINCT PROCOD, NEGATIVOU 
+FROM #NEG 
+WHERE CONVERT(DATETIME,NEGATIVOU) = CONVERT(DATETIME,(SELECT TOP 1 NEGATIVOU FROM #NEG ORDER BY CONVERT(DATE,NEGATIVOU)))+5) AS G ON A.PROCOD = G.PROCOD
+
+LEFT JOIN
+(SELECT DISTINCT PROCOD, NEGATIVOU 
+FROM #NEG 
+WHERE CONVERT(DATETIME,NEGATIVOU) = CONVERT(DATETIME,(SELECT TOP 1 NEGATIVOU FROM #NEG ORDER BY CONVERT(DATE,NEGATIVOU)))+6) AS H ON A.PROCOD = H.PROCOD
+
+LEFT JOIN
+(SELECT DISTINCT PROCOD, NEGATIVOU 
+FROM #NEG 
+WHERE CONVERT(DATETIME,NEGATIVOU) = CONVERT(DATETIME,(SELECT TOP 1 NEGATIVOU FROM #NEG ORDER BY CONVERT(DATE,NEGATIVOU)))+7) AS I ON A.PROCOD = I.PROCOD
+
+
+
+
+
+--
+--if object_id('TempDB.dbo.#DATAS') is not null
+--   drop table #DATAS
+--    
+--create table #DATAS (DATADE DATE , DATAATE DATE)
+--INSERT INTO #DATAS
+--select 
+--convert(date,getdate() -7) as datede,
+--convert(date,getdate()) as dataate
+--
+--SELECT * FROM #DATAS
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+---- clientes atendidos no frente de loja
+--
+--declare @dataDe datetime, @dataAte datetime, @caixa int, @comando varchar(max)
+--
+--set @datade = '20170114'
+--set @dataate = '20170118'
+--set @caixa = 0
+--
+--
+---- VENDAS DA LOJA 1° PERIODO
+--
+--SET @comando = 'EXECUTE(''
+--select 
+--cupom,
+--data,
+--hora,
+--caixa,
+--operador,
+--item,
+--cdprod,
+--quant
+--
+--FROM movcaixa
+--where
+--data between "'+convert(char(8), @datade ,112)+'" and "'+convert(char(8), @dataate,112)+'"  and 
+--status = 01 and 
+--cancelado <> "S"
+-- '') at MYSQLGZ' 
+--
+--if object_id('TempDB.dbo.#MSL002') is not null
+--   drop table #MSL002
+--    
+--create table #MSL002 (M2_CUP INT,M2_DAT DATE, M2_HOR CHAR(10), M2_CXA INT, M2_OPE INT,M2_ITE INT, M2_PROCOD INT, M2_QTD decimal(10,3))
+--INSERT INTO #MSL002
+--exec(@comando)
+--
+---- SELECT * FROM #MSL002
+--
+---------------------------------------------------------------------------------------------------------------------------------------------------
+--
+--if object_id('TempDB.dbo.#TBS051') is not null
+--   drop table #TBS051
+--
+--SELECT 
+--LMEREG,
+--LMEDOC,
+--PROCOD,
+--LMEQTDSAL,
+--LMEQTDMOV
+--
+--INTO #TBS051 
+--FROM TBS051 (NOLOCK)
+--
+--WHERE 
+--PROCOD NOT IN ('          0.000','          09/01', '2.000 PAGINAS  ','DISPONÍVEL EM 1') AND 
+--LMEROT ='PMSL065 ' AND
+--LMEDOC IN (SELECT DISTINCT M2_CUP FROM #MSL002) AND 
+--LMEDATHOR BETWEEN '20170101' AND '20170115'
+--
+--SELECT * FROM #TBS051
+--
+--SELECT 
+--A.*,B.PROCOD, B.*
+--
+--FROM #MSL002 A 
+--LEFT JOIN #TBS051 B (NOLOCK) ON A.M2_PROCOD = CONVERT(INT,B.PROCOD) AND A.M2_CUP = B.LMEDOC
+--
+--SELECT * FROM #MSL002
+--
+--
+--SELECT * FROM TBS051 NOLOCK WHERE LMEDOC = 81214  AND LMEROT ='PMSL065 ' AND LMEDATHOR BETWEEN '20170101' AND '20170115'
+--
+--
+--SELECT * FROM TBS037

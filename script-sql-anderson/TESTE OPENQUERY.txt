@@ -1,0 +1,146 @@
+DECLARE @TSQL varchar(8000), @VAR char(15) 
+SET @VAR = '1080067' 
+
+--SELECT @TSQL = 
+	SELECT PROCOD ,ESTQTDATU FROM OPENQUERY(CD,'SELECT PROCOD,ESTQTDATU,ESTLOC FROM TBS032 (NOLOCK) WHERE PROCOD = @VAR')
+	WHERE PROCOD = @VAR AND ESTLOC = 1
+	
+EXEC (@TSQL)
+
+SELECT PROCOD, ESTQTDATU FROM TBS032 WHERE PROCOD = '1080067'
+
+
+
+DECLARE @VAR char(2) SELECT @VAR = 'CA' 
+
+EXEC MyLinkedServer.master.dbo.sp_executesql N'SELECT * FROM pubs.dbo.authors WHERE state = @state', N'@state char(2)', @VAR 
+
+
+
+
+
+DECLARE @OPENQUERY nvarchar(4000), @TSQL nvarchar(4000), @LinkedServer nvarchar(4000) 
+
+SET @LinkedServer = 'TT' 
+SET @OPENQUERY = 'SELECT * FROM OPENQUERY('+ @LinkedServer + ','''
+SET @TSQL = 'SELECT PROCOD, PRODES FROM TBS010 (NOLOCK) '')' 
+
+EXEC (@OPENQUERY+@TSQL) 
+
+
+SELECT PROCOD, PRODES FROM TT.SIBD.dbo.TBS010 (NOLOCK)
+
+
+SELECT PROCOD, PRODES FROM TBS010 (NOLOCK) WHERE PROCOD = '1640054'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+declare @comando varchar(500), @ecf int
+
+set @ecf=18
+
+set @comando = 'execute(''select id, ecf from ecf where ecf= '+str(@ecf,3)+''') at MYSQLGZ'
+
+select @comando
+
+execute(@comando)
+
+select 0 as id , 0 as ecf
+
+
+declare @datade date, @dataate date, @caixa int , @comando varchar(1000)
+
+set @datade = '20160517'
+set @dataate = '20160517'
+set @caixa = '2'
+set @comando = 'Execute(
+''select mov.tipopagto as finalizador,
+moda.descricao as pagamento,
+sum(mov.valortot) as total,
+sum(mov.descitem) as desconto,
+count(*) as cupons,
+round(sum(mov.valortot)/count(*),2) as medio,
+format((sum(mov.valortot)*100/
+(select sum(valortot) from movcaixa where data between "'+convert(char(8),@datade,112)+'" and "'+convert(char(8),@dataate,112)+'" and status=03 and caixa='+str(@caixa,3)+')),3) as "por"
+
+from 
+movcaixa mov
+inner join modalid moda on mov.tipopagto=moda.codigo
+
+where 
+mov.data between "'+convert(char(8),@datade,112)+'" and "'+convert(char(8),@dataate,112)+'" and 
+mov.status=03 and 
+mov.caixa= '+str(@caixa,3)+'
+group by mov.tipopagto,moda.descricao'') at MYSQLGZ'
+
+select @comando
+
+exec(@comando)
+
+SELECT '' AS finalizador, '' AS pagamento, 0 AS total, 0 as desconto 0 AS cupons, 0 as medio , 0 as 'por'
+
+
+
+
+Execute(
+select mov.tipopagto as finalizador,
+moda.descricao as pagamento,
+sum(mov.valortot) as total,
+count(*) as cupons,
+round(sum(mov.valortot)/count(*),2) as medio,
+concat(format((sum(mov.valortot)*100/(select sum(valortot) from movcaixa where data="20160517" and status=03 and caixa=1)),0),"") as "%"
+
+from 
+movcaixa mov
+inner join modalid moda on mov.tipopagto=moda.codigo
+
+where 
+mov.data between '+ @datade +''' and ' + @dataate + ''' and 
+mov.status=03 and 
+mov.caixa=1
+
+group by mov.tipopagto,moda.descricao) at MYSQLGZ'

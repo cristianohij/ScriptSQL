@@ -1,0 +1,41 @@
+-- APAGAR OS DADOS DAS TABELAS DE LOG TBS015(1) , TBS031 (1) E ALTERACAO (MERGE TBS010) 3 MESES PARA TRAZ
+
+SELECT * FROM ALTERACAO NOLOCK where PROMERDAT < CONVERT(DATE,dateadd(mm,-3,dateadd(dd,-day(getdate())+1,getdate())))
+
+SELECT * FROM LOGTBS015 NOLOCK WHERE PDPDAT < CONVERT(DATE,dateadd(mm,-3,dateadd(dd,-day(getdate())+1,getdate())))
+SELECT * FROM LOGTBS0151 NOLOCK WHERE PDPDAT < CONVERT(DATE,dateadd(mm,-3,dateadd(dd,-day(getdate())+1,getdate())))
+
+SELECT * FROM LOGTBS031 NOLOCK WHERE TDPDAT < CONVERT(DATE,dateadd(mm,-3,dateadd(dd,-day(getdate())+1,getdate())))
+SELECT * FROM LOGTBS0311 NOLOCK WHERE TDPDAT < CONVERT(DATE,dateadd(mm,-3,dateadd(dd,-day(getdate())+1,getdate())))
+
+-- LOG TBS010 ALTERACAO
+DELETE ALTERACAO
+where PROMERDAT < CONVERT(DATE,dateadd(mm,-3,dateadd(dd,-day(getdate())+1,getdate())))
+
+-- LOGTBS015
+DELETE LOGTBS015
+WHERE PDPDAT < CONVERT(DATE,dateadd(mm,-3,dateadd(dd,-day(getdate())+1,getdate())))
+
+-- LOGTBS0151
+DELETE LOGTBS0151
+WHERE PDPDAT < CONVERT(DATE,dateadd(mm,-3,dateadd(dd,-day(getdate())+1,getdate())))
+
+-- LOGTBS031
+DELETE LOGTBS031
+WHERE TDPDAT < CONVERT(DATE,dateadd(mm,-3,dateadd(dd,-day(getdate())+1,getdate())))
+
+-- LOGTBS0311
+DELETE LOGTBS0311
+WHERE TDPDAT < CONVERT(DATE,dateadd(mm,-3,dateadd(dd,-day(getdate())+1,getdate())))
+
+
+
+
+
+
+
+
+EXEC sp_MGTBS015
+EXEC sp_MGTBS0151
+EXEC sp_MGTBS031
+EXEC sp_MGTBS0311

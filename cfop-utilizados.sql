@@ -1,0 +1,6 @@
+select year(TBS067.NFSDATEMI),TBS0671.NFSCFOP
+  from TBS0671 with (nolock)
+       inner join TBS067 with (nolock)
+       on TBS067.SNESER=TBS0671.SNESER and TBS067.NFSNUM=TBS0671.NFSNUM
+ group by year(TBS067.NFSDATEMI),TBS0671.NFSCFOP
+ order by year(TBS067.NFSDATEMI) desc ,TBS0671.NFSCFOP

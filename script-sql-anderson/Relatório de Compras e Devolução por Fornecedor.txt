@@ -1,0 +1,487 @@
+--- ENTRADA POR DIA, POR FONECEDOR, ND, TTE E CD
+declare @dateDe datetime, @dateAte datetime , @NFEFORCOD INT, @NFEFORNOM CHAR(60), @UTEL INT
+
+SET @NFEFORCOD = 0
+SET @NFEFORNOM =''
+set @dateDe = '20170301'
+set @dateAte = '20170512'
+SET @UTEL = (SELECT dbo.FCNDIASUTEIS(@dateDe,@dateAte))
+--- ENTRADA POR DIA, POR FONECEDOR, ND, TTE E CD
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- GRUPO DE FRONECEDORES DO GRUPO, NÃO CONTABIIZAR 
+
+if object_id('TempDB.dbo.#GRUPOFOR') is not null
+   begin
+      drop table #GRUPOFOR
+   end
+
+select 
+FORCOD into #GRUPOFOR
+
+FROM 
+TBS006 (nolock) 
+
+WHERE FORCGC Like('65069593%') or FORCGC Like('05118717%') or FORCGC Like('52080207%') or FORCGC Like('44125185%');
+ 	 			-- TANBYS			       -- BAG			           -- MISAS			               -- PAPE
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#NFE') is not null
+   begin
+      drop table #NFE
+   end
+   
+		SELECT
+		--dbo.FCNDIASUTEIS(@dateDe,@dateAte) as UTEL,
+		CASE DATEPART(w,NFEDATEFE) 
+		WHEN 1 THEN 'Dom'
+		WHEN 2 THEN 'Seg'
+		WHEN 3 THEN 'Ter'
+		WHEN 4 THEN 'Qua'
+		WHEN 5 THEN 'Qui' 
+		WHEN 6 THEN 'Sex'
+		WHEN 7 THEN 'Sáb'
+		END AS DIA,
+		A.NFECOD AS NFECOD,
+		B.NFENOM AS NFENOM,
+		CONVERT(CHAR (10), NFEDATEFE,103) AS NFEDATEFE,
+		CONVERT(CHAR (10), NFEDATEFE,102) AS DATA,
+		sum(ROUND(NFETOTOPEITE,2)) AS NFETOTOPEITE,
+		COUNT(DISTINCT A.NFENUM) AS QTDNOT
+		
+		INTO #NFE		 
+		FROM 
+		TBS0591 A (NOLOCK)
+		LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND A.NFENUM = B.NFENUM AND 
+		A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND  A.SEREMPCOD = B.SEREMPCOD
+		  
+		WHERE 
+		NFEDATEFE between @dateDe and @dateAte and 
+		A.NFETIP ='N' and 
+		NFECAN = 'N' AND
+		-- B.NFENOM NOT LIKE ('%TANBY%') AND
+		A.NFECOD NOT IN ((SELECT FORCOD FROM #GRUPOFOR)) AND 
+		A.NFECFOP IN ('1.102','2.102','1.202','2.202','1.403','2.403','2.411','1.411','1.653','2.653','1.922','2.922')
+
+		GROUP BY 
+		NFEDATEFE, A.NFECOD, B.NFENOM 
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+		
+if object_id('TempDB.dbo.#NFEGRU') is not null
+   begin
+      drop table #NFEGRU
+   end
+
+		SELECT
+		--dbo.FCNDIASUTEIS(@dateDe,@dateAte) as UTEL,
+		CASE DATEPART(w,NFEDATEFE) 
+		WHEN 1 THEN 'Dom'
+		WHEN 2 THEN 'Seg'
+		WHEN 3 THEN 'Ter'
+		WHEN 4 THEN 'Qua'
+		WHEN 5 THEN 'Qui' 
+		WHEN 6 THEN 'Sex'
+		WHEN 7 THEN 'Sáb'
+		END AS DIA,
+		A.NFECOD AS NFECOD,
+		B.NFENOM AS NFENOM,
+		CONVERT(CHAR (10), NFEDATEFE,103) AS NFEDATEFE,
+		CONVERT(CHAR (10), NFEDATEFE,102) AS DATA,
+		sum(ROUND(NFETOTOPEITE,2)) AS NFETOTOPEITE,
+		COUNT(DISTINCT A.NFENUM) AS QTDNOT
+		
+		INTO #NFEGRU
+		FROM 
+		TBS0591 A (NOLOCK)
+		LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND A.NFENUM = B.NFENUM AND 
+		A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND  A.SEREMPCOD = B.SEREMPCOD
+			  
+		WHERE 
+		NFEDATEFE between @dateDe and @dateAte and 
+		A.NFETIP ='N' and 
+		NFECAN = 'N' AND
+		-- B.NFENOM NOT LIKE ('%TANBY%') AND
+		A.NFECOD IN ((SELECT FORCOD FROM #GRUPOFOR)) AND 
+		A.NFECFOP IN ('1.102','2.102','1.202','2.202','1.403','2.403','2.411','1.411','1.653','2.653','1.922','2.922')
+
+		GROUP BY 
+		NFEDATEFE, A.NFECOD, B.NFENOM 
+		
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+		
+if object_id('TempDB.dbo.#DEV') is not null
+   begin
+      drop table #DEV
+   end
+
+		SELECT
+		--dbo.FCNDIASUTEIS(@dateDe,@dateAte) as UTEL,
+		CASE DATEPART(w,NFDDATEMI) 
+		WHEN 1 THEN 'Dom'
+		WHEN 2 THEN 'Seg'
+		WHEN 3 THEN 'Ter'
+		WHEN 4 THEN 'Qua'
+		WHEN 5 THEN 'Qui' 
+		WHEN 6 THEN 'Sex'
+		WHEN 7 THEN 'Sáb'
+		END AS DIA,
+		FORCOD AS FORCOD,
+		NFDFORNOM AS NFDFORNOM,
+		CONVERT(CHAR (10), NFDDATEMI,103) AS NFDDATEMI,
+		CONVERT(CHAR (10), NFDDATEMI,102) AS DATA,		
+		SUM(round(dbo.NFDTOTITEST(A.NFDEMPCOD,A.SNEEMPCOD,A.SNESER,A.NFDNUM,A.NFDITE),2)) + -- NOVA FORMULA NÃO CONTABILIZA O IPI, POR ISSO PRECISO SOMAR COM IPI
+		SUM(round(NFDVALIPI,2)) AS NFDTOTITEST, 	  -- TOTAL DA NOTA
+		COUNT(DISTINCT A.NFDNUM) AS QTDNOT		
+		
+		INTO #DEV		
+		FROM
+		TBS1172 A (NOLOCK)
+		LEFT JOIN TBS117 B (NOLOCK) ON A.NFDEMPCOD = B.NFDEMPCOD AND A.NFDNUM = B.NFDNUM AND A.SNEEMPCOD = A.SNEEMPCOD AND A.SNESER = B.SNESER
+		LEFT JOIN TBS080 D (NOLOCK) ON B.NFDNUM = D.ENFNUM AND B.SNEEMPCOD = D.SNEEMPCOD AND B.SNESER = D.SNESER
+		
+		WHERE
+		B.NFDDATEMI BETWEEN @dateDe and @dateAte and
+		D.ENFSIT = 6 AND
+		D.ENFFINEMI = 4 AND 
+		D.ENFTIPDOC = 1 AND
+		-- NFDFORNOM NOT LIKE ('%TANBY%') AND
+		A.NFDCFOP IN ('5.102','5.202','5.405','5.411','5.922','5.929','6.102','6.202','6.108','6.404','6.411','6.922')
+				
+		GROUP BY 
+		FORCOD, NFDFORNOM, NFDDATEMI
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+		
+if object_id('TempDB.dbo.#DEVGRU') is not null
+   begin
+      drop table #DEVGRU
+   end
+ 
+		SELECT
+		--dbo.FCNDIASUTEIS(@dateDe,@dateAte) as UTEL,
+		CASE DATEPART(w,NFDDATEMI) 
+		WHEN 1 THEN 'Dom'
+		WHEN 2 THEN 'Seg'
+		WHEN 3 THEN 'Ter'
+		WHEN 4 THEN 'Qua'
+		WHEN 5 THEN 'Qui' 
+		WHEN 6 THEN 'Sex'
+		WHEN 7 THEN 'Sáb'
+		END AS DIA,
+		FORCOD AS FORCOD,
+		NFDFORNOM AS NFDFORNOM,
+		CONVERT(CHAR (10), NFDDATEMI,103) AS NFDDATEMI,		
+		SUM(round(dbo.NFDTOTITEST(A.NFDEMPCOD,A.SNEEMPCOD,A.SNESER,A.NFDNUM,A.NFDITE),2)) + -- NOVA FORMULA NÃO CONTABILIZA O IPI, POR ISSO PRECISO SOMAR COM IPI
+		SUM(round(NFDVALIPI,2)) AS NFDTOTITEST, 	  -- TOTAL DA NOTA
+		COUNT(DISTINCT A.NFDNUM) AS QTDNOT		
+		
+		INTO #DEVGRU		
+		FROM
+		TBS1172 A (NOLOCK)
+		LEFT JOIN TBS117 B (NOLOCK) ON A.NFDEMPCOD = B.NFDEMPCOD AND A.NFDNUM = B.NFDNUM AND A.SNEEMPCOD = A.SNEEMPCOD AND A.SNESER = B.SNESER
+		LEFT JOIN TBS080 D (NOLOCK) ON B.NFDNUM = D.ENFNUM AND B.SNEEMPCOD = D.SNEEMPCOD AND B.SNESER = D.SNESER
+		
+		WHERE
+		B.NFDDATEMI BETWEEN @dateDe and @dateAte and
+		D.ENFSIT = 6 AND
+		D.ENFFINEMI = 4 AND 
+		D.ENFTIPDOC = 1 AND
+		-- NFDFORNOM NOT LIKE ('%TANBY%') AND
+		A.NFDCFOP IN ('5.102','5.202','5.405','5.411','5.922','5.929','6.102','6.202','6.108','6.404','6.411','6.922') AND
+		B.FORCOD IN ((SELECT FORCOD FROM #GRUPOFOR))
+				
+		GROUP BY 
+		FORCOD, NFDFORNOM, NFDDATEMI
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+SELECT 
+@UTEL AS UTEL,
+ISNULL(ISNULL(ISNULL(A.NFEDATEFE,B.NFEDATEFE),C.NFDDATEMI),D.NFDDATEMI) as NFEDATEFE,
+ISNULL(ISNULL(ISNULL(A.DATA,B.DATA),C.DATA),D.DATA) as DATA,
+ISNULL(ISNULL(ISNULL(A.DIA,B.DIA),C.DIA),D.DIA) AS DIA,
+
+ISNULL(ISNULL(ISNULL(A.NFECOD,B.NFECOD),C.FORCOD),D.FORCOD) AS NFECOD,
+ISNULL(ISNULL(ISNULL(A.NFENOM,B.NFENOM),C.NFDFORNOM),D.NFDFORNOM) AS NFENOM,
+
+ISNULL(A.QTDNOT,0) AS QTDNOT,
+ISNULL(A.NFETOTOPEITE,0) AS NFETOTOPEITE,
+
+ISNULL(B.QTDNOT,0) AS QTDNOTGRU,
+ISNULL(B.NFETOTOPEITE,0) AS NFETOTOPEITEGRU,
+
+ISNULL(C.QTDNOT,0) AS QTDNOTDEV,
+ISNULL(C.NFDTOTITEST,0) AS NFDTOTITEST,
+
+ISNULL(D.QTDNOT,0) AS QTDNOTDEVGRU,
+ISNULL(D.NFDTOTITEST,0) AS NFDTOTITESTGRU,
+
+ISNULL(A.QTDNOT,0) + ISNULL(B.QTDNOT,0) as QTDNOTTOT,
+ISNULL(A.NFETOTOPEITE,0) + ISNULL(B.NFETOTOPEITE,0) AS VALBRU,
+
+ISNULL(A.NFETOTOPEITE,0) + ISNULL(B.NFETOTOPEITE,0)- ISNULL(C.NFDTOTITEST,0) AS VALLIQ,
+ISNULL(A.NFETOTOPEITE,0) - ISNULL(C.NFDTOTITEST,0) + ISNULL(D.NFDTOTITEST,0) AS VALLIQSEMGRU
+
+
+FROM 
+#NFE A 
+FULL OUTER JOIN #NFEGRU B ON A.NFEDATEFE = B.NFEDATEFE AND A.NFECOD = B.NFECOD
+FULL OUTER JOIN #DEV C ON ISNULL(A.NFEDATEFE,B.NFEDATEFE) = C.NFDDATEMI AND ISNULL(A.NFECOD,B.NFECOD) = C.FORCOD
+FULL OUTER JOIN #DEVGRU D ON ISNULL(ISNULL(A.NFEDATEFE,B.NFEDATEFE),C.NFDDATEMI) = D.NFDDATEMI AND ISNULL(ISNULL(A.NFECOD,B.NFECOD),C.FORCOD) = D.FORCOD
+
+--WHERE 
+-- ISNULL(ISNULL(ISNULL(A.DIA,B.DIA),C.DIA),D.DIA) IN (@DIAS) AND 
+-- ISNULL(ISNULL(ISNULL(A.NFECOD,B.NFECOD),C.FORCOD),D.FORCOD) = CASE WHEN @NFECOD = 0 
+--											  						THEN ISNULL(ISNULL(ISNULL(A.NFECOD,B.NFECOD),C.FORCOD),D.FORCOD)
+--											  						ELSE @NFECOD
+--											 					END  AND
+-- ISNULL(ISNULL(ISNULL(A.NFENOM,B.NFENOM),C.NFDFORNOM),D.NFDFORNOM) LIKE (CASE WHEN @NFENOM = ''
+--													 						THEN ISNULL(ISNULL(ISNULL(A.NFENOM,B.NFENOM),C.NFDFORNOM),D.NFDFORNOM)
+--													 						ELSE RTRIM(UPPER(@NFENOM))+'%'
+--																		END )
+
+--ORDER BY 
+--ISNULL(ISNULL(ISNULL(A.NFEDATEFE,B.NFEDATEFE),C.NFDDATEMI),D.NFDDATEMI)
+
+UNION 
+
+SELECT 
+@UTEL AS UTEL,
+CONVERT(CHAR(2),CPAREFMES) as NFEDATEFE,
+CONVERT(CHAR(4),CPAREFANO) +'.'+ right(('0' + ltrim(str(CONVERT(CHAR(2),CPAREFMES)))),2) as DATA,
+CONVERT(CHAR(4),CPAREFANO) AS DIA,
+
+A.FORCOD AS NFECOD,
+B.FORNOM AS NFENOM,
+
+1 AS QTDNOT,
+ROUND(CPAVAL,2) AS NFETOTOPEITE,
+ 
+0 AS QTDNOTGRU,
+0 AS NFETOTOPEITEGRU,
+
+0 AS QTDNOTDEV,
+0 AS NFDTOTITEST,
+
+0 AS QTDNOTDEVGRU,
+0 AS NFDTOTITESTGRU,
+
+1 as QTDNOTTOT,
+ROUND(CPAVAL,2) AS VALBRU,
+
+ROUND(CPAVAL,2) AS VALLIQ,
+ROUND(CPAVAL,2) AS VALLIQSEMGRU
+		
+--INTO #ENTRADA
+FROM 
+TBS057 A (NOLOCK)
+LEFT JOIN TBS006 B (NOLOCK) ON A.FORCOD = B.FORCOD
+		
+WHERE 
+CONVERT(CHAR(4),CPAREFANO) +'.'+ right(('0' + ltrim(str(CONVERT(CHAR(2),CPAREFMES)))),2) 
+BETWEEN SUBSTRING(CONVERT(CHAR(10),@dataDe,102),1,7) AND SUBSTRING(CONVERT(CHAR(10),@dataAte,102),1,7) AND 
+CPACFOP COLLATE DATABASE_DEFAULT IN ('1.252', '1.352', '2.352') -- AND
+-- A.FORCOD = CASE WHEN @NFECOD = 0 
+--				THEN A.FORCOD
+--				ELSE @NFECOD
+--			END AND 
+--B.FORNOM LIKE (CASE WHEN @NFENOM = ''
+--					THEN B.FORNOM
+--					ELSE RTRIM(UPPER(@NFENOM))+'%'
+--				 END )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+--
+----- ENTRADA POR DIA, POR FONECEDOR SP
+--
+--declare @dateDe datetime, @dateAte datetime , @NFEFORCOD INT, @NFEFORNOM CHAR(60)
+--
+--SET @NFEFORCOD = 0
+--SET @NFEFORNOM =''
+--set @dateDe = '20161101'
+--set @dateAte = '20161121'
+--
+--if object_id('TempDB.dbo.#FER') is not null
+--   drop table #FER
+--SELECT * INTO #FER FROM INTG.SIBDBKP.dbo.Feriado 
+--
+--;with 
+--NFE as (
+--		SELECT
+--		dbo.FCNDIASUTEIS(@dateDe,@dateAte) - 
+--		(SELECT count(*) FROM #FER
+--			where 
+--			(Sg_UF = 'SJ' or Tp_Feriado = 1 ) and 
+--			(Nr_Ano between substring(convert(char(10),@dateDe,103),7,4) and substring(convert(char(10),@dateAte,103),7,4) OR (Nr_Ano between 0 and 0)) and 
+--			Nr_Mes between substring(convert(char(10),@dateDe,103),4,2) and substring(convert(char(10),@dateAte,103),4,2) and 
+--			Nr_Dia between substring(convert(char(10),@dateDe,103),1,2) and  substring(convert(char(10),@dateAte,103),1,2)) as UTEL,
+--		CASE DATEPART(w,NFEDATEFE) 
+--		WHEN 1 THEN 'Dom'
+--		WHEN 2 THEN 'Seg'
+--		WHEN 3 THEN 'Ter'
+--		WHEN 4 THEN 'Qua'
+--		WHEN 5 THEN 'Qui' 
+--		WHEN 6 THEN 'Sex'
+--		WHEN 7 THEN 'Sáb'
+--		END AS DIA,
+--		A.NFECOD AS NFECOD,
+--		B.NFENOM AS NFENOM,
+--		CONVERT(CHAR (10), NFEDATEFE,103) AS NFEDATEFE,
+--		sum(NFETOTOPEITE) AS NFETOTOPEITE,
+--		COUNT(DISTINCT A.NFENUM) AS QTDNOT
+--		 
+--		FROM 
+--		TBS0591 A (NOLOCK)
+--		LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND A.NFENUM = B.NFENUM AND 
+--		A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND  A.SEREMPCOD = B.SEREMPCOD
+--		  
+--		WHERE 
+--		NFEDATEFE between @dateDe and @dateAte and 
+--		A.NFETIP IN('N') and 
+--		NFECAN = 'N' AND												 	  -- TANBYS                      -- BEST                        -- PAPELYNA                   -- MISASPEL
+--		A.NFECOD NOT IN ((SELECT FORCOD FROM TBS006 NOLOCK WHERE FORCGC LIKE('65069593000%') OR FORCGC LIKE('05118717000%') OR FORCGC LIKE('44125185000%') OR FORCGC LIKE('52080207000%')))
+--
+--		GROUP BY 
+--		NFEDATEFE, A.NFECOD, B.NFENOM 
+--		),
+--
+--NFEGRU AS ( 
+--		SELECT
+--		dbo.FCNDIASUTEIS(@dateDe,@dateAte) - 
+--		(SELECT count(*) FROM #FER
+--			where 
+--			(Sg_UF = 'SJ' or Tp_Feriado = 1 ) and 
+--			(Nr_Ano between substring(convert(char(10),@dateDe,103),7,4) and substring(convert(char(10),@dateAte,103),7,4) OR (Nr_Ano between 0 and 0)) and 
+--			Nr_Mes between substring(convert(char(10),@dateDe,103),4,2) and substring(convert(char(10),@dateAte,103),4,2) and 
+--			Nr_Dia between substring(convert(char(10),@dateDe,103),1,2) and  substring(convert(char(10),@dateAte,103),1,2)) as UTEL,
+--		CASE DATEPART(w,NFEDATEFE) 
+--		WHEN 1 THEN 'Dom'
+--		WHEN 2 THEN 'Seg'
+--		WHEN 3 THEN 'Ter'
+--		WHEN 4 THEN 'Qua'
+--		WHEN 5 THEN 'Qui' 
+--		WHEN 6 THEN 'Sex'
+--		WHEN 7 THEN 'Sáb'
+--		END AS DIA,
+--		A.NFECOD AS NFECOD,
+--		B.NFENOM AS NFENOM,
+--		CONVERT(CHAR (10), NFEDATEFE,103) AS NFEDATEFE,
+--		sum(NFETOTOPEITE) AS NFETOTOPEITE,
+--		COUNT(DISTINCT A.NFENUM) AS QTDNOT
+--		 
+--		FROM 
+--		TBS0591 A (NOLOCK)
+--		LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND A.NFENUM = B.NFENUM AND 
+--		A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND  A.SEREMPCOD = B.SEREMPCOD
+--			  
+--		WHERE 
+--		NFEDATEFE between @dateDe and @dateAte and 
+--		A.NFETIP IN('N') and 
+--		NFECAN = 'N' AND							 						-- TANBYS                      -- BEST                        -- PAPELYNA                   -- MISASPEL
+--		A.NFECOD IN ((SELECT FORCOD FROM TBS006 NOLOCK WHERE FORCGC LIKE('65069593000%') OR FORCGC LIKE('05118717000%') OR FORCGC LIKE('44125185000%') OR FORCGC LIKE('52080207000%')))
+--
+--		GROUP BY 
+--		NFEDATEFE, A.NFECOD, B.NFENOM 
+--		),
+--
+--DEV AS (
+--		SELECT
+--		dbo.FCNDIASUTEIS(@dateDe,@dateAte) - 
+--		(SELECT count(*) FROM #FER
+--			where 
+--			(Sg_UF = 'SJ' or Tp_Feriado = 1 ) and 
+--			(Nr_Ano between substring(convert(char(10),@dateDe,103),7,4) and substring(convert(char(10),@dateAte,103),7,4) OR (Nr_Ano between 0 and 0)) and 
+--			Nr_Mes between substring(convert(char(10),@dateDe,103),4,2) and substring(convert(char(10),@dateAte,103),4,2) and 
+--			Nr_Dia between substring(convert(char(10),@dateDe,103),1,2) and  substring(convert(char(10),@dateAte,103),1,2)) as UTEL,
+--		CASE DATEPART(w,NFDDATEMI) 
+--		WHEN 1 THEN 'Dom'
+--		WHEN 2 THEN 'Seg'
+--		WHEN 3 THEN 'Ter'
+--		WHEN 4 THEN 'Qua'
+--		WHEN 5 THEN 'Qui' 
+--		WHEN 6 THEN 'Sex'
+--		WHEN 7 THEN 'Sáb'
+--		END AS DIA,
+--		FORCOD AS FORCOD,
+--		NFDFORNOM AS NFDFORNOM,
+--		CONVERT(CHAR (10), NFDDATEMI,103) AS NFDDATEMI,		
+--		SUM(dbo.NFDTOTITE(A.NFDEMPCOD, A.SNEEMPCOD, A.SNESER, A.NFDNUM, A.NFDNFEEMP, A.NFDNFETIP, A.NFDNFENUM,A.NFDSEREMP, A.NFDSERCOD, A.NFDITE)) AS NFDTOTITEST, 	  -- TOTAL DA NOTA
+--		COUNT(DISTINCT A.NFDNUM) AS QTDNOT		
+--				
+--		FROM
+--		TBS1172 A (NOLOCK)
+--		LEFT JOIN TBS117 B (NOLOCK) ON A.NFDEMPCOD = B.NFDEMPCOD AND A.NFDNUM = B.NFDNUM AND A.SNEEMPCOD = A.SNEEMPCOD AND A.SNESER = B.SNESER
+--		
+--		WHERE
+--		B.NFDDATEMI between @dateDe and @dateAte and 
+--		A.NFDNFETIP ='N' AND
+--		B.NFDSTATUS = 'A' 
+--				
+--		GROUP BY 
+--		FORCOD, NFDFORNOM, NFDDATEMI
+--		) 
+--
+--SELECT 
+--ISNULL(ISNULL(A.UTEL,B.UTEL),C.UTEL) AS UTEL,
+--ISNULL(ISNULL(A.NFEDATEFE,B.NFEDATEFE),C.NFDDATEMI) as NFEDATEFE,
+--ISNULL(ISNULL(A.DIA,B.DIA),C.DIA) AS DIA,
+--
+--ISNULL(ISNULL(A.NFECOD,B.NFECOD),C.FORCOD) AS NFECOD,
+--ISNULL(ISNULL(A.NFENOM,B.NFENOM),C.NFDFORNOM) AS NFENOM,
+--
+--ISNULL(A.QTDNOT,0) AS QTDNOT,
+--ISNULL(A.NFETOTOPEITE,0) AS NFETOTOPEITE,
+--
+--ISNULL(B.QTDNOT,0) AS QTDNOTGRU,
+--ISNULL(B.NFETOTOPEITE,0) AS NFETOTOPEITEGRU,
+--
+--ISNULL(C.QTDNOT,0) AS QTDNOTDEV,
+--ISNULL(C.NFDTOTITEST,0) AS NFDTOTITEST,
+--
+--ISNULL(A.QTDNOT,0) + ISNULL(B.QTDNOT,0) as QTDNOTTOT,
+--ISNULL(A.NFETOTOPEITE,0) + ISNULL(B.NFETOTOPEITE,0) AS VALBRU,
+--
+--
+--ISNULL(A.NFETOTOPEITE,0) + ISNULL(B.NFETOTOPEITE,0)- ISNULL(NFDTOTITEST,0) AS VALLIQ,
+--ISNULL(A.NFETOTOPEITE,0) - ISNULL(NFDTOTITEST,0)  AS VALLIQSEMGRU
+--
+--
+--FROM 
+--NFE A 
+--FULL OUTER JOIN NFEGRU B ON A.NFEDATEFE = B.NFEDATEFE AND A.NFECOD = B.NFECOD
+--FULL OUTER JOIN DEV C ON ISNULL(A.NFEDATEFE,B.NFEDATEFE) = C.NFDDATEMI AND ISNULL(A.NFECOD,B.NFECOD) = C.FORCOD
+--
+--WHERE 
+----ISNULL(ISNULL(A.DIA,B.DIA)C.DIA) IN (@DIAS) AND  
+--ISNULL(ISNULL(A.NFECOD,B.NFECOD),C.FORCOD) = CASE WHEN @NFECOD = 0 
+--											  THEN ISNULL(ISNULL(A.NFECOD,B.NFECOD),C.FORCOD)
+--											  ELSE @NFECOD
+--											 END  AND
+--ISNULL(ISNULL(A.NFENOM,B.NFENOM),C.NFDFORNOM) LIKE (CASE WHEN @NFENOM = ''
+--													 THEN ISNULL(ISNULL(A.NFENOM,B.NFENOM),C.NFDFORNOM)
+--													 ELSE RTRIM(UPPER(@NFENOM))+'%'
+--													END )
+--
+--ORDER BY 
+--ISNULL(ISNULL(A.NFEDATEFE,B.NFEDATEFE),C.NFDDATEMI)
+--

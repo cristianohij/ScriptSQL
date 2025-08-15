@@ -1,0 +1,278 @@
+declare @tabela char(8),@cons char(7),@indice char(4)
+--set @tabela = 'TBS067'
+--set @tabela = 'TBS0671'
+--set @tabela = 'TBS0672'
+--set @tabela = 'TBS0673'
+--set @tabela = 'TBS069'
+--set @tabela = 'TBS073'
+--set @tabela = 'TBS080'
+set @tabela = 'TBS0801'
+
+set @cons = 'PK__'+subString(@tabela,1,3)	-- constraint da chave primária
+set @indice = 'I'+subString(@tabela,1,3)	-- indices da tabela
+
+-- elimina a chave primária da tabela especificada
+select 'alter table '+rtrim(@tabela)+' drop constraint '+rtrim(ind.name) from sysobjects obj join sysindexes ind on obj.id = ind.id
+ where obj.name = @tabela and ind.name Like(@cons+'%')
+
+-- elimina indices da tabela especificada
+select 'drop index '+rtrim(@tabela)+'.'+ind.name from sysobjects obj join sysindexes ind on obj.id = ind.id
+ where obj.name = @tabela and ind.name Like(@indice+'%')
+
+
+-- update série
+
+-- tanby nd
+update TBS067 set SNESER = 1 where NFSDATEMI >= '20130801'
+go
+
+update TBS0671 set TBS0671.SNESER = 1 from TBS067 join TBS0671 on TBS0671.NFSEMPCOD = TBS067.NFSEMPCOD and TBS0671.NFSNUM = TBS067.NFSNUM
+ where TBS067.NFSDATEMI >= '20130801'
+go
+
+update TBS0672 set TBS0672.SNESER = 1 from TBS067 join TBS0672 on TBS0672.NFSEMPCOD = TBS067.NFSEMPCOD and TBS0672.NFSNUM = TBS067.NFSNUM
+ where TBS067.NFSDATEMI >= '20130801'
+go
+
+update TBS0673 set TBS0673.SNESER = 1 from TBS067 join TBS0673 on TBS0673.NFSEMPCOD = TBS067.NFSEMPCOD and TBS0673.NFSNUM = TBS067.NFSNUM
+ where TBS067.NFSDATEMI >= '20130801'
+go
+
+update TBS069 set PDFSER = 1 where PDFNFSDAT >= '20130801'
+go
+
+update TBS073 set SNESER = 1 where CACDATEMI >= '20130801'
+go
+
+update TBS080 set SNESER = 1 where ENFDATEMI >= '20130801'
+go
+
+update TBS0801 set SNESER = 1 from TBS080 join TBS0801 on TBS0801.ENFEMPCOD = TBS080.ENFEMPCOD and TBS0801.ENFNUM = TBS080.ENFNUM
+ where TBS080.ENFDATEMI >= '20130801'
+go
+
+
+-- ultima nf emitida tanby nd: 103915
+
+-- ultima nf emitida misaspel: 49236
+
+
+-- recriar indices
+
+-- TBS067
+
+ALTER TABLE [dbo].[TBS067] WITH NOCHECK ADD 
+	 PRIMARY KEY  CLUSTERED 
+	(
+		[NFSEMPCOD],
+		[SNEEMPCOD],
+		[SNESER],
+		[NFSNUM]
+	)  ON [PRIMARY] 
+GO
+
+ CREATE  INDEX [ITBS0674] ON [dbo].[TBS067]([TRNEMPCOD], [TRNCOD]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS06743] ON [dbo].[TBS067]([CPGEMPCOD], [CPGCOD]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS06744] ON [dbo].[TBS067]([UFESIG]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS06745] ON [dbo].[TBS067]([VENEMPCOD], [VENCOD]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS06746] ON [dbo].[TBS067]([SEREMPCOD], [SERCOD]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS0676] ON [dbo].[TBS067]([NFSEMPCOD], [SNEEMPCOD], [SNESER], [NFSNUM], [NFSDATEMI]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS0677] ON [dbo].[TBS067]([NFSEMPCOD], [NFSCAN]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS0678] ON [dbo].[TBS067]([NFSEMPCOD], [NFSCLICOD], [NFSDATEMI]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS0679] ON [dbo].[TBS067]([NFSEMPCOD], [NFSDATEMI], [NFSNUM]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS067B] ON [dbo].[TBS067]([NFSEMPCOD], [VENCOD]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS067C] ON [dbo].[TBS067]([NFSEMPCOD], [NFSDATEMI], [VENCOD]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS067D] ON [dbo].[TBS067]([NFSEMPCOD], [NFSDATEMI], [NFSCLICOD]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS067E] ON [dbo].[TBS067]([NFSEMPCOD], [SNEEMPCOD], [SNESER], [NFSNUM] DESC ) ON [PRIMARY]
+GO
+
+-- TBS0671
+
+ALTER TABLE [dbo].[TBS0671] WITH NOCHECK ADD 
+	 PRIMARY KEY  CLUSTERED 
+	(
+		[NFSEMPCOD],
+		[SNEEMPCOD],
+		[SNESER],
+		[NFSNUM],
+		[NFSITE]
+	)  ON [PRIMARY] 
+GO
+
+ CREATE  INDEX [ITBS06713] ON [dbo].[TBS0671]([TESEMPCOD], [TESCOD]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS06714] ON [dbo].[TBS0671]([LESEMPCOD], [LESCOD]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS06715] ON [dbo].[TBS0671]([PROEMPCOD], [PROCOD]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS06716] ON [dbo].[TBS0671]([NFSEMPCOD], [LESCOD]) ON [PRIMARY]
+GO
+
+-- TBS0672
+
+ALTER TABLE [dbo].[TBS0672] WITH NOCHECK ADD 
+	 PRIMARY KEY  CLUSTERED 
+	(
+		[NFSEMPCOD],
+		[SNEEMPCOD],
+		[SNESER],
+		[NFSNUM],
+		[NFSPDVEMP],
+		[NFSPDVNUM]
+	)  ON [PRIMARY] 
+GO
+
+-- TBS0673
+
+ALTER TABLE [dbo].[TBS0673] WITH NOCHECK ADD 
+	 PRIMARY KEY  CLUSTERED 
+	(
+		[NFSEMPCOD],
+		[SNEEMPCOD],
+		[SNESER],
+		[NFSNUM],
+		[NFSITE],
+		[NFSDATVAL],
+		[NFSLOTNUM]
+	)  ON [PRIMARY] 
+GO
+
+-- TBS069
+
+ALTER TABLE [dbo].[TBS069] WITH NOCHECK ADD 
+	 PRIMARY KEY  CLUSTERED 
+	(
+		[PDFPDVEMP],
+		[PDFPDVNUM],
+		[PDFPDVITE],
+		[PDFNFSEMP],
+		[PDFSEREMP],
+		[PDFSER],
+		[PDFNFSNUM]
+	)  ON [PRIMARY] 
+GO
+
+ CREATE  INDEX [ITBS0691] ON [dbo].[TBS069]([PROEMPCOD], [PROCOD]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS0692] ON [dbo].[TBS069]([PDFNFSEMP], [PDFSEREMP], [PDFSER], [PDFNFSNUM], [PDFNFSITE]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS0693] ON [dbo].[TBS069]([PDFNFSEMP], [PROCOD], [PDFNFSDAT]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS0694] ON [dbo].[TBS069]([PDFNFSEMP], [PDFSEREMP], [PDFSER], [PDFNFSNUM] DESC , [PDFNFSITE]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS0695] ON [dbo].[TBS069]([PDFNFSEMP], [PDFSEREMP], [PDFSER], [PDFPDVNUM] DESC , [PDFPDVITE]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS0696] ON [dbo].[TBS069]([PDFNFSEMP], [PDFPRODES]) ON [PRIMARY]
+GO
+
+-- TBS073
+
+ALTER TABLE [dbo].[TBS073] WITH NOCHECK ADD 
+	 PRIMARY KEY  CLUSTERED 
+	(
+		[CACEMPCOD],
+		[CACDOC]
+	)  ON [PRIMARY] 
+GO
+
+ CREATE  INDEX [ITBS0732] ON [dbo].[TBS073]([CACEMPCOD], [NFSNUM]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS0733] ON [dbo].[TBS073]([CACEMPCOD], [CACDATEMI]) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS0734] ON [dbo].[TBS073]([CACEMPCOD], [CACDOC] DESC ) ON [PRIMARY]
+GO
+
+ CREATE  INDEX [ITBS0731] ON [dbo].[TBS073]([NFSEMPCOD], [SNEEMPCOD], [SNESER], [NFSNUM]) ON [PRIMARY]
+GO
+
+-- TBS080
+
+ALTER TABLE [dbo].[TBS080] WITH NOCHECK ADD 
+	 PRIMARY KEY  CLUSTERED 
+	(
+		[ENFEMPCOD],
+		[SNEEMPCOD],
+		[SNESER],
+		[ENFNUM]
+	)  ON [PRIMARY] 
+GO
+
+-- TBS0801
+
+ALTER TABLE [dbo].[TBS0801] WITH NOCHECK ADD 
+	 PRIMARY KEY  CLUSTERED 
+	(
+		[ENFEMPCOD],
+		[SNEEMPCOD],
+		[SNESER],
+		[ENFNUM],
+		[ENFDATHOR]
+	)  ON [PRIMARY] 
+GO
+
+
+-- números da nf
+
+select * from TBS024 (nolock) where TBSNOM = 'TBS067'
+
+select * from TBS104 (nolock)
+
+insert into TBS104 (SNESER,SNETIP,SNEDATCAD,SNEUSUCAD) values (1,'SG',getdate(),'DESENV')
+insert into TBS104 (SNESER,SNETIP,SNEDATCAD,SNEUSUCAD) values (2,'TF',getdate(),'DESENV')
+insert into TBS104 (SNESER,SNETIP,SNEDATCAD,SNEUSUCAD) values (3,'SE',getdate(),'DESENV')
+insert into TBS104 (SNESER,SNETIP,SNEDATCAD,SNEUSUCAD) values (4,'ED',getdate(),'DESENV')
+
+update TBS104 set SNENUM = (select TBSVALSEQ from TBS024 (nolock) where TBSNOM = 'TBS067') where SNETIP = 'SG'
+
+
+-- corrige nomes dos arquivos
+-- retira a parte "final" do nome do arquivo para atender o novo padrao de nomes 
+-- ex.: 999999-0-NFe.xml -> 999999-0 * SEM A NOVA SERIE NO NOME
+-- ex.: 999999-0-001-NFe.xml -> 999999-0-001 * COM A NOVA SERIE NO NOME
+
+BEGIN TRAN
+
+-- atualiza nome do arquivo que nao contem a nova serie
+UPDATE TBS080 SET ENFARQ =  SUBSTRING(ENFARQ, 1, 8)
+WHERE LEN(ENFARQ) = 16
+
+--COMMIT
+
+
+-- atualiza nome do arquivo que já contem a nova serie
+UPDATE TBS080 SET ENFARQ =  SUBSTRING(ENFARQ, 1, 12)
+WHERE LEN(ENFARQ) = 20

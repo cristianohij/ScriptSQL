@@ -1,0 +1,26 @@
+DECLARE @est INT ,@GRUCOD INT
+SET @est = 2 
+SET @GRUCOD = 5
+
+SELECT 
+RTRIM(C.LESDES) AS 'Estoque',
+rtrim(B.PROSTATUS) as 'Status',  
+rtrim(A.PROCOD) as 'Código', 
+rtrim(B.PRODES) as 'Descrição', 
+rtrim(ltrim(str(B.MARCOD) + ' - ' + B.MARNOM)) as 'Nome Marca',
+rtrim(PROUM1) AS 'UN1',
+ESTQTDATU AS 'SALDO', 
+rtrim(D.GRUDES)+' ('+Ltrim(str(B.GRUCOD,3))+')' as 'grupo'
+
+
+FROM TBS032 A (NOLOCK)
+left JOIN TBS010 B (NOLOCK) ON A.PROCOD = B. PROCOD
+LEFT JOIN TBS034 C (NOLOCK) ON A.ESTLOC = C.LESCOD 
+LEFT JOIN TBS012 D (NOLOCK) ON B.GRUCOD = D.GRUCOD
+
+WHERE 
+A.ESTLOC IN (@est) AND ESTQTDATU < 0 AND
+D.GRUCOD IN (@GRUCOD)
+
+-- select GRUCOD, rtrim(GRUDES)+' ('+Ltrim(str(GRUCOD,3))+')' AS GRUDES FROM TBS012 NOLOCK
+

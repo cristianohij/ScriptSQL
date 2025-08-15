@@ -1,0 +1,11 @@
+select TOP 1
+CONVERT(DATE,dateadd(mm,-3,dateadd(dd,-day(getdate())+1,getdate()))) AS P1,
+CONVERT(DATE, dateadd(dd,-1,dateadd(mm,-2,dateadd(dd,-day(getdate())+1,getdate())))) AS P1AT,
+  
+CONVERT(DATE,dateadd(mm,-2,dateadd(dd,-day(getdate())+1,getdate()))) AS P2,
+CONVERT(DATE,dateadd(dd,-1,dateadd(mm,-1,dateadd(dd,-day(getdate())+1,getdate())))) AS P2AT,
+
+CONVERT(DATE,dateadd(mm,-1,dateadd(dd,-day(getdate())+1,getdate()))) AS P3,
+CONVERT(DATE,dateadd(dd,-day(getdate()),getdate())) AS P3AT
+FROM TBS001 NOLOCK
+ 

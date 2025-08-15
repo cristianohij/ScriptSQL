@@ -1,0 +1,671 @@
+-- Relatório de faturamento NFS x Cupom
+
+--- VENDAS POR DIA, VALOR NFS , GZ , DEVOLUÇÃO  = TOTAL DO DIA, CONTABILIZAR QUANTIDADE DE NFS 
+
+declare @dateDe datetime, @dateAte datetime ,@comando varchar(1000), @UTEL INT
+
+set @dateDe = '20170101'
+set @dateAte = '20170131'
+SET @UTEL = (SELECT dbo.FCNDIASUTEIS(@dateDe,@dateAte))
+
+
+declare @comando varchar(1000)
+
+SET @comando = 'EXECUTE(''
+select
+cupom,
+coo,
+ecf,
+data,
+sum(valortot - abatpgto) as valortot
+
+FROM movcaixa
+where
+data between "'+convert(char(8),@dateDe,112)+'" and "'+convert(char(8),@dateAte,112)+'" and 
+status = 03 and
+cancelado <> "S" 
+
+group by 
+cupom, coo, ecf, data '') at MYSQLGZ' 
+-- exec(@comando)
+
+if object_id('TempDB.dbo.#MSL002') is not null
+   drop table #MSL002
+   
+create table #MSL002 (cupom int , coo int, ecf int, datas DATETIME, valortot decimal(10,4))
+INSERT INTO #MSL002
+exec(@comando)
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- GRUPO DE CLIENTES DO GRUPO, NÃO CONTABIIZAR 
+
+if object_id('TempDB.dbo.#GRUPOCLI') is not null
+   begin
+      drop table #GRUPOCLI
+   end
+
+select 
+CLICOD into #GRUPOCLI 
+
+FROM 
+TBS002 (nolock) 
+
+WHERE CLICGC Like('65069593%') or CLICGC Like('05118717%') or CLICGC Like('52080207%') or CLICGC Like('44125185%');
+ 	 			-- TANBYS			       -- BAG			           -- MISAS			               -- PAPE
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#NFS') is not null
+   drop table #NFS
+   
+		SELECT
+		CASE DATEPART(w,NFSDATEMI) 
+		WHEN 1 THEN 'Dom'
+		WHEN 2 THEN 'Seg'
+		WHEN 3 THEN 'Ter'
+		WHEN 4 THEN 'Qua'
+		WHEN 5 THEN 'Qui' 
+		WHEN 6 THEN 'Sex'
+		WHEN 7 THEN 'Sáb'
+		END AS DIA,
+		CONVERT(CHAR (10), NFSDATEMI,103) AS NFSDATEMI,
+		SUM(round(dbo.NFSTOTITEST(B.NFSEMPCOD,B.NFSNUM,B.SNEEMPCOD,B.SNESER,B.NFSITE),2)) AS NFSTOTITEST,
+		COUNT(DISTINCT A.NFSNUM) AS QTDNOT
+		
+		INTO #NFS
+		FROM 
+		TBS0671 B (nolock)
+		LEFT JOIN TBS067 A (nolock) ON A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+		LEFT JOIN TBS080 D (NOLOCK) ON B.NFSNUM = D.ENFNUM AND B.SNEEMPCOD = D.SNEEMPCOD AND B.SNESER = D.SNESER
+			  
+		WHERE 
+		NFSDATEMI between @dateDe and @dateAte and 
+		NFSTIP IN('N','C') and 
+		D.ENFSIT = 6 AND 
+		D.ENFTIPDOC = 1 AND
+		A.NFSCLINOM NOT LIKE ('TANBY%') AND
+		B.NFSCFOP IN ('5.102','5.202','5.405','5.411','5.922','5.929','6.102','6.202','6.108','6.404','6.411','6.922')
+		
+		GROUP BY 
+		NFSDATEMI
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#NFSLOJA') is not null
+   drop table #NFSLOJA
+		
+		SELECT 
+		DISTINCT 
+		C.NFSNFRCOO AS COO ,
+		C.NFSNFRECF AS ECF
+		
+		INTO #NFSLOJA
+		FROM 
+		TBS0674 C (NOLOCK) 		
+		LEFT JOIN TBS080 D (NOLOCK) ON C.NFSNUM = D.ENFNUM AND C.SNEEMPCOD = D.SNEEMPCOD AND C.SNESER = D.SNESER
+		LEFT JOIN TBS067 A (nolock) ON A.NFSEMPCOD = C.NFSEMPCOD and A.NFSNUM = C.NFSNUM and A.SNEEMPCOD = C.SNEEMPCOD and A.SNESER = C.SNESER
+		
+		WHERE
+		C.NFSNFRTIP = 'CUP' AND 
+		A.NFSDATEMI BETWEEN @dateDe and @dateAte + 10 and
+		D.ENFSIT = 6 AND -- VERIFICA SE ESTÁ AUTORIZADA
+		D.ENFTIPDOC = 1 
+		
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#CUPOM') is not null
+   drop table #CUPOM
+    
+		SELECT 
+		CONVERT(CHAR(10),datas,103) AS DATAS,
+		
+		CASE ISNULL(B.COO,0) WHEN 0 
+			THEN 1
+			ELSE 0 
+		END AS QTDCUPSEMNFS,
+		
+		CASE ISNULL(B.COO,0) WHEN 0 
+			THEN ROUND(valortot,2) 
+			ELSE 0 
+		END AS VALORTOT,
+		
+		CASE ISNULL(B.COO,0) WHEN 0 
+			THEN 0
+			ELSE 1
+		END AS QTDCUPNFS,
+		
+		CASE ISNULL(B.COO,0) WHEN 0 
+			THEN 0
+			ELSE ROUND(valortot,2)  
+		END AS VALORTOTNFS,
+		
+		ROUND(valortot,2) AS TTCUPOM
+		
+		INTO #CUPOM
+		FROM 
+		#MSL002 A
+		LEFT JOIN #NFSLOJA B ON A.coo = B.COO AND A.ecf = B.ECF
+		
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#CUP') is not null
+   drop table #CUP
+					
+		SELECT
+		CASE DATEPART(w,DATAS) 
+		WHEN 1 THEN 'Dom'
+		WHEN 2 THEN 'Seg'
+		WHEN 3 THEN 'Ter'
+		WHEN 4 THEN 'Qua'
+		WHEN 5 THEN 'Qui' 
+		WHEN 6 THEN 'Sex'
+		WHEN 7 THEN 'Sáb'
+		END AS DIA, 
+		DATAS,
+		SUM(QTDCUPSEMNFS) AS QTDCUPSEMNFS,
+		SUM(VALORTOT) AS VALORTOT,
+		SUM(QTDCUPNFS) AS QTDCUPNFS,
+		SUM(VALORTOTNFS) AS VALORTOTNFS,
+		SUM(TTCUPOM) AS TTCUPOM
+		
+		into #CUP
+		FROM 
+		#CUPOM
+		
+		GROUP BY 
+		DATAS 
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#NFSGRU') is not null
+   drop table #NFSGRU
+   
+		SELECT
+		CASE DATEPART(w,NFSDATEMI) 
+		WHEN 1 THEN 'Dom'
+		WHEN 2 THEN 'Seg'
+		WHEN 3 THEN 'Ter'
+		WHEN 4 THEN 'Qua'
+		WHEN 5 THEN 'Qui' 
+		WHEN 6 THEN 'Sex'
+		WHEN 7 THEN 'Sáb'
+		END AS DIA,
+		CONVERT(CHAR (10), NFSDATEMI,103) AS NFSDATEMI,
+		SUM(round(dbo.NFSTOTITEST(B.NFSEMPCOD,B.NFSNUM,B.SNEEMPCOD,B.SNESER,B.NFSITE),2)) AS NFSTOTITEST,
+		COUNT(DISTINCT A.NFSNUM) AS QTDNOT
+		
+		INTO #NFSGRU
+		FROM 
+		TBS0671 B (nolock)
+		LEFT JOIN TBS067 A (nolock) ON A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+		LEFT JOIN TBS080 D (NOLOCK) ON B.NFSNUM = D.ENFNUM AND B.SNEEMPCOD = D.SNEEMPCOD AND B.SNESER = D.SNESER
+			  
+		WHERE 
+		NFSDATEMI between @dateDe and @dateAte and 
+		NFSTIP IN('N','C') and 
+		D.ENFSIT = 6 AND
+		D.ENFTIPDOC = 1 AND
+		A.NFSCLINOM NOT LIKE ('TANBY%') AND
+		NFSCLICOD IN ((SELECT CLICOD FROM #GRUPOCLI NOLOCK )) AND
+		B.NFSCFOP IN ('5.102','5.202','5.405','5.411','5.922','5.929','6.102','6.202','6.108','6.404','6.411','6.922')
+
+		GROUP BY 
+		NFSDATEMI 
+		
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#DEV') is not null
+   drop table #DEV
+
+		SELECT 
+		CASE DATEPART(w,NFEDATEFE) 
+		WHEN 1 THEN 'Dom'
+		WHEN 2 THEN 'Seg'
+		WHEN 3 THEN 'Ter'
+		WHEN 4 THEN 'Qua'
+		WHEN 5 THEN 'Qui' 
+		WHEN 6 THEN 'Sex'
+		WHEN 7 THEN 'Sáb'
+		END AS DIA, 
+		CONVERT(CHAR (10), NFEDATEFE,103) AS NFEDATEFE,
+		sum(ROUND(NFETOTOPEITE,2)) AS VALDEV,
+		COUNT(DISTINCT B.NFENUM) AS QTDNOTDEV
+		
+		INTO #DEV		
+		FROM
+		TBS0591 A (NOLOCK) 
+		LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND 
+		A.NFENUM = B.NFENUM AND A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND A.SEREMPCOD = B.SEREMPCOD
+		LEFT JOIN TBS080 D (NOLOCK) ON A.NFENUM = D.ENFNUM AND A.NFECOD = D.ENFCODDES
+		
+		WHERE 
+		NFEDATEFE between @dateDe and @dateAte and 
+		A.NFETIP = 'D' and 
+		((D.ENFSIT = 6 AND D.ENFFINEMI = 4 AND D.ENFTIPDOC = 0) OR ((NFENOSFOR = 'N' OR NFENOSFOR = '') AND (B.NFECAN = 'N' OR B.NFECAN = '') AND NFEDATEFE <> '' )) AND
+		A.NFECFOP IN ('1.102','2.102','1.202','2.202','1.403','2.403','2.411','1.411','1.653','2.653','1.922','2.922')
+
+		
+		GROUP BY 
+		NFEDATEFE
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#DEVGRU') is not null
+   drop table #DEVGRU
+
+		SELECT 
+		CASE DATEPART(w,NFEDATEFE) 
+		WHEN 1 THEN 'Dom'
+		WHEN 2 THEN 'Seg'
+		WHEN 3 THEN 'Ter'
+		WHEN 4 THEN 'Qua'
+		WHEN 5 THEN 'Qui' 
+		WHEN 6 THEN 'Sex'
+		WHEN 7 THEN 'Sáb'
+		END AS DIA, 
+		CONVERT(CHAR (10), NFEDATEFE,103) AS NFEDATEFE,
+		sum(ROUND(NFETOTOPEITE,2)) AS VALDEV,
+		COUNT(DISTINCT B.NFENUM) AS QTDNOTDEV
+		
+		INTO #DEVGRU		
+		FROM
+		TBS0591 A (NOLOCK) 
+		LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND 
+		A.NFENUM = B.NFENUM AND A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND A.SEREMPCOD = B.SEREMPCOD
+		LEFT JOIN TBS080 D (NOLOCK) ON A.NFENUM = D.ENFNUM AND A.NFECOD = D.ENFCODDES
+		
+		WHERE 
+		NFEDATEFE between @dateDe and @dateAte and 
+		A.NFETIP = 'D' and 
+		((D.ENFSIT = 6 AND D.ENFFINEMI = 4 AND D.ENFTIPDOC = 0) OR ((NFENOSFOR = 'N' OR NFENOSFOR = '') AND (B.NFECAN = 'N' OR B.NFECAN = '') AND NFEDATEFE <> '' )) AND
+		A.NFECFOP IN ('1.102','2.102','1.202','2.202','1.403','2.403','2.411','1.411','1.653','2.653','1.922','2.922') AND
+		A.NFECOD IN ((SELECT CLICOD FROM #GRUPOCLI WHERE CLICOD NOT IN (590))) 
+
+		GROUP BY 
+		NFEDATEFE
+		
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+		
+SELECT 
+@UTEL AS UTEL,
+ISNULL(ISNULL(ISNULL(A.NFSDATEMI,B.DATAS),C.NFEDATEFE),E.NFSDATEMI) as NFSDATEMI,
+ISNULL(ISNULL(ISNULL(A.DIA,B.DIA),C.DIA),E.DIA) AS DIA,
+ISNULL(A.QTDNOT,0) AS QTDNOT,
+ISNULL(A.NFSTOTITEST,0) AS NFSVAL,
+ISNULL(QTDCUPNFS,0) AS QTDNOTCUP,
+ISNULL(VALORTOTNFS,0) AS NFSVALCUP,
+ISNULL(QTDCUPSEMNFS,0) AS QTDCUPSEMNFS,
+ISNULL(VALORTOT,0) AS CUPNAONFS,
+ISNULL(TTCUPOM,0) AS CUPVAL ,
+ISNULL(A.NFSTOTITEST,0) + ISNULL(TTCUPOM,0) AS VALBRU,
+ISNULL(C.VALDEV,0) AS VALDEV,
+ISNULL(C.QTDNOTDEV,0) AS QTDNOTDEV,
+ISNULL(QTDCUPNFS,0) + ISNULL(A.QTDNOT,0) as QTDNOTTOT,
+ISNULL(A.NFSTOTITEST,0) + ISNULL(TTCUPOM,0) - ISNULL(C.VALDEV,0) AS VALLIQ,
+ISNULL(A.NFSTOTITEST,0) + ISNULL(TTCUPOM,0) - (ISNULL(C.VALDEV,0) - ISNULL(F.VALDEV,0)) - ISNULL(E.NFSTOTITEST,0)  AS VALLIQSEMGRU,
+ISNULL(E.QTDNOT,0) AS QTDNOTGRU,
+ISNULL(E.NFSTOTITEST,0) AS NFSVALGRU,
+ISNULL(F.VALDEV,0) AS VALDEVGRU,
+ISNULL(F.QTDNOTDEV,0) AS QTDNOTDEVGRU
+
+FROM 
+#NFS A 
+FULL OUTER JOIN #CUP B ON A.NFSDATEMI = B.DATAS
+FULL OUTER JOIN #DEV C ON ISNULL(A.NFSDATEMI,B.DATAS) = C.NFEDATEFE
+FULL OUTER JOIN #NFSGRU E ON ISNULL(ISNULL(A.NFSDATEMI,B.DATAS),C.NFEDATEFE) = E.NFSDATEMI
+FULL OUTER JOIN #DEVGRU F ON ISNULL(ISNULL(ISNULL(A.NFSDATEMI,B.DATAS),C.NFEDATEFE),E.NFSDATEMI) = F.NFEDATEFE
+
+--WHERE 
+--ISNULL(ISNULL(ISNULL(A.DIA,B.DIA),C.DIA),E.DIA) IN (@DIAS)
+
+--ORDER BY 
+--ISNULL(ISNULL(ISNULL(A.NFSDATEMI,B.DATAS),C.NFEDATEFE),E.NFSDATEMI)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+-- papelyna / cd relatorio de faturamento NFS
+
+declare @dateDe datetime, @dateAte datetime ,@comando varchar(1000), @UTEL INT
+
+set @dateDe = '20170101'
+set @dateAte = '20170131'
+SET @UTEL = (SELECT dbo.FCNDIASUTEIS(@dateDe,@dateAte))
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- GRUPO DE CLIENTES DO GRUPO, NÃO CONTABIIZAR 
+
+if object_id('TempDB.dbo.#GRUPOCLI') is not null
+   begin
+      drop table #GRUPOCLI
+   end
+
+select 
+CLICOD into #GRUPOCLI 
+
+FROM 
+TBS002 (nolock) 
+
+WHERE CLICGC Like('65069593%') or CLICGC Like('05118717%') or CLICGC Like('52080207%') or CLICGC Like('44125185%');
+ 	 			-- TANBYS			       -- BAG			           -- MISAS			               -- PAPE
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#NFS') is not null
+   drop table #NFS
+   
+		SELECT
+		CASE DATEPART(w,NFSDATEMI) 
+		WHEN 1 THEN 'Dom'
+		WHEN 2 THEN 'Seg'
+		WHEN 3 THEN 'Ter'
+		WHEN 4 THEN 'Qua'
+		WHEN 5 THEN 'Qui' 
+		WHEN 6 THEN 'Sex'
+		WHEN 7 THEN 'Sáb'
+		END AS DIA,
+		CONVERT(CHAR (10), NFSDATEMI,103) AS NFSDATEMI,
+		SUM(round(dbo.NFSTOTITEST(B.NFSEMPCOD,B.NFSNUM,B.SNEEMPCOD,B.SNESER,B.NFSITE),2)) AS NFSTOTITEST,
+		COUNT(DISTINCT A.NFSNUM) AS QTDNOT
+		
+		INTO #NFS
+		FROM 
+		TBS0671 B (nolock)
+		LEFT JOIN TBS067 A (nolock) ON A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+		LEFT JOIN TBS080 D (NOLOCK) ON B.NFSNUM = D.ENFNUM AND B.SNEEMPCOD = D.SNEEMPCOD AND B.SNESER = D.SNESER
+			  
+		WHERE 
+		NFSDATEMI between @dateDe and @dateAte and 
+		NFSTIP IN('N','C') and 
+		D.ENFSIT = 6 AND 
+		A.NFSCLINOM NOT LIKE ('TANBY%') AND -- CD
+		D.ENFTIPDOC = 1 AND
+		B.NFSCFOP IN ('5.102','5.202','5.405','5.411','5.922','5.929','6.102','6.202','6.108','6.404','6.411','6.922')
+		
+		GROUP BY 
+		NFSDATEMI
+		
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#NFSGRU') is not null
+   drop table #NFSGRU
+   
+		SELECT
+		CASE DATEPART(w,NFSDATEMI) 
+		WHEN 1 THEN 'Dom'
+		WHEN 2 THEN 'Seg'
+		WHEN 3 THEN 'Ter'
+		WHEN 4 THEN 'Qua'
+		WHEN 5 THEN 'Qui' 
+		WHEN 6 THEN 'Sex'
+		WHEN 7 THEN 'Sáb'
+		END AS DIA,
+		CONVERT(CHAR (10), NFSDATEMI,103) AS NFSDATEMI,
+		SUM(round(dbo.NFSTOTITEST(B.NFSEMPCOD,B.NFSNUM,B.SNEEMPCOD,B.SNESER,B.NFSITE),2)) AS NFSTOTITEST,
+		COUNT(DISTINCT A.NFSNUM) AS QTDNOT
+		
+		INTO #NFSGRU
+		FROM 
+		TBS0671 B (nolock)
+		LEFT JOIN TBS067 A (nolock) ON A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+		LEFT JOIN TBS080 D (NOLOCK) ON B.NFSNUM = D.ENFNUM AND B.SNEEMPCOD = D.SNEEMPCOD AND B.SNESER = D.SNESER
+			  
+		WHERE 
+		NFSDATEMI between @dateDe and @dateAte and 
+		NFSTIP IN('N','C') and 
+		D.ENFSIT = 6 AND
+		A.NFSCLINOM NOT LIKE ('TANBY%') AND -- CD
+		D.ENFTIPDOC = 1 AND
+		NFSCLICOD IN ((SELECT CLICOD FROM #GRUPOCLI NOLOCK )) AND
+		B.NFSCFOP IN ('5.102','5.202','5.405','5.411','5.922','5.929','6.102','6.202','6.108','6.404','6.411','6.922')
+
+		GROUP BY 
+		NFSDATEMI 
+		
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#DEV') is not null
+   drop table #DEV
+
+		SELECT 
+		CASE DATEPART(w,NFEDATEFE) 
+		WHEN 1 THEN 'Dom'
+		WHEN 2 THEN 'Seg'
+		WHEN 3 THEN 'Ter'
+		WHEN 4 THEN 'Qua'
+		WHEN 5 THEN 'Qui' 
+		WHEN 6 THEN 'Sex'
+		WHEN 7 THEN 'Sáb'
+		END AS DIA, 
+		CONVERT(CHAR (10), NFEDATEFE,103) AS NFEDATEFE,
+		sum(ROUND(NFETOTOPEITE,2)) AS VALDEV,
+		COUNT(DISTINCT B.NFENUM) AS QTDNOTDEV
+		
+		INTO #DEV		
+		FROM
+		TBS0591 A (NOLOCK) 
+		LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND 
+		A.NFENUM = B.NFENUM AND A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND A.SEREMPCOD = B.SEREMPCOD
+		LEFT JOIN TBS080 D (NOLOCK) ON A.NFENUM = D.ENFNUM AND A.NFECOD = D.ENFCODDES
+		
+		WHERE 
+		NFEDATEFE between @dateDe and @dateAte and 
+		A.NFETIP = 'D' and 
+		((D.ENFSIT = 6 AND D.ENFFINEMI = 4 AND D.ENFTIPDOC = 0) OR ((NFENOSFOR = 'N' OR NFENOSFOR = '') AND (B.NFECAN = 'N' OR B.NFECAN = '') AND NFEDATEFE <> '' )) AND
+		A.NFECFOP IN ('1.102','2.102','1.202','2.202','1.403','2.403','2.411','1.411','1.653','2.653','1.922','2.922')
+		
+		GROUP BY 
+		NFEDATEFE
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#DEVGRU') is not null
+   drop table #DEVGRU
+
+		SELECT 
+		CASE DATEPART(w,NFEDATEFE) 
+		WHEN 1 THEN 'Dom'
+		WHEN 2 THEN 'Seg'
+		WHEN 3 THEN 'Ter'
+		WHEN 4 THEN 'Qua'
+		WHEN 5 THEN 'Qui' 
+		WHEN 6 THEN 'Sex'
+		WHEN 7 THEN 'Sáb'
+		END AS DIA, 
+		CONVERT(CHAR (10), NFEDATEFE,103) AS NFEDATEFE,
+		sum(ROUND(NFETOTOPEITE,2)) AS VALDEV,
+		COUNT(DISTINCT B.NFENUM) AS QTDNOTDEV
+		
+		INTO #DEVGRU		
+		FROM
+		TBS0591 A (NOLOCK) 
+		LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND 
+		A.NFENUM = B.NFENUM AND A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND A.SEREMPCOD = B.SEREMPCOD
+		LEFT JOIN TBS080 D (NOLOCK) ON A.NFENUM = D.ENFNUM AND A.NFECOD = D.ENFCODDES
+		
+		WHERE 
+		NFEDATEFE between @dateDe and @dateAte and 
+		A.NFETIP = 'D' and 
+		((D.ENFSIT = 6 AND D.ENFFINEMI = 4 AND D.ENFTIPDOC = 0) OR ((NFENOSFOR = 'N' OR NFENOSFOR = '') AND (B.NFECAN = 'N' OR B.NFECAN = '') AND NFEDATEFE <> '' )) AND
+		A.NFECFOP IN ('1.102','2.102','1.202','2.202','1.403','2.403','2.411','1.411','1.653','2.653','1.922','2.922') AND
+		A.NFECOD IN ((SELECT CLICOD FROM #GRUPOCLI)) 
+		
+		GROUP BY 
+		NFEDATEFE
+		
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+		
+SELECT 
+@UTEL AS UTEL,
+ISNULL(ISNULL(A.NFSDATEMI,C.NFEDATEFE),E.NFSDATEMI) as NFSDATEMI,
+ISNULL(ISNULL(A.DIA,C.DIA),E.DIA) AS DIA,
+ISNULL(A.QTDNOT,0) AS QTDNOT,
+ISNULL(A.NFSTOTITEST,0) AS NFSVAL,
+ISNULL(A.NFSTOTITEST,0) AS VALBRU,
+ISNULL(C.VALDEV,0) AS VALDEV,
+ISNULL(C.QTDNOTDEV,0) AS QTDNOTDEV,
+ISNULL(A.QTDNOT,0) as QTDNOTTOT,
+ISNULL(A.NFSTOTITEST,0) - ISNULL(C.VALDEV,0) AS VALLIQ,
+ISNULL(A.NFSTOTITEST,0) - (ISNULL(C.VALDEV,0) - ISNULL(F.VALDEV,0)) - ISNULL(E.NFSTOTITEST,0)  AS VALLIQSEMGRU,
+ISNULL(E.QTDNOT,0) AS QTDNOTGRU,
+ISNULL(E.NFSTOTITEST,0) AS NFSVALGRU,
+ISNULL(F.VALDEV,0) AS VALDEVGRU,
+ISNULL(F.QTDNOTDEV,0) AS QTDNOTDEVGRU
+
+FROM 
+#NFS A 
+FULL OUTER JOIN #DEV C ON A.NFSDATEMI = C.NFEDATEFE
+FULL OUTER JOIN #NFSGRU E ON ISNULL(A.NFSDATEMI,C.NFEDATEFE) = E.NFSDATEMI
+FULL OUTER JOIN #DEVGRU F ON ISNULL(ISNULL(A.NFSDATEMI,C.NFEDATEFE),E.NFSDATEMI) = F.NFEDATEFE
+
+--WHERE 
+--ISNULL(ISNULL(A.DIA,C.DIA),E.DIA) IN (@DIAS)
+
+--ORDER BY 
+--ISNULL(ISNULL(A.NFSDATEMI,C.NFEDATEFE),E.NFSDATEMI)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		
+--NFSCUP as (
+--		SELECT
+--		dbo.FCNDIASUTEIS(@dateDe,@dateAte) - 
+--		(SELECT count(*) FROM #FER
+--			where 
+--			(Sg_UF = 'SJ' or Tp_Feriado = 1 ) and 
+--			(Nr_Ano between substring(convert(char(10),@dateDe,103),7,4) and substring(convert(char(10),@dateAte,103),7,4) OR (Nr_Ano between 0 and 0)) and 
+--			Nr_Mes between substring(convert(char(10),@dateDe,103),4,2) and substring(convert(char(10),@dateAte,103),4,2) and 
+--			Nr_Dia between substring(convert(char(10),@dateDe,103),1,2) and  substring(convert(char(10),@dateAte,103),1,2)) as UTEL,
+--		CASE DATEPART(w,NFSDATEMI) 
+--		WHEN 1 THEN 'Dom'
+--		WHEN 2 THEN 'Seg'
+--		WHEN 3 THEN 'Ter'
+--		WHEN 4 THEN 'Qua'
+--		WHEN 5 THEN 'Qui' 
+--		WHEN 6 THEN 'Sex'
+--		WHEN 7 THEN 'Sáb'
+--		END AS DIA,
+--		CONVERT(CHAR (10), NFSDATEMI,103) AS NFSDATEMICUP,
+--		SUM(NFSQTD * NFSPRE) - SUM(dbo.NFSVDDITE(B.NFSEMPCOD,B.NFSNUM,B.SNEEMPCOD,B.SNESER,B.NFSITE)) AS NFSTOTITESTCUP,
+--		-- SUM(dbo.NFSTOTITEST(B.NFSEMPCOD,B.NFSNUM,B.SNEEMPCOD,B.SNESER,B.NFSITE)) AS NFSTOTITESTCUP,
+--		COUNT(DISTINCT A.NFSNUM) AS QTDNOTCUP
+--		
+--		FROM 
+--		TBS0671 B (nolock)
+--		LEFT JOIN TBS067 A (nolock) ON A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+--		LEFT JOIN TBS042 C (NOLOCK) ON B.TESCOD = C.TESCOD
+--		LEFT JOIN TBS080 D (NOLOCK) ON B.NFSEMPCOD = D.ENFEMPCOD AND B.NFSNUM = D.ENFNUM AND B.SNEEMPCOD = D.SNEEMPCOD AND B.SNESER = D.SNESER
+--			  
+--		WHERE 
+--		NFSDATEMI between @dateDe and @dateAte and 
+--		NFSTIP = 'L' and 
+--		D.ENFSIT = 6 AND 
+--		-- NFSCAN = 'N' AND
+--		A.NFSCLINOM NOT LIKE ('TANBY%') AND
+--		(C.TESCNTVEN = 'S' OR NFSROPCNTVEN = 'S')
+--		--C.SNESER = 1 AND 
+--		--and B.NFSNUM = 30566 
+--		GROUP BY 
+--		NFSDATEMI
+--		),	
+--		
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+		
+--SELECT 
+---- ISNULL(ISNULL(ISNULL(ISNULL(A.UTEL,B.UTEL),C.UTEL),D.UTEL),E.UTEL) AS UTEL,
+---- ISNULL(ISNULL(ISNULL(ISNULL(A.NFSDATEMI,B.DATAS),C.NFEDATEFE),D.NFSDATEMICUP),E.NFSDATEMI) as NFSDATEMI,
+--ISNULL(ISNULL(ISNULL(A.NFSDATEMI,B.DATAS),C.NFEDATEFE),E.NFSDATEMI) as NFSDATEMI,
+---- ISNULL(ISNULL(ISNULL(ISNULL(A.DIA,B.DIA),C.DIA),D.DIA),E.DIA) AS DIA,
+---- ISNULL(A.QTDNOT,0) AS QTDNOT,
+---- ISNULL(A.NFSTOTITEST,0) AS NFSVAL,
+---- ISNULL(D.QTDNOTCUP,0) AS QTDNOTCUP,
+--ISNULL(QTDCUPNFS,0) AS QTDNOTCUP,
+--ISNULL(VALORTOTNFS,0) AS NFSVALCUP,
+---- ISNULL(VALORTOT,0) - ISNULL(D.NFSTOTITESTCUP,0) AS CUPNAONFS,
+--ISNULL(QTDCUPSEMNFS,0) AS QTDCUPSEMNFS,
+--ISNULL(VALORTOT,0) AS CUPVALSEMNOTA,
+--ISNULL(TTCUPOM,0) AS TTCUPOM -- ,
+---- ISNULL(A.NFSTOTITEST,0) + ISNULL(VALORTOT,0) AS VALBRU,
+--ISNULL(VALDEV,0) AS VALDEV,
+--ISNULL(C.QTDNOTDEV,0) AS QTDNOTDEV,
+--ISNULL(D.QTDNOTCUP,0) + ISNULL(A.QTDNOT,0) as QTDNOTTOT,
+--ISNULL(A.NFSTOTITEST,0) + ISNULL(VALORTOT,0) - ISNULL(VALDEV,0) AS VALLIQ,
+--ISNULL(A.NFSTOTITEST,0) + ISNULL(VALORTOT,0) - ISNULL(VALDEV,0) - ISNULL(E.NFSTOTITEST,0)  AS VALLIQSEMGRU,
+--ISNULL(E.QTDNOT,0) AS QTDNOTGRU,
+--ISNULL(E.NFSTOTITEST,0) AS NFSVALGRU
+--
+--
+--FULL OUTER JOIN CUP B ON A.NFSDATEMI = B.DATAS
+--FULL OUTER JOIN DEV C ON ISNULL(A.NFSDATEMI,B.DATAS) = C.NFEDATEFE
+--FULL OUTER JOIN NFSCUP D ON ISNULL(ISNULL(A.NFSDATEMI,B.DATAS),C.NFEDATEFE) = D.NFSDATEMICUP
+--FULL OUTER JOIN NFSGRU E ON ISNULL(ISNULL(ISNULL(A.NFSDATEMI,B.DATAS),C.NFEDATEFE),D.NFSDATEMICUP) = E.NFSDATEMI
+--
+--ISNULL(ISNULL(ISNULL(ISNULL(A.NFSDATEMI,B.DATAS),C.NFEDATEFE),D.NFSDATEMICUP),E.NFSDATEMI)
+
+
+-- select * FROM TBS067 NOLOCK WHERE NFSNUM = 31351

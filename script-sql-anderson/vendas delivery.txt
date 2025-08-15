@@ -1,0 +1,97 @@
+declare @data1de datetime, @data1ate datetime, @comando varchar (max)
+
+SET @data1de  ='20171120'
+SET @data1ate ='20171125'
+
+-- CONTABILIZAR AS VENDAS DE LOJA, DIRETO DO BANCO DA GZ
+
+-- DECLARE @comando varchar (MAX)
+
+
+SET @comando = 'EXECUTE(''
+select
+loja,
+cupom,
+coo,
+ecf,
+caixa,
+valortot - abatpgto as valort,
+data,
+hora
+
+FROM movcaixa
+where
+data between "'+convert(char(8), @data1de, 112)+'" and "'+convert(char(8), @data1ate, 112)+'"  and 
+status ="03" and 
+cancelado <> "S" and
+caixa = 6 
+'') at MYSQLGZ' 
+
+if object_id('TempDB.dbo.#MSLAUX') is not null
+   drop table #MSLAUX
+    
+create table #MSLAUX ( M2_LOJ INT, M2_CUP INT, M2_COO INT, M2_ECF INT, M2_CXA INT , M2_VAL DECIMAL(10,4), M2_DAT DATETIME, M2_HOR CHAR(5))
+INSERT INTO #MSLAUX
+exec(@comando)
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA DE AUTORIZAÇÃO
+if object_id('TempDB.dbo.#TBS080') is not null
+   drop table #TBS080
+   
+SELECT 
+ENFNUM ,
+SNEEMPCOD ,
+SNESER,
+ENFVENCOD
+
+INTO #TBS080
+FROM 
+TBS080 NOLOCK 
+
+WHERE 
+ENFSIT = 6 AND 
+ENFTIPDOC = 1 AND 
+ENFDATEMI between @data1de and @data1ate + 10
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA DE NOTAS AUTORIZADAS VIA CUPONS
+if object_id('TempDB.dbo.#NFSCUP') is not null
+   drop table #NFSCUP
+
+SELECT 
+NFSNFRCOO,
+NFSNFRECF,
+ENFNUM, 
+B.SNESER,
+B.ENFVENCOD AS VENCOD,
+(SELECT RTRIM(LTRIM(VENNOM)) FROM TBS004 C (NOLOCK) WHERE B.ENFVENCOD = C.VENCOD) AS VENNOM
+
+INTO #NFSCUP
+FROM TBS0674 A (NOLOCK) 
+INNER JOIN #TBS080 B (NOLOCK) ON A.NFSNUM = B.ENFNUM AND A.SNEEMPCOD = B.SNEEMPCOD AND A.SNESER = B.SNESER
+
+WHERE 
+NFSNFRTIP = 'CUP'
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+SELECT 
+ISNULL(VENCOD,0) AS VENCOD,
+ISNULL(VENNOM,'SEM VENDEDOR') AS VENNOM ,
+ISNULL(RTRIM(LTRIM(STR(SNESER))),'') AS SNESER,
+ISNULL(RTRIM(LTRIM(STR(ENFNUM))),'') AS ENFNUM, 
+A.M2_CUP, 
+A.M2_COO, 
+A.M2_VAL, 
+A.M2_DAT, 
+A.M2_HOR
+
+FROM
+#MSLAUX A
+LEFT JOIN #NFSCUP B ON A.M2_COO = B.NFSNFRCOO AND A.M2_ECF = B.NFSNFRECF
+
+ORDER BY 
+A.M2_DAT, A.M2_HOR

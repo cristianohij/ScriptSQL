@@ -1,0 +1,9 @@
+select * from TBS042 where TESCOD=515
+
+select PDVNUM,PDVITEM,PROCOD,TESCOD,PDVCST,PDVCFOP,PDVQTD,PDVQTDFAT from TBS0551
+ where TESCOD = 515 and PDVCST = '060' and PDVCFOP = '5.405' and PDVQTD > PDVQTDFAT
+
+begin tran
+update TBS0551 set PDVCFOP='5.409'
+ where TESCOD = 515 and PDVCST = '060' and PDVCFOP = '5.405' and PDVQTD > PDVQTDFAT
+commit tran

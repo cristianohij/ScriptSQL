@@ -1,0 +1,295 @@
+-- Criar uma tabela unica , juntando as quantidades vendidas, seus valores e datas dos pedidos , das tabelas TBS058, TBS0761 (TBS076), usando UNION
+
+if object_id('TempDB.dbo.#TES1') is not null
+   drop table #TES1
+
+CREATE TABLE 
+#TES1 
+	(PENNUM INT NOT NULL,
+	
+	PENCOD CHAR(15) NOT NULL,
+	
+	PENVALITE  MONEY NOT NULL,
+	
+	PENQTDITE DECIMAL(12,5) NOT NULL,
+	
+	PENDAT DATE NOT NULL,
+	
+	SIT CHAR (1) NOT NULL,
+	
+	ESTLOC INT NOT NULL,
+	
+	PENDIA INT NOT NULL,
+	
+	PENCMP DECIMAL(12,5) NOT NULL)
+
+INSERT INTO 
+#TES1
+	(PENNUM,PENCOD,PENVALITE,PENQTDITE,PENDAT,SIT,ESTLOC,PENDIA,PENCMP)
+	
+	SELECT
+	PRPNUM AS PED , 
+	B.PROCOD AS COD, 
+--	(PRPPRELIQ/PRPQTDEMB)*(PRPQTD*PRPQTDEMB) as VAL,
+--	(PRPQTD*PRPQTDEMB) AS QTD ,
+	SUM(PRPPRELIQ*PRPQTD) as VAL,
+	SUM(PRPQTD*PRPQTDEMB) AS QTD ,
+	PDVDATCAD AS DATCAD ,
+	PRPSIT AS SIT,
+	PRPESTLOC AS ESTLOC,
+	DATEDIFF(DAY,PDVDATCAD,getdate()) AS DIAS_PEN,
+	-- SUM(A.ESTQTDCMP) AS CMP
+	(SELECT SUM(A.ESTQTDCMP) FROM  TBS032 A (NOLOCK) WHERE A.PROCOD = B.PROCOD) AS CMP 
+	
+	FROM TBS058 B (NOLOCK) 
+	LEFT JOIN TBS055 (nolock) on B.PRPNUM=TBS055.PDVNUM
+	-- LEFT JOIN TBS032 A (NOLOCK) ON A.PROCOD = B.PROCOD 
+	
+	WHERE 
+	PRPSIT='P' and
+	PRPMOVEST='S' 
+	
+	GROUP BY 
+	-- PRPNUM ,B.PROCOD,PRPPRELIQ,PRPQTDEMB,PRPQTD,PDVDATCAD,PRPSIT,PRPESTLOC
+	PRPNUM ,B.PROCOD,PDVDATCAD,PRPSIT,PRPESTLOC		
+	
+--- ACRESCENTAR O RANK 
+if object_id('TempDB.dbo.#T') is not null
+   drop table #T
+SELECT rank() OVER (ORDER BY PENCOD,PENDAT,PENNUM) AS PENIDE,*
+INTO #T
+FROM #TES1 
+
+-- ACUMULANDO VENDAS 
+if object_id('TempDB.dbo.#TES') is not null
+   drop table #TES
+
+SELECT * ,PENCMP - (SELECT SUM(PENQTDITE) FROM #T AS TI WHERE TI.PENIDE <= TA.PENIDE AND TI.PENCOD = TA.PENCOD ) AS PENACU,
+CASE WHEN PENCMP - (SELECT SUM(PENQTDITE) FROM #T AS TI WHERE TI.PENCOD = TA.PENCOD ) >= 0
+	THEN 'ATENDE'
+	ELSE 'NAO ATENDE'
+	END AS SITUACAO
+INTO #TES
+FROM 
+#T AS TA 
+
+		
+			
+-- pedidos de vendas pendentes 
+
+; WITH PEN AS(select sum(PENVALITE) as VALPEN ,count(DISTINCT PENCOD) AS CONTPEN from #TES (nolock) ),
+	
+-- pedidos de vendas pendentes com compras atende
+PENCOM AS (select sum(PENVALITE) AS VALPENCOM ,count(DISTINCT PENCOD) AS CONTPENCOM
+			from #TES A (nolock)  
+						
+			where 
+			SITUACAO = 'ATENDE' ) , 
+						
+-- pedidos de vendas pendentes com compras não atende
+PENCOMN AS (select sum(PENVALITE) AS VALPENCOMN ,count(DISTINCT PENCOD) AS CONTPENCOMN
+			from #TES A (nolock)  
+		
+			where 
+			SITUACAO = 'NAO ATENDE' AND PENCMP > 0 ) , 
+
+-- pedidos de vendas pendentes sem compras
+PENSEMCOM AS (select sum(PENVALITE) AS VALPENSEMCOM,count(DISTINCT PENCOD) AS CONTPENSEMCOM
+			  from #TES A (nolock)  
+			  			  
+			  where 
+			  PENCMP <= 0) , 
+
+-- período versus número de dias
+-- sem compras
+
+-- até 2 dias
+PENDIAS2 AS (select count(DISTINCT PENCOD) AS ITENS  
+			 
+			 from #TES A (nolock)
+					 
+			 where 
+			 PENDIA BETWEEN 0 AND 2 AND 
+			 PENCMP <=0) ,
+	    
+   
+
+-- de 3 a 7 dias
+PENDIAS37 AS (select count(DISTINCT PENCOD) AS ITENS  
+			 
+			 from #TES A (nolock)
+			 			 
+			 where 
+			 PENDIA BETWEEN 3 AND 7 AND 
+			 PENCMP <=0) ,
+
+
+
+-- de 8 a 15 dias
+PENDIAS815 as (select count(DISTINCT PENCOD) AS ITENS  
+			 
+			 from #TES A (nolock)
+			 			 
+			 where 
+			 PENDIA BETWEEN 8 AND 15 AND 
+			 PENCMP <=0) ,
+		   
+-- de 16 a 30 dias
+PENDIAS1630 AS (select count(DISTINCT PENCOD) AS ITENS  
+			 
+			 from #TES A (nolock)
+			 		 
+			 where
+			 PENDIA BETWEEN 16 AND 30 AND 
+			 PENCMP <=0) ,
+
+
+-- acima de 30 dias
+PENDIASMAIOR30 AS (select count(DISTINCT PENCOD) AS ITENS  
+			 
+			 from #TES A (nolock)
+			 
+			 where
+			 PENDIA > 30 AND
+			 PENCMP <=0),
+
+-- com compras, PODE ESTAR EM COMPRAS POREM NAO ATENDER O PEDIDO
+
+-- até 2 dias
+COMDIAS2 AS (select count(DISTINCT PENCOD) AS ITENS  
+			 
+			 from #TES A (nolock)
+		 
+			 where 
+			 PENDIA BETWEEN 0 AND 2 AND 
+			 SITUACAO = 'ATENDE') ,
+
+-- ATÉ 2 DIAS NÃO ATENDE
+COMDIAS2N AS (select count(DISTINCT PENCOD) AS ITENS  
+			 
+			 from #TES A (nolock)
+
+			 where 
+			 PENDIA BETWEEN 0 AND 2 AND 
+			 SITUACAO = 'NAO ATENDE' AND PENCMP > 0) ,
+	   
+-- de 3 a 7 dias
+COMDIAS37 AS (select count(DISTINCT PENCOD) AS ITENS  
+			 
+			 from #TES A (nolock)
+			 		 
+			 where 
+			 PENDIA BETWEEN 3 AND 7 AND 
+			 SITUACAO = 'ATENDE'),	
+			 
+-- de 3 a 7 dias NÃO ATENDE
+COMDIAS37N AS (select count(DISTINCT PENCOD) AS ITENS  
+			 
+			 from #TES A (nolock)
+			 		 
+			 where 
+			 PENDIA BETWEEN 3 AND 7 AND 
+			 SITUACAO = 'NAO ATENDE' AND PENCMP > 0),	   
+
+-- de 8 a 15 dias
+COMDIAS815 AS (select count(DISTINCT PENCOD) AS ITENS  
+			 
+			 from #TES A (nolock)
+			 		 
+			 where 
+			 PENDIA BETWEEN 8 AND 15 AND 
+			 SITUACAO = 'ATENDE'),
+
+-- de 8 a 15 dias NÃO ATENDE
+COMDIAS815N AS (select count(DISTINCT PENCOD) AS ITENS  
+			 
+			 from #TES A (nolock)
+			 		 
+			 where 
+			PENDIA BETWEEN 8 AND 15 AND 
+			SITUACAO = 'NAO ATENDE' AND PENCMP > 0),
+	   
+	   
+
+-- de 16 a 30 dias
+COMDIAS1630 AS (select count(DISTINCT PENCOD) AS ITENS  
+			 
+			 from #TES A (nolock)
+			 			 
+			 where 
+			 PENDIA BETWEEN 16 AND 30 AND 
+			 SITUACAO = 'ATENDE'),
+			 
+-- de 16 a 30 dias NÃO ATENDE
+COMDIAS1630N AS (select count(DISTINCT PENCOD) AS ITENS  
+			 
+			 from #TES A (nolock)
+			 
+			 where 
+			 PENDIA BETWEEN 16 AND 30 AND 
+			 SITUACAO = 'NAO ATENDE' AND PENCMP > 0),
+	   
+-- acima de 30 dias
+COMDIASMAIOR30 AS (select count(DISTINCT PENCOD) AS ITENS  
+			 
+			 from #TES A (nolock)
+					 
+			 where 
+			 PENDIA > 30 AND 
+			 SITUACAO = 'ATENDE') ,
+
+-- acima de 30 dias NÃO ATENDE
+COMDIASMAIOR30N AS (select count(DISTINCT PENCOD) AS ITENS  
+			 
+			 from #TES A (nolock)
+			 
+			 where 
+			 PENDIA > 30 AND 
+			 SITUACAO = 'NAO ATENDE' AND PENCMP > 0) 
+	   
+SELECT 
+'ND' AS UNIDADE,
+A.VALPEN, 
+A.CONTPEN, 
+B.VALPENCOM,
+B.CONTPENCOM, 
+C.CONTPENCOMN,
+C.VALPENCOMN, 
+D.VALPENSEMCOM, 
+D.CONTPENSEMCOM, 
+E.ITENS AS 'PEN 2',
+F.ITENS AS 'PEN 3 A 7',
+G.ITENS AS 'PEN 8 A 15',
+H.ITENS AS 'PEN 16 A 30', 
+I.ITENS AS 'PEN +30',
+J.ITENS AS 'COM 2',
+K.ITENS AS 'COM 2N',
+L.ITENS AS 'COM 3 A 7',
+M.ITENS AS 'COM 3 A 7N',
+N.ITENS AS 'COM 8 A 15',
+O.ITENS AS 'COM 8 A 15N',
+P.ITENS AS 'COM 16 A 30',
+Q.ITENS AS 'COM 16 A 30N',
+R.ITENS AS 'COM +30',
+S.ITENS AS 'COM +30N'
+
+FROM 
+PEN A,
+PENCOM B,
+PENCOMN C,
+PENSEMCOM D , 
+PENDIAS2 E, 
+PENDIAS37 F , 
+PENDIAS815 G,
+PENDIAS1630 H,
+PENDIASMAIOR30 I,
+COMDIAS2 J,
+COMDIAS2N K,
+COMDIAS37 L,
+COMDIAS37N M,
+COMDIAS815 N,
+COMDIAS815N O,
+COMDIAS1630 P,
+COMDIAS1630N Q, 
+COMDIASMAIOR30 R,
+COMDIASMAIOR30N S

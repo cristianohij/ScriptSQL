@@ -1,0 +1,19 @@
+select * from TBS1171 (nolock) where NFDNUM=83382
+
+--update TBS1171 set NFDNFRTIP='NFA' where NFDNUM between 135173 and 135177 or NFDNUM=135167
+
+--update TBS1171 set NFDNFRMOD='1' where NFDNUM between 135173 and 135177 or NFDNUM=135167
+
+select * from TBS059 (nolock) where NFENUM in(6968,6397,5522,6969,5936)
+
+begin tran
+update TBS1171 set NFDNFRTIP='NFA',NFDNFREMI='07/15',NFDNFRUFE=35,NFDNFRCNPJ='09470770000172',NFDNFRMOD=1 where NFDNUM=83382
+commit
+
+select * from TBS1172 (nolock) where NFDNUM=135176
+
+update TBS1172 set NFDPERICMSST=18 where NFDNUM=135176
+
+select * from TBS080 (nolock) where ENFNUM=135176
+
+update TBS080 set ENFVALTOT=23.5 where ENFNUM=135176

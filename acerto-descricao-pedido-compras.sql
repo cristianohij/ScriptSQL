@@ -1,0 +1,33 @@
+drop table TEMPDESCOMPRAS
+
+select TBS0451.PDCNUM,TBS0451.PROCOD,PDCDES,PRODES
+--       into TEMPDESCOMPRAS
+  from TBS0451 (nolock) 
+       join TBS045 (nolock) on TBS045.PDCNUM=TBS0451.PDCNUM
+       join TBS010 (nolock) on TBS010.PROCOD=TBS0451.PROCOD
+       join TBS0101 (nolock) on PROFORCOD=TBS045.FORCOD and PROFORPRO=PDCPROFOR
+ where PDCDES=PROFORDES and PRODES<>PDCDES
+
+begin tran
+update TBS0451 set PDCDES=TBS010.PRODES
+  from TBS0451 (nolock) 
+       join TBS045 (nolock) on TBS045.PDCNUM=TBS0451.PDCNUM
+       join TBS010 (nolock) on TBS010.PROCOD=TBS0451.PROCOD
+       join TBS0101 (nolock) on PROFORCOD=TBS045.FORCOD and PROFORPRO=PDCPROFOR
+ where PDCDES=PROFORDES and PRODES<>PDCDES
+commit
+
+select * from TBS0101 (nolock) 
+
+select top 50 * from TBS0451 (nolock)
+
+select top 50 * from TBS045 (nolock)
+
+
+select TBS0451.PDCNUM
+  from TBS0451 (nolock) 
+       join TBS045 (nolock) on TBS045.PDCNUM=TBS0451.PDCNUM
+       join TBS010 (nolock) on TBS010.PROCOD=TBS0451.PROCOD
+       join TBS0101 (nolock) on PROFORCOD=TBS045.FORCOD and PROFORPRO=PDCPROFOR
+ where PDCDES=PROFORDES and PRODES<>PDCDES
+ group by TBS0451.PDCNUM

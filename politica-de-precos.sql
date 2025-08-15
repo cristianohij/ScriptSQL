@@ -1,0 +1,63 @@
+declare @dataDe char(8),
+        @dataAte char(8),
+        @produtoDe char(15),
+        @produtoAte char(15),
+        @codigoDaMarca smallint,
+        @nomeDaMarca char(30)
+
+set @dataDe='01/05/15'
+set @dataAte='06/05/15'
+
+set @produtoDe=''
+set @produtoAte='Z'
+
+set @codigoDaMarca=0
+set @nomeDaMarca=''
+
+select rtrim(MARNOM)+' ('+Ltrim(str(MARCOD,4))+')' as 'NomeECodigoDaMarca',
+       TDPPROCOD as 'CodigoDoProduto',
+       TBS010.PRODES as 'DescricaoDoProduto',
+       PROUM1 as 'UnidadeDeMedida1',
+       PROUM2 as 'UnidadeDeMedida2',
+       TDPCUSBAS as 'CustoDaMercadoria',
+       PDPMKPCOR1 as 'MarkupDoCorporativo1',
+       case when TDPVALPROI>=getdate() and getdate()<=TDPVALPROF and TDPPROCOR='S' then TDPPREPRO1 else TDPPRECOR1 end as 'PrecoDoCorporativo1',
+       PDPMKPCOR2 as 'MarkupDoCorporativo2',
+       case when TDPVALPROI>=getdate() and getdate()<=TDPVALPROF and TDPPROCOR='S' then TDPPREPRO2*PROUM2QTD else TDPPRECOR2*PROUM2QTD end as 'PrecoDoCorporativo2',
+       PDPMKPLOJ1 as 'MarkupDaLoja1',
+       case when TDPVALPROI>=getdate() and getdate()<=TDPVALPROF and TDPPROLOJ='S' then TDPPREPRO1 else TDPPRELOJ1 end as 'PrecoDeLoja1',
+       PDPMKPLOJ1 as 'MarkupDaLoja2',
+       case when TDPVALPROI>=getdate() and getdate()<=TDPVALPROF and TDPPROLOJ='S' then TDPPREPRO2*PROUM2QTD else TDPPRELOJ2*PROUM2QTD end as 'PrecoDeLoja2',
+       PDPMKPWE11 as 'Markup1DaWeb1',
+       case when TDPVALPROI>=getdate() and getdate()<=TDPVALPROF and TDPPROWE1='S' then TDPPREPRO1 else TDPPREWE11 end as 'Preco1DaWeb1',
+       PDPMKPWE12 as 'Markup2DaWeb1',
+       case when TDPVALPROI>=getdate() and getdate()<=TDPVALPROF and TDPPROWE1='S' then TDPPREPRO2*PROUM2QTD else TDPPREWE12*PROUM2QTD end as 'Preco2DaWeb1',
+       PDPMKPWE21 as 'Markup1DaWeb2',
+       case when TDPVALPROI>=getdate() and getdate()<=TDPVALPROF and TDPPROWE2='S' then TDPPREPRO1 else TDPPREWE21 end as 'Preco1DaWeb2',
+       PDPMKPWE22 as 'Markup2DaWeb2',
+       case when TDPVALPROI>=getdate() and getdate()<=TDPVALPROF and TDPPROWE2='S' then TDPPREPRO2*PROUM2QTD else TDPPREWE22*PROUM2QTD end as 'Preco2DaWeb2',
+       PDPMKPREV1 as 'MarkupDaRevenda1',
+       case when TDPVALPROI>=getdate() and getdate()<=TDPVALPROF and TDPPROREV='S' then TDPPREPRO1 else TDPPREREV1 end as 'PrecoDeRevenda1',
+       PDPMKPREV2 as 'MarkupDaRevenda2',
+       case when TDPVALPROI>=getdate() and getdate()<=TDPVALPROF and TDPPROREV='S' then TDPPREPRO2*PROUM2QTD else TDPPREREV2*PROUM2QTD end as 'PrecoDeRevenda2',
+       TDPDATATU as 'DataDaAtualizacao',
+       case when getdate()<=TDPVALPROF and TDPPROLOJ='S' then convert(char(8),TDPVALPROF,3) else '' end as 'PromocaoValidaAte',
+       PROSTATUS as 'StatusDoProduto',
+       isnull((select ESTQTDATU-ESTQTDRES from TBS032 (nolock) where ESTLOC=1 and PROCOD=TDPPROCOD),0) as 'SaldoDisponivelEstoque1',
+       isnull((select ESTQTDATU-ESTQTDRES from TBS032 (nolock) where ESTLOC=2 and PROCOD=TDPPROCOD),0) as 'SaldoDisponivelEstoque2'
+  from TBS031 (nolock) right join TBS010 (nolock) on PROCOD=TDPPROCOD
+                       left join TBS015 (nolock) on PDPCOD=TDPPROCOD
+ where TDPDATATU between @dataDe and @dataAte and
+       TDPPROCOD between @produtoDe and case when @produtoAte='' then 'Z' else @produtoAte end and
+       MARCOD>=@codigoDaMarca and
+       MARNOM between @nomeDaMarca and case when @nomeDaMarca='' then 'Z' else @nomeDaMarca end
+ order by MARNOM,TBS010.PRODES
+
+--select top 1 TDPMKPCOR2,* from TBS031 (nolock)
+
+--declare @comando varchar(500)
+
+--set @comando='select * from TBS001 (nolock)'
+--print @comando
+
+--exec(@comando)

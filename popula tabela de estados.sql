@@ -1,0 +1,2 @@
+select 'update TBS001 set UFEICMPRO = ' + isnull(convert(char(5),UFEICMPRO),0) + ' ,UFEICM = ' + isnull(convert(char(5),UFEICM),0) + ' from TBS001 where UFESIG = ''' + UFESIG + ''''
+  from TBS001 (nolock)

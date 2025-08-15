@@ -1,0 +1,37 @@
+select TBS0162.USUCOD as 'usuario',
+       TBS0162.MNUNOM as 'menu',
+       TBS0191.PRGCOD as 'programa',
+       TBS018.PRGNOM as 'nome-programa',
+       TBS018.PRGDES as 'descricao-programa',
+       TBS018.NIVNOM as 'menu-sistema',
+       TBS0181.PRGEVENOM as 'opcao-programa',
+       case when TBS0191.PRGEVE Like('%' + rtrim(convert(char,TBS0181.PRGEVEITEM)) + '%') then 'S' else 'N' end as 'tem-acesso'
+  from TBS0162 (nolock) join TBS019  (nolock) on TBS019.MNUNOM  = TBS0162.MNUNOM -- menu do usuários
+                        join TBS0191 (nolock) on TBS0191.MNUNOM = TBS019.MNUNOM  -- opções do menu do usuário
+                        join TBS018  (nolock) on TBS018.PRGCOD  = TBS0191.PRGCOD -- dados do programa
+                        join TBS0181 (nolock) on TBS0181.PRGCOD = TBS018.PRGCOD
+-- where TBS0191.PRGEVE Like('%' + rtrim(convert(char,TBS0181.PRGEVEITEM))+'%')
+ order by 'usuario','menu','nome-programa','opcao-programa','tem-acesso'
+ 
+ 
+select * 
+from TBS0191 
+WHERE PRGCOD = 'WCOM046' AND --MNUNOM IN ('ESTOQUE 1','ESTOQUE1')  AND 
+(REPLACE(PRGEVE,' ','') LIKE ('%1%') OR 
+REPLACE(PRGEVE,' ','') LIKE ('%3%') OR 
+REPLACE(PRGEVE,' ','') LIKE ('%2%'))
+
+begin tran 
+UPDATE TBS0191
+SET PRGEVE = ' 4'
+where 
+PRGCOD = 'WCOM046' AND --MNUNOM IN ('ESTOQUE 1','ESTOQUE1')  AND 
+(REPLACE(PRGEVE,' ','') LIKE ('%1%') OR 
+REPLACE(PRGEVE,' ','') LIKE ('%3%') OR 
+REPLACE(PRGEVE,' ','') LIKE ('%2%'))
+
+
+
+
+
+

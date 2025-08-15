@@ -1,0 +1,40 @@
+select TBS0671.TESCOD,count(*) as 'qtde'
+  from TBS0671 (nolock) join TBS067 (nolock) on TBS0671.NFSEMPCOD=TBS067.NFSEMPCOD and TBS0671.SNEEMPCOD=TBS067.SNEEMPCOD and TBS0671.SNESER=TBS067.SNESER and
+                                                TBS0671.NFSNUM=TBS067.NFSNUM
+ where TBS067.NFSDATEMI >= '20140101'
+ group by TBS0671.TESCOD
+ order by 'qtde' desc
+
+select TESCOD,TESDES from TBS042 (nolock) where TESCOD >= 500 order by TESCOD
+
+select TBS0671.NFSCFOP,count(*) as 'qtde'
+  from TBS0671 (nolock) join TBS067 (nolock) on TBS0671.NFSEMPCOD=TBS067.NFSEMPCOD and TBS0671.SNEEMPCOD=TBS067.SNEEMPCOD and TBS0671.SNESER=TBS067.SNESER and
+                                                TBS0671.NFSNUM=TBS067.NFSNUM
+ where TBS067.NFSDATEMI >= '20130101'
+ group by TBS0671.NFSCFOP
+ order by 'qtde' desc
+
+select NFSDATEMI from TBS0671 (nolock) right join TBS067 on TBS067.SNESER=TBS0671.SNESER and TBS067.NFSNUM=TBS0671.NFSNUM
+ where NFSDATEMI >= '20140101' and TESCOD=504 and NFSCST<>'060'
+ order by NFSDATEMI desc
+
+select TBS0671.NFSCFOP,count(*) as 'contador'
+  from TBS0671 (nolock) join TBS067 (nolock) on TBS0671.NFSEMPCOD=TBS067.NFSEMPCOD and TBS0671.SNEEMPCOD=TBS067.SNEEMPCOD and TBS0671.SNESER=TBS067.SNESER and
+                                                TBS0671.NFSNUM=TBS067.NFSNUM
+ where TBS067.NFSDATEMI >= '20140101'
+ group by TBS0671.NFSCFOP
+ order by 'contador' desc
+
+select TBS0671.TESCOD,TBS0671.NFSCFOP,count(*) as 'contador'
+  from TBS0671 (nolock) join TBS067 (nolock) on TBS0671.NFSEMPCOD=TBS067.NFSEMPCOD and TBS0671.SNEEMPCOD=TBS067.SNEEMPCOD and TBS0671.SNESER=TBS067.SNESER and
+                                                TBS0671.NFSNUM=TBS067.NFSNUM
+ where TBS067.NFSDATEMI >= '20140101'
+ group by TBS0671.TESCOD,TBS0671.NFSCFOP
+ order by TBS0671.NFSCFOP
+
+select TBS067.NFSDATEMI,* from TBS0671 (nolock) right join TBS067 (nolock) on TBS067.SNESER=TBS0671.SNESER and TBS067.NFSNUM=TBS0671.NFSNUM
+ where TESCOD=558
+ order by TBS067.NFSDATEMI desc
+
+       and
+       TBS067.NFSDATEMI='20150518'

@@ -1,0 +1,1 @@
+NET USE \\192.168.1.205\Integros\atual /user:ADMINISTRADOR 8523

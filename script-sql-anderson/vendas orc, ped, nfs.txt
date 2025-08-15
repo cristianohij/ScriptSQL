@@ -1,0 +1,355 @@
+declare @datai datetime , @dataf datetime , @VENCOD int, @VENNOM varchar(60)
+set @datai = '20170329'
+set @dataf = '20170331'
+set @VENCOD = 4
+set @VENNOM = ''
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- CLIENTES DO GRUPO NÃO SERÃO CONTABIIZADOS
+
+if object_id('TempDB.dbo.#CNPJ') is not null 
+	drop table #CNPJ
+
+SELECT CLICOD 
+INTO #CNPJ 
+FROM TBS002 NOLOCK WHERE CLICGC LIKE('05118717000%') OR CLICGC LIKE('44125185000%') OR CLICGC LIKE('52080207000%') OR CLICGC LIKE('6506959300%')
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- DADOS DO VENDEDOR / CLIENTE
+
+if object_id('TempDB.dbo.#TBS004') is not null
+   drop table #TBS004
+
+SELECT 
+B.VENCOD AS VENCOD, 
+VENNOM AS VENNOM
+
+INTO #TBS004
+FROM TBS004 B (NOLOCK) 
+
+UNION
+
+SELECT 
+0 AS VENCOD,
+'SEM VENDEDOR' AS VENNOM
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+-- FILTROS VENDEDOR / CLIENTES
+
+if object_id('TempDB.dbo.#CLI') is not null
+   drop table #CLI
+
+SELECT 
+* 
+INTO #CLI
+FROM #TBS004
+
+WHERE 
+VENNOM LIKE (CASE WHEN @VENNOM = '' THEN VENNOM ELSE RTRIM(UPPER(@VENNOM)) + '%' END) --AND
+--VENCOD IN (@VENCOD) -- AND
+--CLICOD IN (CASE WHEN @CLICOD = 0 THEN CLICOD ELSE @CLICOD END) AND
+--CLINOM LIKE(CASE WHEN @CLINOM = '' THEN CLINOM ELSE RTRIM(UPPER(@CLINOM))+'%' END) AND
+-- CLICOD NOT IN ((SELECT CLICOD FROM #CNPJ))
+
+
+-- SELECT * FROM #CLI
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- ORÇAMENTO
+
+if object_id('TempDB.dbo.#TBS043') is not null 
+	drop table #TBS043
+
+SELECT
+A.ORCCLI AS CLICOD,
+A.ORCNOM AS CLINOM,		
+A.VENCOD,
+VENNOM,
+ROW_NUMBER() OVER (Partition by ORCNUM order by ORCNUM) AS 'QTD',
+CONVERT(CHAR(12),A.ORCDATCAD,103) AS 'DATA',
+ORCNUM as 'NUMERO',
+CASE WHEN ORCULTITE > 0
+	THEN ROUND(dbo.ORCTOTLIQ(ORCEMPCOD, ORCNUM),2)
+    ELSE 0
+END as 'VALOR',
+SUM(CASE WHEN ORCULTITE > 0
+	THEN ROUND(dbo.ORCTOTLIQ(ORCEMPCOD, ORCNUM),2)
+    ELSE 0
+END) OVER (PARTITION BY A.VENCOD ) AS VALTOT,
+SUM(CASE WHEN ORCULTITE > 0
+	THEN ROUND(dbo.ORCTOTLIQ(ORCEMPCOD, ORCNUM),2)
+    ELSE 0
+END) OVER (PARTITION BY 1 ) AS TOTGERAL,
+A.ORCPDVNUM AS PDVNUM
+
+INTO #TBS043								
+FROM TBS043 A (NOLOCK)
+INNER JOIN #CLI B ON A.VENCOD = B.VENCOD
+
+WHERE 
+ORCDATCAD between @datai and @dataf AND
+ORCULTITE > 0 AND
+A.ORCCLI NOT IN ((SELECT CLICOD FROM #CNPJ)) 
+
+--SELECT DISTINCT VENCOD FROM TBS043
+
+--SELECT * FROM TBS043
+
+
+
+
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- PEDIDO
+
+if object_id('TempDB.dbo.#TBS055') is not null 
+	drop table #TBS055
+
+SELECT 
+A.PDVCLICOD AS CLICOD,
+A.PDVCLINOM AS CLINOM,
+A.VENCOD,
+VENNOM,
+ROW_NUMBER() OVER (Partition by PDVNUM order by PDVNUM) AS 'QTD',
+CONVERT(CHAR(12),A.PDVDATCAD,103) AS 'DATA',
+PDVNUM as 'NUMERO',
+ROUND(dbo.PDVTOTLIQ(A.PDVEMPCOD,A.PDVNUM),2) as 'VALOR',
+SUM(ROUND(dbo.PDVTOTLIQ(A.PDVEMPCOD,A.PDVNUM),2)) OVER (PARTITION BY A.VENCOD ) AS VALTOT,
+SUM(ROUND(dbo.PDVTOTLIQ(A.PDVEMPCOD,A.PDVNUM),2)) OVER (PARTITION BY 1 ) AS TOTGERAL,
+PDVNFSSER
+
+INTO #TBS055								
+FROM TBS055 A (NOLOCK)
+INNER JOIN #CLI B ON A.VENCOD = B.VENCOD
+
+WHERE 
+PDVORCNUM IN ((SELECT NUMERO FROM #TBS043)) OR 
+(PDVDATCAD between @datai and @dataf AND
+PDVULTITE > 0 AND
+A.PDVCLICOD NOT IN ((SELECT CLICOD FROM #CNPJ)) AND 
+PDVORCNUM = 0 )
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- NFS
+
+if object_id('TempDB.dbo.#TBS067') is not null 
+	drop table #TBS067
+
+SELECT
+A.NFSCLICOD AS CLICOD,
+A.NFSCLINOM AS CLINOM,		
+A.VENCOD,
+VENNOM,
+ROW_NUMBER() OVER (Partition by A.NFSNUM,A.SNESER order by A.NFSNUM,A.SNESER) AS 'QTD',
+CONVERT(CHAR(12),A.NFSDATEMI,103) AS 'DATA',
+A.NFSNUM as 'NUMERO',
+ROUND(C.NFSPDVVAL,2) AS 'VALOR',
+SUM(ROUND(C.NFSPDVVAL,2))OVER (PARTITION BY A.VENCOD ) AS VALTOT, 
+SUM(ROUND(C.NFSPDVVAL,2))OVER (PARTITION BY 1) AS TOTGERAL, 
+ISNULL(C.NFSPDVNUM,0) AS PDVNUM,
+CASE WHEN (SELECT count(*) from TBS0672 D (NOLOCK) where D.SNESER=A.SNESER and D.NFSNUM=A.NFSNUM) > 1 then 'S'
+    else ''
+end as 'AGLUTINADA',
+C.SNESER,
+CASE A.NFSCAN
+	WHEN '' THEN ''
+	WHEN 'N' THEN ''
+	WHEN 'S' THEN 'SIM'
+END AS NFSCAN
+
+INTO #TBS067								
+FROM TBS067 A (NOLOCK) 
+-- LEFT JOIN TBS080 B (NOLOCK) ON A.NFSNUM = B.ENFNUM AND A.SNEEMPCOD = B.SNEEMPCOD AND A.SNESER = B.SNESER
+LEFT JOIN TBS0672 C (NOLOCK) ON A.NFSEMPCOD = C.NFSEMPCOD AND A.NFSNUM = C.NFSNUM AND A.SNEEMPCOD = C.SNEEMPCOD AND A.SNESER = C.SNESER
+INNER JOIN #CLI D ON A.VENCOD = D.VENCOD 
+
+WHERE 
+C.NFSPDVNUM IN ((SELECT NUMERO FROM #TBS055))/* OR
+(NFSDATEMI between @datai and @dataf AND
+--B.ENFSIT = 6 AND
+--B.ENFTIPDOC = 1 AND
+NFSCLICOD NOT IN ((SELECT CLICOD FROM #CNPJ)) */
+
+
+UPDATE #TBS067
+SET QTD = 0
+WHERE QTD > 1
+
+--BEGIN TRAN 
+--UPDATE #TBS067
+--SET 
+--VALTOT = VALTOT - (SELECT SUM(VALOR) FROM #TBS067 B WHERE QTD = 0 and B.VENCOD = #TBS067.VENCOD GROUP BY B.VENCOD)
+
+-- SELECT * FROM #TBS067
+---SELECT * FROM TBS055 NOLOCK WHERE PDVORCNUM = 0 AND PDVDATCAD > '20170101'
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA FINAL AGRUPADO POR VENDEDOR
+
+SELECT 
+ISNULL(ISNULL(A.VENCOD,B.VENCOD),C.VENCOD) AS VENCOD,
+ISNULL(ISNULL(A.VENNOM,B.VENNOM),C.VENNOM) AS VENNOM,
+ISNULL(ISNULL(A.CLICOD,B.CLICOD),C.CLICOD) AS CLICOD,
+ISNULL(ISNULL(A.CLINOM,B.CLINOM),C.CLINOM) AS CLINOM,
+A.QTD as ORCQTD,
+A.DATA AS ORCDAT,
+A.NUMERO AS ORCNUM,
+A.VALOR AS ORCVAL,
+A.VALTOT AS ORCVALTOT, 
+A.TOTGERAL AS ORCVALTOTGER,
+
+B.QTD AS PDVQTD,
+B.DATA AS PDVDAT,
+B.NUMERO AS PDVNUM,
+B.VALOR AS PDVVAL,
+B.VALTOT AS PDVVALTOT,
+B.PDVNFSSER ,
+B.TOTGERAL AS PDVVALTOTGER,
+
+C.QTD AS NFSQTD,
+C.DATA AS NFSDAT,
+C.NUMERO AS NFSNUM,
+C.VALOR AS NFSVAL,
+C.VALTOT AS NFSVALTOT,
+C.PDVNUM AS NFSPDVNUM,
+C.AGLUTINADA ,
+C.TOTGERAL AS NFSVALTOTGER,
+C.NFSCAN 
+
+FROM #TBS043 A 
+FULL OUTER JOIN #TBS055 B ON A.PDVNUM = B.NUMERO 
+FULL OUTER JOIN #TBS067 C ON B.NUMERO = C.PDVNUM AND C.SNESER=B.PDVNFSSER
+
+
+
+
+
+
+
+
+
+SELECT * FROM TBS067
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+FROM 
+TBS043 (nolock)
+full join TBS055 (nolock) on PDVNUM=ORCPDVNUM
+full join TBS0672 (nolock) on NFSPDVNUM=PDVNUM and SNESER=PDVNFSSER
+Left join TBS067 (nolock) on TBS067.SNESER=TBS0672.SNESER and TBS067.NFSNUM=TBS0672.NFSNUM
+
+
+
+
+
+--- AMARRAÇOES 
+
+
+
+
+
+
+
+
+
+if object_id('TempDB.dbo.#PDV') is not null 
+	drop table #PDV
+
+select 
+isnull((select rtrim(VENNOM)+' ('+Ltrim(str(VENCOD,4))+')' from TBS004 (nolock)
+        where TBS004.VENCOD=case
+                                when TBS043.VENCOD > 0 then TBS043.VENCOD
+                                when TBS055.VENCOD > 0 then TBS055.VENCOD
+                                else TBS067.VENCOD
+                            end),'SEM VENDEDOR') as 'vendedor',
+
+ROW_NUMBER() OVER (Partition by isnull(ORCNUM,0) order by isnull(ORCNUM,0)) AS COUNTORC,
+ISNULL(CONVERT(CHAR(12),TBS043.ORCDATCAD,103),'') AS 'DataOrcamento',
+isnull(ORCNUM,0) as 'NumeroOrcamento',
+case
+	when ORCULTITE > 0 then dbo.ORCTOTLIQ(ORCEMPCOD, ORCNUM)
+    else 0
+end as 'ValorOrcamento',
+ROW_NUMBER() OVER (Partition by isnull(PDVNUM,0) order by isnull(PDVNUM,0)) AS COUNTPED,
+ISNULL(CONVERT(CHAR(12),TBS055.PDVDATCAD,103),'') AS 'DataPedido',
+isnull(PDVNUM,0) as 'NumeroPedido',
+isnull(NFSPDVVAL,0) as 'ValorPedido',
+ROW_NUMBER() OVER (Partition by isnull(TBS0672.NFSNUM,0) order by isnull(TBS0672.NFSNUM,0)) AS COUNTNFS,
+ISNULL(CONVERT(CHAR(12),TBS067.NFSDATEMI,103),'') AS 'DataNFS',
+isnull(TBS0672.NFSNUM,0) as 'NumeroNF',
+dbo.NFSTOTLIQ(TBS0672.NFSEMPCOD, TBS0672.NFSNUM, TBS0672.SNEEMPCOD, TBS0672.SNESER) as 'ValorNF',
+case 
+	when (select count(*) from TBS0672 (nolock) where TBS0672.SNESER=TBS067.SNESER and TBS0672.NFSNUM=TBS067.NFSNUM) > 1 then 'S'
+    else ''
+end as 'aglutinada',
+TBS067.NFSCAN
+
+--INTO #PDV
+
+--FROM 
+--TBS0671 B (nolock)
+--LEFT JOIN TBS067 A (nolock) ON A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+--LEFT JOIN TBS042 C (NOLOCK) ON B.TESCOD = C.TESCOD
+--LEFT JOIN TBS080 D (NOLOCK) ON B.NFSNUM = D.ENFNUM AND B.SNEEMPCOD = D.SNEEMPCOD AND B.SNESER = D.SNESER
+--			  
+--WHERE 
+--((NFSDATEMI between @datai and @dataf) OR 
+--(ORCDATCAD between @datai and @dataf and ORCULTITE > 0) or
+--(PDVDATCAD between @datai and @dataf and PDVULTITE > 0)) AND
+--D.ENFSIT = 6 AND
+--D.ENFTIPDOC = 1 AND
+--A.NFSCLINOM NOT LIKE ('TANBY%') AND
+--(C.TESCNTVEN = 'S' OR NFSROPCNTVEN = 'S')
+
+
+FROM 
+TBS043 (nolock)
+full join TBS055 (nolock) on PDVNUM=ORCPDVNUM
+full join TBS0672 (nolock) on NFSPDVNUM=PDVNUM and SNESER=PDVNFSSER
+Left join TBS067 (nolock) on TBS067.SNESER=TBS0672.SNESER and TBS067.NFSNUM=TBS0672.NFSNUM
+
+where 
+(ORCDATCAD between @datai and @dataf and ORCULTITE > 0) or
+(PDVDATCAD between @datai and @dataf and PDVULTITE > 0) or
+(NFSDATEMI between @datai and @dataf) /*and
+isnull((select rtrim(VENNOM)+' ('+Ltrim(str(VENCOD,4))+')' from TBS004 (nolock)
+        where TBS004.VENCOD=case
+                                when TBS043.VENCOD > 0 then TBS043.VENCOD
+                                when TBS055.VENCOD > 0 then TBS055.VENCOD
+                                else TBS067.VENCOD
+                            end),'SEM VENDEDOR') IN (@vencod)*/
+
+order by 
+'vendedor' , isnull(TBS0672.NFSNUM,0) 
+
+
+
+-- SELECT isnull((SELECT SUM(ValorNF) FROM #PDV B WHERE COUNTNFS = 1 AND ValorNF > 0 AND A.vendedor = B.vendedor GROUP BY vendedor),0) as TOTNFS AS TTNFS FROM #PDV A
+
+
+select * FROM TBS043 NOLOCK
+

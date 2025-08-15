@@ -1,0 +1,98 @@
+begin tran
+insert into TBS0021 (CLILOG, CLIENDBAI, CLIENDUFE, CLIENDTIPPES, CLIENDCGC, CLIENDCPF, CLIENDTIP, CLIENDCOD, CLIEMPCOD, CLICOD) 
+select CLIENDENT, CLIBAIENT, CLIUFEENT, CLITIPPES, CLICGC, CLICPF, 'E', CLIULTENDCOD + 1, TBS002.CLIEMPCOD, TBS002.CLICOD
+from TBS002
+where CLIENDENT <> '' and CLIENDENT <> CLIEND
+
+
+update TBS002 set CLIULTENDCOD = CLIULTENDCOD + 1
+where CLIENDENT <> ''
+
+
+select CLICOD, CLIULTENDCOD
+from TBS002
+where CLIULTENDCOD = 1
+
+update TBS002 set CLIULTENDCOD = 0
+from TBS002
+where CLIULTENDCOD is null
+
+--commit tran
+
+
+
+begin tran
+insert into TBS0021 (CLILOG, CLIENDBAI, CLIENDUFE, CLIENDTIPPES, CLIENDCGC, CLIENDCPF, CLIENDTIP, CLIENDCOD, CLIEMPCOD, CLICOD) 
+select CLIENDENT, CLIBAIENT, CLIUFEENT, CLITIPPES, CLICGC, CLICPF, 'E', CLIULTENDCOD + 1, TBS002.CLIEMPCOD, TBS002.CLICOD
+from TBS002
+where CLIENDENT <> '' and CLIENDENT <> CLIEND
+commit tran
+
+select CLICOD,CLIULTENDCOD,(select count(*) from TBS0021 (nolock) where CLIEMPCOD = a.CLIEMPCOD and CLICOD = a.CLICOD)
+  from TBS002 a (nolock)
+
+select * from TBS0021 (nolock) order by CLICOD
+
+delete TBS0021
+
+update TBS002 set CLIULTENDCOD = (select count(*) from TBS0021 (nolock) where CLIEMPCOD = a.CLIEMPCOD and CLICOD = a.CLICOD)
+  from TBS002 a (nolock)
+
+begin tran
+insert into TBS0021 (CLILOG, CLIENDBAI, CLIENDUFE, CLIENDTIPPES, CLIENDCGC, CLIENDCPF, CLIENDTIP, CLIENDCOD, CLIEMPCOD, CLICOD) 
+select CLIENDCOB, CLIBAICOB, CLIUFECOB, CLITIPPES, CLICGC, CLICPF, 'C', CLIULTENDCOD + 1, TBS002.CLIEMPCOD, TBS002.CLICOD
+from TBS002
+where CLIENDCOB <> '' and CLIENDCOB <> CLIEND
+
+
+select CLIENDUFE,(select CLICIDENT from TBS002 (nolock) where CLICOD = a.CLICOD),
+                 (select MUNCOD,MUNNOM from TBS003 (nolock)
+                   where UFESIG = a.CLIENDUFE and MUNNOM Like(rtrim((select CLICIDENT from TBS002 (nolock) where CLICOD = a.CLICOD))+'%'))
+  from TBS0021 a (nolock)
+
+
+select TBS0021.CLIENDUFE,TBS002.CLICIDENT,TBS003.MUNCOD,TBS003.MUNNOM
+--  from TBS0021 (nolock) join TBS002 (nolock) on TBS0021.CLICOD = TBS002.CLICOD
+--                        join TBS003 (nolock) on TBS003.UFESIG = TBS0021.CLIENDUFE and TBS003.MUNNOM Like(rtrim(TBS002.CLICIDENT)+'%')
+  from TBS003 (nolock) join TBS002 (nolock) on TBS002.UFESIG = TBS003.UFESIG and TBS002.CLICIDENT = TBS003.MUNNOM
+                       join TBS0021 (nolock) on TBS0021.CLICOD = TBS002.CLICOD
+ where TBS0021.CLIENDTIP = 'E' and TBS002.CLICIDENT <> '' and TBS0021.CLIENDMUNCOD = 0
+
+begin tran
+update TBS0021 set CLIENDMUNCOD = (select TBS003.MUNCOD
+                                     from TBS003 (nolock) join TBS002 (nolock) on TBS002.UFESIG = TBS003.UFESIG and TBS002.CLICIDENT = TBS003.MUNNOM
+                                                          join TBS0021 (nolock) on TBS0021.CLICOD = TBS002.CLICOD
+                                    where TBS0021.CLIENDTIP = 'E' and TBS002.CLICIDENT <> '')
+  from TBS003 (nolock) join TBS002 (nolock) on TBS002.UFESIG = TBS003.UFESIG and TBS002.CLICIDENT = TBS003.MUNNOM
+                       join TBS0021 (nolock) on TBS0021.CLICOD = TBS002.CLICOD
+ where TBS0021.CLIENDTIP = 'E' and TBS002.CLICIDENT <> '' and TBS0021.CLIENDMUNCOD = 0
+
+-- endereço de entrega
+select TBS0021.CLIENDUFE,TBS002.CLICIDENT,
+update TBS0021 set CLIENDMUNCOD = (select TBS003.MUNCOD from TBS003 (nolock) where TBS003.UFESIG = TBS0021.CLIENDUFE and TBS003.MUNNOM = TBS002.CLICIDENT)
+  from TBS002 (nolock) join TBS0021 (nolock) on TBS0021.CLICOD = TBS002.CLICOD
+ where TBS0021.CLIENDTIP = 'E' and TBS002.CLICIDENT <> '' and TBS0021.CLIENDUFE <> '' and TBS0021.CLIENDMUNCOD = 0
+
+-- endereço de cobrança
+select TBS0021.CLIENDUFE,TBS002.CLICIDENT,
+update TBS0021 set CLIENDMUNCOD = (select TBS003.MUNCOD from TBS003 (nolock) where TBS003.UFESIG = TBS0021.CLIENDUFE and TBS003.MUNNOM = TBS002.CLICIDENT)
+  from TBS002 (nolock) join TBS0021 (nolock) on TBS0021.CLICOD = TBS002.CLICOD
+ where TBS0021.CLIENDTIP = 'C' and TBS002.CLICIDCOB <> '' and TBS0021.CLIENDUFE <> '' and TBS0021.CLIENDMUNCOD = 0
+
+
+-- compara enderecos depois de removidos os numeros
+select CLIEND,CLILOG from TBS002 (nolock) join TBS0021 (nolock) on TBS002.CLICOD = TBS0021.CLICOD where CLIEND = CLILOG
+
+delete TBS0021 from TBS002 (nolock) join TBS0021 (nolock) on TBS002.CLICOD = TBS0021.CLICOD where CLIEND = CLILOG
+
+
+-- listagem
+select TBS0021.CLICOD,case CLIENDTIP when 'C' then 'COBRANCA' else 'ENTREGA' end,TBS004.VENNOM
+  from TBS0021 (nolock) join TBS002 on TBS002.CLICOD = TBS0021.CLICOD
+                        join TBS004 on TBS004.VENCOD = TBS002.VENCOD
+
+-- listagem para correção
+select TBS0021.CLICOD,case CLIENDTIP when 'C' then 'COBRANCA' else 'ENTREGA' end,TBS004.VENNOM
+  from TBS0021 (nolock) join TBS002 on TBS002.CLICOD = TBS0021.CLICOD
+                        join TBS004 on TBS004.VENCOD = TBS002.VENCOD
+ where TBS0021.CLIENDNUM = '' or TBS0021.CLIENDMUNCOD = 0

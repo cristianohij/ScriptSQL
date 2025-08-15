@@ -1,0 +1,9 @@
+select PROCOD as 'PRODUTO', 
+PRODES as 'DESCRICAO', 
+replace(str(isnull(TDPPRELOJ1,0),10,4),'.',',') as 'PRECO LOJA', 
+replace(str(isnull(TDPCUSBAS,0),10,4),'.',',') as 'PRECO CUSTO', 
+replace(str(isnull(ESTQTDATU - ESTQTDRES,0),10,4),'.',',') as 'QTDE DISPONIVEL'
+
+from TBS032(nolock) left join TBS031(nolock) on PROCOD = TDPPROCOD 
+where ESTLOC = 1
+order by PROCOD

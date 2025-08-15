@@ -1,0 +1,35 @@
+select TBS031.TDPPROCOD as 'codigo-produto',
+       TBS010.PRODES as 'descricao',
+       TBS014.MARCOD as 'codigo-marca',
+       TBS014.MARNOM as 'nome-marca',
+       TBS006.FORCOD as 'codigo-fornecedor',
+       TBS006.FORNOM as 'nome-fornecedor',
+       TBS010.PROUM1 as 'unidade1',
+       TBS010.PROUM2 as 'unidade2',
+       TBS010.PROUM3 as 'unidade3',
+       TBS010.PROUM4 as 'unidade4',
+       TBS031.TDPPRECOR1 as 'preco-corporativo-unidade1',
+       TBS031.TDPPRECOR2 * TBS010.PROUM2QTD as 'preco-corporativo-unidade2',
+       TBS031.TDPPRECOR3 * TBS010.PROUM3QTD as 'preco-corporativo-unidade3',
+       TBS031.TDPPRECOR4 * TBS010.PROUM4QTD as 'preco-corporativo-unidade4',
+       TBS031.TDPPRELOJ1 as 'preco-loja-unidade1',
+       TBS031.TDPPRELOJ2 * TBS010.PROUM2QTD as 'preco-loja-unidade2',
+       TBS031.TDPPRELOJ3 * TBS010.PROUM3QTD as 'preco-loja-unidade3',
+       TBS031.TDPPRELOJ4 * TBS010.PROUM4QTD as 'preco-loja-unidade4',
+       TBS031.TDPPREWE11 as 'preco-web1-unidade1',
+       TBS031.TDPPREWE12 * TBS010.PROUM2QTD as 'preco-web1-unidade2',
+       TBS031.TDPPREWE13 * TBS010.PROUM3QTD as 'preco-web1-unidade3',
+       TBS031.TDPPREWE14 * TBS010.PROUM4QTD as 'preco-web1-unidade4',
+       TBS031.TDPPREWE21 as 'preco-web2-unidade1',
+       TBS031.TDPPREWE22 * TBS010.PROUM2QTD as 'preco-web2-unidade2',
+       TBS031.TDPPREWE23 * TBS010.PROUM3QTD as 'preco-web2-unidade3',
+       TBS031.TDPPREWE24 * TBS010.PROUM4QTD as 'preco-web2-unidade4',
+       TBS031.TDPPREREV1 as 'preco-revenda-unidade1',
+       TBS031.TDPPREREV2 * TBS010.PROUM2QTD as 'preco-revenda-unidade2',
+       TBS031.TDPPREREV3 * TBS010.PROUM3QTD as 'preco-revenda-unidade3',
+       TBS031.TDPPREREV4 * TBS010.PROUM4QTD as 'preco-revenda-unidade4'
+  from TBS031 (nolock) join TBS010 (nolock) on TBS010.PROCOD=TBS031.TDPPROCOD
+                       join TBS014 (nolock) on TBS010.MARCOD=TBS014.MARCOD
+                       join TBS006 (nolock) on TBS010.FORCOD=TBS006.FORCOD
+
+select * from TBS031 (nolock)

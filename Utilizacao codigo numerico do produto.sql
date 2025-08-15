@@ -1,0 +1,24 @@
+-- Atributos para implementar uso de CODIGO NUMERICO DO PRODUTO 
+
+-- CODIGO DO PRODUTO NUMERICO NA TABELA DE PRODUTOS
+alter table [TBS010] add [PROCODNUM] INT default 0 with values
+
+-- CODIGO DO PRODUTO NUMERICO NA TABELA DE CUPONS
+alter table [MSL002] add [M2_PROCODNUM] INT default 0 with values
+
+SELECT * FROM TBS010
+
+
+
+DECLARE @CODPRO AS CHAR(15)
+-- Atualiza enquando conter itens com valor "0"
+WHILE (SELECT COUNT(*) FROM TBS010 WHERE PROCODNUM = 0) > 0
+BEGIN
+
+	-- Obtem apenas o primeiro registro onde o item esta com valor "0"
+	SET @CODPRO = (SELECT TOP 1 PROCOD FROM TBS010 WHERE PROCODNUM = 0)
+		
+	
+	UPDATE TBS010 SET PROCODNUM = (SELECT MAX(PROCODNUM) + 1 FROM TBS010 )	
+	WHERE PROCOD = @CODPRO
+END

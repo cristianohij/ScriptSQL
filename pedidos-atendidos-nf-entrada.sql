@@ -1,0 +1,26 @@
+select PDVCST,PDVCFOP,PDVPERICMS,* from TBS0551 (nolock) where PDVNUM=408923
+
+begin tran
+update TBS0551 set PDVCST='051',PDVPERICMS=0 where PDVNUM=408923
+commit tran
+
+select top 1 * from TBS0592 (nolock)
+
+-- from TBS059 join TBS0593 on TBS059.NFETIP=TBS0593.NFETIP and TBS059.NFENUM=TBS0593.NFENUM and TBS059.NFECOD=TBS0593.NFECOD
+
+select NFENUM,
+       0,
+       (select distinct NFEPEDNUM from TBS0592 (nolock) where NFETIP=TBS059.NFETIP and SERCOD=TBS059.SERCOD AND NFENUM=TBS059.NFENUM and NFECOD=TBS059.NFECOD)
+ from TBS059 (nolock) where NFEDATEFE >= '20170410'
+
+select TBS0592.NFENUM,
+       NFEPEDNUM,
+       count(*)
+  from TBS0592 (nolock) inner join TBS059 (nolock) on TBS0592.NFETIP=TBS059.NFETIP and TBS0592.SERCOD=TBS059.SERCOD and TBS0592.NFENUM=TBS059.NFENUM and TBS0592.NFECOD=TBS059.NFECOD
+ where NFEDATEFE >= '20170410' and
+       NFETIPPED = 'V'
+ group by TBS0592.NFENUM,NFEPEDNUM
+  with rollup
+--compute count(NFEPEDNUM)
+
+--with cube

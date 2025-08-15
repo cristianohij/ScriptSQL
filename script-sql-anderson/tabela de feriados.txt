@@ -1,0 +1,501 @@
+CREATE PROCEDURE dbo.stpGera_Feriados
+AS BEGIN
+ 
+ 
+    -------------------------------
+    -- Cria a tabela se não existir
+    -------------------------------
+ 
+    IF (OBJECT_ID('dbo.Feriado') IS NULL)
+    BEGIN
+ 
+        -- DROP TABLE dbo.Feriado
+        CREATE TABLE dbo.Feriado (
+            Nr_Ano SMALLINT NOT NULL,
+            Nr_Mes SMALLINT NOT NULL,
+            Nr_Dia SMALLINT NOT NULL,
+            Tp_Feriado CHAR(1) NULL,
+            Ds_Feriado VARCHAR(100) NOT NULL,
+            Sg_UF CHAR(2) NOT NULL
+        )
+ 
+        ALTER TABLE dbo.Feriado ADD CONSTRAINT [Pk_Feriado] PRIMARY KEY CLUSTERED  ([Nr_Ano], [Nr_Mes], [Nr_Dia], [Sg_UF]) WITH (FILLFACTOR=90, PAD_INDEX=ON) ON [PRIMARY]
+ 
+ 
+    END
+ 
+ 
+    -- Apaga os dados se já tiverem sido populados
+    TRUNCATE TABLE dbo.Feriado
+ 
+ 
+    -------------------------------
+    -- Feriados nacionais
+    -------------------------------
+ 
+    INSERT INTO dbo.Feriado
+    SELECT 0, 1, 1, 1, 'Confraternização Universal', ''
+    UNION
+    SELECT 0, 4, 21, 1, 'Tiradentes', ''
+    UNION
+    SELECT 0, 5, 1, 1, 'Dia do Trabalhador', ''
+    UNION
+    SELECT 0, 9, 7, 1, 'Independência', ''
+    UNION
+    SELECT 0, 10, 12, 1, 'Nossa Senhora Aparecida', ''
+    UNION
+    SELECT 0, 11, 2, 1, 'Finados', ''
+    UNION
+    SELECT 0, 11, 15, 1, 'Proclamação da República', ''
+    UNION
+    SELECT 0, 12, 25, 1, 'Natal', ''
+ 
+ 
+ --select * from dbo.Feriado
+    -------------------------------
+    -- Feriados estaduais
+    -------------------------------
+ 
+    -- Acre
+    INSERT INTO dbo.Feriado
+    SELECT 0, 1, 23, 2, 'Dia do evangélico', 'AC'
+    UNION
+    SELECT 0, 3, 8, 2, 'Alusivo ao Dia Internacional da Mulher', 'AC'
+    UNION
+    SELECT 0, 6, 15, 2, 'Aniversário do estado', 'AC'
+    UNION
+    SELECT 0, 9, 5, 2, 'Dia da Amazônia', 'AC'
+    UNION
+    SELECT 0, 11, 17, 2, 'Assinatura do Tratado de Petrópolis', 'AC'
+ 
+    -- Alagoas
+    INSERT INTO dbo.Feriado
+    SELECT 0, 6, 24, 2, 'São João', 'AL'
+    UNION
+    SELECT 0, 6, 29, 2, 'São Pedro', 'AL'
+    UNION
+    SELECT 0, 9, 16, 2, 'Emancipação política', 'AL'
+    UNION
+    SELECT 0, 11, 20, 2, 'Morte de Zumbi dos Palmares', 'AL'
+ 
+    -- Amapá
+    INSERT INTO dbo.Feriado
+    SELECT 0, 3, 19, 2, 'Dia de São José, santo padroeiro do Estado do Amapá', 'AP'
+    UNION
+    SELECT 0, 9, 13, 2, 'Criação do Território Federal (Data Magna do estado)', 'AP'
+ 
+    -- Amazonas
+    INSERT INTO dbo.Feriado
+    SELECT 0, 9, 5, 2, 'Elevação do Amazonas à categoria de província', 'AM'
+    UNION
+    SELECT 0, 11, 20, 2, 'Dia da Consciência Negra', 'AM'
+ 
+    -- Bahia
+    INSERT INTO dbo.Feriado
+    SELECT 0, 7, 2, 2, 'Independência da Bahia&nbsp;(Data magna do estado)', 'BA'
+ 
+    -- Ceará
+    INSERT INTO dbo.Feriado
+    SELECT 0, 3, 25, 2, 'Data magna do estado (data da abolição da escravidão no Ceará)', 'CE'
+ 
+    -- Distrito Federal
+    INSERT INTO dbo.Feriado
+    SELECT 0, 4, 21, 2, 'Fundação de&nbsp;Brasília', 'DF'
+    UNION
+    SELECT 0, 11, 30, 2, 'Dia do&nbsp;evangélico', 'DF'
+ 
+    -- Maranhão
+    INSERT INTO dbo.Feriado
+    SELECT 0, 7, 28, 2, 'Adesão do Maranhão à&nbsp;independência do Brasil', 'MA'
+ 
+    -- Mato Grosso
+    INSERT INTO dbo.Feriado
+    SELECT 0, 11, 20, 2, 'Dia da Consciência Negra', 'MT'
+ 
+    -- Mato Grosso do Sul
+    INSERT INTO dbo.Feriado
+    SELECT 0, 10, 11, 2, 'Criação do estado', 'MS'
+ 
+    -- Minas Gerais
+    INSERT INTO dbo.Feriado
+    SELECT 0, 4, 21, 2, 'Data magna do estado', 'MG'
+ 
+    -- Pará
+    INSERT INTO dbo.Feriado
+    SELECT 0, 8, 15, 2, 'Adesão do&nbsp;Grão-Pará&nbsp;à&nbsp;independência do Brasil&nbsp;(data magna)', 'PA'
+ 
+    -- Paraíba
+    INSERT INTO dbo.Feriado
+    SELECT 0, 7, 26, 2, 'Homenagem à memória do ex-presidente João Pessoa', 'PB'
+    UNION
+    SELECT 0, 8, 5, 2, 'Fundação do Estado em 1585', 'PB'
+ 
+    -- Paraná
+    INSERT INTO dbo.Feriado
+    SELECT 0, 12, 19, 2, 'Emancipação política (emancipação do&nbsp;Paraná)', 'PR'
+ 
+    -- Piauí
+    INSERT INTO dbo.Feriado
+    SELECT 0, 10, 19, 2, 'Dia do&nbsp;Piauí', 'PI'
+ 
+    -- Rio de Janeiro
+    INSERT INTO dbo.Feriado
+    SELECT 0, 4, 23, 2, 'Dia de&nbsp;São Jorge', 'RJ'
+    UNION
+    SELECT 0, 11, 20, 2, 'Dia da Consciência Negra', 'RJ'
+ 
+    -- Rio Grande do Norte
+    INSERT INTO dbo.Feriado
+    SELECT 0, 10, 3, 2, 'Mártires de Cunhaú e Uruaçu', 'RN'
+ 
+    -- Rio Grande do Sul
+    INSERT INTO dbo.Feriado
+    SELECT 0, 9, 20, 2, 'Proclamação da República Rio-Grandense', 'RS'
+ 
+    -- Rondônia
+    INSERT INTO dbo.Feriado
+    SELECT 0, 1, 4, 2, 'Criação do estado (data magna)', 'RO'
+    UNION
+    SELECT 0, 6, 18, 2, 'Dia do evangélico', 'RO'
+ 
+    -- Roraima
+    INSERT INTO dbo.Feriado
+    SELECT 0, 10, 5, 2, 'Criação do estado', 'RR'
+ 
+    -- Santa Catarina
+    INSERT INTO dbo.Feriado
+    SELECT 0, 10, 5, 2, 'Dia de Santa Catarina', 'SC'
+
+   -- SÃO JOSÉ DOS CAMPOS
+BEGIN TRAN    
+   
+    INSERT INTO dbo.Feriado
+    SELECT 0, 3, 19, 2, 'Dia em homenagem do Padroeiro de São José', 'SJ'
+    UNION
+    SELECT 0, 7, 27, 2, 'Aniversário da Cidade', 'SJ'
+    UNION
+    SELECT 0, 7, 9, 2, 'Revolução Constitucionalista de 1932&nbsp;(Data magna do estado)','SJ'
+    
+ 
+    -- São Paulo
+    INSERT INTO dbo.Feriado
+	SELECT 0, 1, 25, 2, 'Aniversário da Cidade de São Paulo','SP'
+	UNION
+    SELECT 0, 7, 9, 2, 'Revolução Constitucionalista de 1932&nbsp;(Data magna do estado)', 'SP'
+	UNION
+	SELECT 0, 11, 20, 2, 'Dia da Consciência Negra', 'SP'
+ 
+    -- Sergipe
+    INSERT INTO dbo.Feriado
+    SELECT 0, 3, 17, 2, 'Aniversário de Aracaju', 'SE'
+    UNION
+    SELECT 0, 6, 24, 2, 'São João', 'SE'
+    UNION
+    SELECT 0, 7, 8, 2, 'Autonomia política de Sergipe', 'SE'
+    UNION
+    SELECT 0, 12, 8, 2, 'Nossa Senhora da Conceição', 'SE'
+
+-- Taubaté
+
+INSERT INTO dbo.Feriado
+    SELECT 0, 3, 28, 2, 'Dia de São Benedito', 'TT'
+    UNION
+    SELECT 0, 7, 9, 2, 'Revolução Constitucionalista de 1932&nbsp;(Data magna do estado)','TT'
+    UNION
+    SELECT 0, 10, 4, 2, 'Dia de São Francisco', 'TT'
+    UNION
+    SELECT 0, 12, 5, 2, 'Ainversário de Taubaté', 'TT'
+    	
+ 
+    -- Tocantins
+    INSERT INTO dbo.Feriado
+    SELECT 0, 10, 5, 2, 'Criação do estado', 'TO'
+    UNION
+    SELECT 0, 3, 18, 2, 'Autonomia do Estado (criação da Comarca do Norte)', 'TO'
+    UNION
+    SELECT 0, 9, 8, 2, 'Padroeira do Estado (Nossa Senhora da Natividade)', 'TO'
+ 
+ 
+    -------------------------------
+    -- Feriados móveis
+    -------------------------------
+ 
+    DECLARE
+        @ano INT,
+        @seculo INT,
+        @G INT,
+        @K INT,
+        @I INT,
+        @H INT,
+        @J INT,
+        @L INT,
+        @MesDePascoa INT,
+        @DiaDePascoa INT,
+        @pascoa DATETIME 
+ 
+ 
+    DECLARE 
+        @Dt_Inicial datetime = '1990-01-01',
+        @Dt_Final datetime = '2099-01-01'
+ 
+ 
+    WHILE(@Dt_Inicial <= @Dt_Final)
+    BEGIN
+ 
+        SET @ANO = YEAR(@Dt_Inicial)
+ 
+        SET @seculo = @ano / 100 
+        SET @G = @ano % 19
+        SET @K = ( @seculo - 17 ) / 25
+        SET @I = ( @seculo - CAST(@seculo / 4 AS int) - CAST(( @seculo - @K ) / 3 AS int) + 19 * @G + 15 ) % 30
+        SET @H = @I - CAST(@I / 28 AS int) * ( 1 * -CAST(@I / 28 AS int) * CAST(29 / ( @I + 1 ) AS int) ) * CAST(( ( 21 - @G ) / 11 ) AS int)
+        SET @J = ( @ano + CAST(@ano / 4 AS int) + @H + 2 - @seculo + CAST(@seculo / 4 AS int) ) % 7
+        SET @L = @H - @J
+        SET @MesDePascoa = 3 + CAST(( @L + 40 ) / 44 AS int)
+        SET @DiaDePascoa = @L + 28 - 31 * CAST(( @MesDePascoa / 4 ) AS int)
+        SET @pascoa = CAST(@MesDePascoa AS varchar(2)) + '-' + CAST(@DiaDePascoa AS varchar(2)) + '-' + CAST(@ano AS varchar(4))
+ 
+ --2010
+        INSERT INTO dbo.Feriado
+        SELECT 2010 , 4, 2, 1, 'Paixão de Cristo', ''
+ 
+     --  	union
+      --  SELECT 2010 , 2, 15, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2010 , 2, 16, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2010 , 6, 3, 1, 'Corpus Christi', ''
+--2011		
+		INSERT INTO dbo.Feriado
+        SELECT 2011 , 4, 22, 1, 'Paixão de Cristo', ''
+ 
+       --	union
+        --SELECT 2011 , 3, 7, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2011 , 3, 8, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2011 , 6, 23, 1, 'Corpus Christi', ''
+--2012 
+INSERT INTO dbo.Feriado
+        SELECT 2012 , 4, 6, 1, 'Paixão de Cristo', ''
+ 
+       	--union
+       -- SELECT 2012 , 2, 20, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2012 , 2, 21, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2012 , 6, 7, 1, 'Corpus Christi', ''
+
+--2013
+INSERT INTO dbo.Feriado
+        SELECT 2013 , 3, 29, 1, 'Paixão de Cristo', ''
+ 
+       	--union
+        --SELECT 2013 , 2, 11, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2013 , 2, 12, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2013 , 5, 30, 1, 'Corpus Christi', ''
+		
+--2014
+INSERT INTO dbo.Feriado
+        SELECT 2014 , 4, 18, 1, 'Paixão de Cristo', ''
+ 
+       	--union
+        --SELECT 2014 , 3, 3, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2014 , 3, 4, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2014 , 6, 19, 1, 'Corpus Christi', ''
+		
+--2015
+INSERT INTO dbo.Feriado
+        SELECT 2015 , 4, 3, 1, 'Paixão de Cristo', ''
+ 
+       	--union
+        --SELECT 2015 , 2, 16, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2015 , 2, 17, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2015 , 6, 4, 1, 'Corpus Christi', ''
+		
+--2016
+INSERT INTO dbo.Feriado
+        SELECT 2016 , 3, 25, 1, 'Paixão de Cristo', ''
+ 
+       	--union
+        --SELECT 2016 , 2, 8, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2016 , 2, 9, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2016 , 5, 26, 1, 'Corpus Christi', ''
+		
+--2017
+INSERT INTO dbo.Feriado
+        SELECT 2017 , 4, 14, 1, 'Paixão de Cristo', ''
+ 
+       	--union
+        --SELECT 2017 , 2, 27, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2017 , 2, 28	, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2017 , 6, 15, 1, 'Corpus Christi', ''
+		
+--2018
+INSERT INTO dbo.Feriado
+        SELECT 2018 , 3, 30, 1, 'Paixão de Cristo', ''
+ 
+       --	union
+        --SELECT 2018 , 2, 12, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2018 , 2, 13, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2018 , 5, 31, 1, 'Corpus Christi', ''
+
+--2019
+INSERT INTO dbo.Feriado
+        SELECT 2019 , 4, 19, 1, 'Paixão de Cristo', ''
+ 
+       	--union
+        --SELECT 2019 , 3, 4, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2019 , 3, 5, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2019 , 6, 20, 1, 'Corpus Christi', ''
+
+--2020
+INSERT INTO dbo.Feriado
+        SELECT 2020 , 4, 10, 1, 'Paixão de Cristo', ''
+ 
+       	--union
+       -- SELECT 2020 , 2, 24, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2020 , 2, 25, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2020 , 6, 11, 1, 'Corpus Christi', ''
+		
+--2021
+
+INSERT INTO dbo.Feriado
+        SELECT 2021 , 4, 2, 1, 'Paixão de Cristo', ''
+ 
+       	--union
+        --SELECT 2021 , 2, 15, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2021, 2, 16, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2021, 6, 3, 1, 'Corpus Christi', ''
+		
+		
+		
+--2022
+
+INSERT INTO dbo.Feriado
+        SELECT 2022 , 4, 15, 1, 'Paixão de Cristo', ''
+ 
+       	--union
+       -- SELECT 2022, 2, 28, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2022, 3, 1, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2022, 6, 16, 1, 'Corpus Christi', ''
+     
+--2023
+
+INSERT INTO dbo.Feriado
+        SELECT 2023, 4, 7, 1, 'Paixão de Cristo', ''
+ 
+       	--union
+       -- SELECT 2023, 2, 20, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2023, 2, 21, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2023, 6, 8, 1, 'Corpus Christi', ''
+		
+--2024
+
+INSERT INTO dbo.Feriado
+        SELECT 2024, 3, 29, 1, 'Paixão de Cristo', ''
+ 
+       	--union
+       -- SELECT 2024 , 2, 12, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2024, 2, 13, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2024, 5, 30, 1, 'Corpus Christi', ''
+		
+--2025
+INSERT INTO dbo.Feriado
+        SELECT 2025, 4, 18, 1, 'Paixão de Cristo', ''
+ 
+       	--union
+       -- SELECT 2025 , 3, 3, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2025 , 3, 4, 1, 'Carnaval', ''
+ 
+        union
+        SELECT 2025 , 6, 19, 1, 'Corpus Christi', ''
+ 
+    END
+ 
+ 
+END 
+
+SELECT * FROM dbo.Feriado
+where (Sg_UF = 'SP' or Tp_Feriado = 1 ) 
+and Nr_Ano between '2015' and '2015'
+and Nr_Mes between '03' and '03'
+and Nr_Dia between '01' and '30'
+
+declare @data1de datetime , @data1ate datetime
+set @data1de = '20150301'
+set @data1ate = '20150330'
+
+--select substring(convert(char(10),@data1de,103),1,2),
+--convert(char(10),@data1de,103)
+
+SELECT dbo.FCNDIASUTEIS (@data1de, @data1ate) - (SELECT count(*) FROM dbo.Feriado
+where (Sg_UF = 'SP' or Tp_Feriado = 1 ) 
+and Nr_Ano between substring(convert(char(10),@data1de,103),7,4) and substring(convert(char(10),@data1ate,103),7,4)
+and Nr_Mes between substring(convert(char(10),@data1de,103),4,2) and substring(convert(char(10),@data1ate,103),4,2),
+and Nr_Dia between substring(convert(char(10),@data1de,103),1,2) and  substring(convert(char(10),@data1ate,103),1,2)),
+ dbo.FCNDIASUTEIS (@data1de, @data1ate) as diassemferiado,
+ (SELECT count(*) FROM dbo.Feriado
+where (Sg_UF = 'SP' or Tp_Feriado = 1 ) 
+and Nr_Ano between substring(convert(char(10),@data1de,103),7,4) and substring(convert(char(10),@data1ate,103),7,4)
+and Nr_Mes between substring(convert(char(10),@data1de,103),4,2) and substring(convert(char(10),@data1ate,103),4,2),
+and Nr_Dia between  substring(convert(char(10),@data1de,103),1,2) and  substring(convert(char(10),@data1ate,103),1,2))
+ 
+--delete dbo.Feriado
+--where Nr_Ano > 0

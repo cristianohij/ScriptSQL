@@ -1,0 +1,18 @@
+declare @anoDe char(4) , @anoAte char (4) , @mesDe char (2) , @mesAte char(2)
+set @anoDe = '2016'
+set @anoAte = '2016'
+set @mesDe = '01'
+set @mesAte = '10'
+
+select subString(SALREF,1,4) as 'AnoDeReferencia',
+       subString(SALREF,6,2) as 'MesDeReferencia',
+       LESCOD as 'LocalDoEstoque',
+       (select LESDES from TBS034 (nolock) where TBS034.LESCOD=TBS098.LESCOD) 'DescricaoDoLocalDoEstoque',
+       sum(SALQTD*SALVAL) as 'ValorTotal'
+  from TBS098 (nolock)
+ where SALREF between @anoDe+'/'+@mesDe and @anoAte+'/'+@mesAte and
+       SALQTD>0
+ group by SALREF,LESCOD
+ 
+
+select * from TBS098 NOLOCK WHERE SALREF > '2016'

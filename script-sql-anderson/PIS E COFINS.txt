@@ -1,0 +1,482 @@
+declare @dataDe char(8), @dataAte char(8),@comando varchar(max)
+
+set @dataDe = '20161101'
+set @dataAte = '20161130'
+
+select 
+A.PROCOD as codigo,
+A.NFSPRODES as descricao,
+D.PROUM1 as UN,
+NFSQTD*NFSQTDEMB as 'quantidade',
+round(dbo.NFSPRELIQ(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,NFSITE)/NFSQTDEMB,2) as PrecoUnitario,
+round(NFSPRECUS/NFSQTDEMB,4) as 'CustoUnitario',
+round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE),2) as TotalVendido,
+round(dbo.NFSVALICMS(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE),2) as ICMS,
+case when D.PROSTBPIS>='06' 
+	then 0 
+	else round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE)*0.0165,2) 
+end as PIS,
+case when D.PROSTBCOFINS>='06' 
+	then 0 
+	else round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE)*0.076,2) 
+end as COFINS,
+
+round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE),2)- 
+round(dbo.NFSVALICMS(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE),2)-
+case when D.PROSTBPIS>='06' 
+	then 0 
+	else round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE)*0.0165,2)
+end -
+case when D.PROSTBCOFINS>='06' 
+	then 0 
+	else round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE)*0.076,2) 
+end as VendaLiquida,
+
+B.NFSDATEMI as emissao,
+A.NFSNUM as NF,
+A.SNESER as serie,
+A.NFSITE as item
+  
+from TBS0671 A (nolock)
+right join TBS067 B (nolock) on B.SNESER=A.SNESER and B.NFSNUM=A.NFSNUM
+Left join TBS042 C (nolock) on C.TESCOD=A.TESCOD
+Left join TBS010 D (nolock) on D.PROCOD=A.PROCOD
+
+where 
+B.NFSDATEMI between @dataDe and @dataAte and 
+B.NFSTIP='N' and 
+B.NFSCAN='N' and 
+(C.TESCNTVEN='S' or A.NFSROPCNTVEN='S')
+
+order by 
+B.NFSDATEMI,A.NFSNUM,A.SNESER,A.NFSITE
+
+
+---------------------------------------------------------------------------------------------------------------------------
+
+declare @dataDe char(8), @dataAte char(8), @comando varchar(max)
+
+set @dataDe = '20161101'
+set @dataAte = '20161130'
+
+SET @comando = 'EXECUTE(''
+select
+caixa as caixa,
+coo as coo,
+ecf as ecf,
+cupom as cupom ,
+data as dat,
+status as status,
+case when cdprod = "" then cast(0 as  SIGNED ) else cdprod end as cdprod,
+quant as quant,
+preco AS preco, 
+valortot - abatpgto as totven,
+case when tributacao = "" then 0 else substring(tributacao,2,4) end  as icms,
+item
+
+FROM movcaixa
+where
+data between "'+@dataDe+'" and "'+@dataAte+'" and 
+status in (1,2,3) and 
+cancelado <> "S"
+
+ '') at MYSQLGZ' 
+ --exec(@comando)
+
+if object_id('TempDB.dbo.#MSL002') is not null
+   drop table #MSL002
+   
+create table #MSL002 (caixa int,coo int, ecf int,cupom int, dat date, status char(2), cdprod int, quant decimal(10,2), 
+preco decimal (10,4),totven decimal(10,4),icms decimal(10,4), item int)
+INSERT INTO #MSL002
+exec(@comando)
+
+-- select * from #MSL002
+
+select 
+B.PROCOD as codigo,
+B.PRODES as descricao,
+B.PROUM1 as UN,
+A.quant as 'quantidade',
+round(A.preco,2) as PrecoUnitario,
+(select round(C.M2_PRECUS,4) 
+	FROM MSL002 C (NOLOCK) 
+	
+	WHERE A.cupom = C.M2_NUMDOC AND A.caixa = C.M2_CXA AND A.coo = C.M2_COO AND 
+	A.ecf = C.M2_NUMECF AND A.item = C.M2_NUMORDITE and A.cdprod = CONVERT(NUMERIC,C.M2_PROCOD) AND
+	A.dat = C.M2_DAT And A.status collate Latin1_General_BIN = C.M2_TIPREG ) as 'CustoUnitario',
+round(totven,2) as TotalVendido,
+icms,
+case when status = 1
+	then 
+		case when B.PROSTBPIS>='06' 
+			then 0 
+			else round((totven)*0.0165,2) 
+		end 
+	else 0
+end as PIS,
+
+case when status = 1
+	then 
+		case when B.PROSTBCOFINS>='06' 
+			then 0 
+			else round((totven)*0.076,2) 
+		end 
+	else 0 
+end as COFINS,
+
+case when status = 1 
+	then round(totven,2) - round((totven * icms)/100,2) -
+		case when B.PROSTBPIS>='06' 
+			then 0 
+			else round(totven * 0.0165,2) 
+		end -
+		case when B.PROSTBCOFINS>='06' 
+			then 0 
+			else round(totven * 0.076,2) 
+		end
+	else 0
+end as VendaLiquida,
+
+dat as emissao,
+cupom as cupom,
+caixa as caixa,
+item,
+ecf,
+coo, 
+isnull((select totven from #MSL002 C where status = 2 and A.caixa = C.caixa and A.cupom = C.cupom and A.coo = C.coo and A.ecf = C.ecf),0) as desconto,
+isnull((select max(item) from #MSL002 D where status = 1 and A.caixa = D.caixa and A.cupom = D.cupom and A.coo = D.coo and A.ecf = D.ecf),0) AS ITEMMAX,
+isnull((select totven from #MSL002 C where status = 2 and A.caixa = C.caixa and A.cupom = C.cupom and A.coo = C.coo and A.ecf = C.ecf),0) / 
+isnull((select max(item) from #MSL002 D where status = 1 and A.caixa = D.caixa and A.cupom = D.cupom and A.coo = D.coo and A.ecf = D.ecf),0) AS DESITEM
+
+from #MSL002 A (nolock)
+Left join TBS010 B (nolock) on convert(numeric,B.PROCOD)=A.cdprod
+
+WHERE 
+status = 1
+
+order by 
+dat,cupom,caixa,item,ecf,coo
+
+
+-- O MESMO CAIXA PODE TER O UM CUPOM REPITIDO?
+
+
+
+
+
+
+
+
+
+
+
+
+
+--------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--- VENDAS POR DIA, VALOR NFS , GZ , DEVOLUÇÃO  = TOTAL DO DIA, CONTABILIZAR QUANTIDADE DE NFS 
+
+declare @dateDe datetime, @dateAte datetime ,@comando varchar(1000)
+
+set @dateDe = '20161101'
+set @dateAte = '20161111'
+
+
+SET @comando = 'EXECUTE(''
+select
+data,
+sum(valortot) valortot
+
+FROM movcaixa
+where
+data between "'+convert(char(8),@dateDe,112)+'" and "'+convert(char(8),@dateAte,112)+'" and 
+status = 03 and
+cancelado <> "S" 
+
+group by data '') at MYSQLGZ' 
+--exec(@comando)
+
+if object_id('TempDB.dbo.#MSL002') is not null
+   drop table #MSL002
+   
+create table #MSL002 (datas DATETIME, valortot decimal(10,4))
+INSERT INTO #MSL002
+exec(@comando)
+
+--select * from #MSL002 
+--and cupom = 103498 and caixa = 3
+
+if object_id('TempDB.dbo.#FER') is not null
+   drop table #FER
+SELECT * INTO #FER FROM INTG.SIBDBKP.dbo.Feriado 
+
+;with 
+NFS as (
+		SELECT
+		dbo.FCNDIASUTEIS(@dateDe,@dateAte) - 
+		(SELECT count(*) FROM #FER
+			where 
+			(Sg_UF = 'SJ' or Tp_Feriado = 1 ) and 
+			(Nr_Ano between substring(convert(char(10),@dateDe,103),7,4) and substring(convert(char(10),@dateAte,103),7,4) OR (Nr_Ano between 0 and 0)) and 
+			Nr_Mes between substring(convert(char(10),@dateDe,103),4,2) and substring(convert(char(10),@dateAte,103),4,2) and 
+			Nr_Dia between substring(convert(char(10),@dateDe,103),1,2) and  substring(convert(char(10),@dateAte,103),1,2)) as UTEL,
+		B.NFSTIP,
+		A.PROCOD as PROCOD,
+		A.NFSPRODES as NFSPRODES,
+		D.PROUM1 as PROUM1,
+		NFSQTD*NFSQTDEMB as NFSQTD,
+		round(dbo.NFSPRELIQ(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,NFSITE)/NFSQTDEMB,2) as NFSPREUNI,
+		round(NFSPRECUS/NFSQTDEMB,4) as NFSPRECUS,
+		round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE),2) as NFSVENTOT,
+		round(dbo.NFSVALICMS(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE),2) as NFSICMS,
+		case when D.PROSTBPIS>='06' 
+			then 0 
+			else round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE)*0.0165,2) 
+		end as NFSPIS,
+		case when D.PROSTBCOFINS>='06' 
+			then 0 
+			else round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE)*0.076,2) 
+		end as NFSCOFINS,
+		
+		round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE),2)- 
+		round(dbo.NFSVALICMS(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE),2)-
+		case when D.PROSTBPIS>='06' 
+			then 0 
+			else round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE)*0.0165,2)
+		end -
+		case when D.PROSTBCOFINS>='06' 
+			then 0 
+			else round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE)*0.076,2) 
+		end as NFSVENLIQ,
+		
+		B.NFSDATEMI as NFSDATEMI,
+		A.NFSNUM as NFSNUM,
+		A.SNESER as SNESER,
+		A.NFSITE as NFSITE
+		  
+		from TBS0671 A (nolock)
+		right join TBS067 B (nolock) on B.SNESER=A.SNESER and B.NFSNUM=A.NFSNUM
+		Left join TBS042 C (nolock) on C.TESCOD=A.TESCOD
+		Left join TBS010 D (nolock) on D.PROCOD=A.PROCOD
+		
+		where 
+		B.NFSDATEMI between @dataDe and @dataAte and 
+		B.NFSTIP not in ('L') and 
+		B.NFSCLINOM NOT LIKE ('TANBY%') AND
+		B.NFSCAN='N' and 
+		(C.TESCNTVEN='S' or A.NFSROPCNTVEN='S')
+		),
+
+NFSGRU AS ( 
+		SELECT
+		dbo.FCNDIASUTEIS(@dateDe,@dateAte) - 
+		(SELECT count(*) FROM #FER
+			where 
+			(Sg_UF = 'SJ' or Tp_Feriado = 1 ) and 
+			(Nr_Ano between substring(convert(char(10),@dateDe,103),7,4) and substring(convert(char(10),@dateAte,103),7,4) OR (Nr_Ano between 0 and 0)) and 
+			Nr_Mes between substring(convert(char(10),@dateDe,103),4,2) and substring(convert(char(10),@dateAte,103),4,2) and 
+			Nr_Dia between substring(convert(char(10),@dateDe,103),1,2) and  substring(convert(char(10),@dateAte,103),1,2)) as UTEL,
+		CASE DATEPART(w,NFSDATEMI) 
+		WHEN 1 THEN 'Dom'
+		WHEN 2 THEN 'Seg'
+		WHEN 3 THEN 'Ter'
+		WHEN 4 THEN 'Qua'
+		WHEN 5 THEN 'Qui' 
+		WHEN 6 THEN 'Sex'
+		WHEN 7 THEN 'Sáb'
+		END AS DIA,
+		B.NFSTIP,
+		A.PROCOD as PROCOD,
+		A.NFSPRODES as NFSPRODES,
+		D.PROUM1 as PROUM1,
+		NFSQTD*NFSQTDEMB as NFSQTD,
+		round(dbo.NFSPRELIQ(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,NFSITE)/NFSQTDEMB,2) as NFSPREUNI,
+		round(NFSPRECUS/NFSQTDEMB,4) as NFSPRECUS,
+		round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE),2) as NFSVENTOT,
+		round(dbo.NFSVALICMS(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE),2) as NFSICMS,
+		case when D.PROSTBPIS>='06' 
+			then 0 
+			else round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE)*0.0165,2) 
+		end as NFSPIS,
+		case when D.PROSTBCOFINS>='06' 
+			then 0 
+			else round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE)*0.076,2) 
+		end as NFSCOFINS,
+		
+		round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE),2)- 
+		round(dbo.NFSVALICMS(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE),2)-
+		case when D.PROSTBPIS>='06' 
+			then 0 
+			else round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE)*0.0165,2)
+		end -
+		case when D.PROSTBCOFINS>='06' 
+			then 0 
+			else round(dbo.NFSTOTITEST(A.NFSEMPCOD,A.NFSNUM,A.SNEEMPCOD,A.SNESER,A.NFSITE)*0.076,2) 
+		end as NFSVENLIQ,
+		
+		B.NFSDATEMI as NFSDATEMI,
+		A.NFSNUM as NFSNUM,
+		A.SNESER as SNESER,
+		A.NFSITE as NFSITE
+		  
+		from TBS0671 A (nolock)
+		right join TBS067 B (nolock) on B.SNESER=A.SNESER and B.NFSNUM=A.NFSNUM
+		Left join TBS042 C (nolock) on C.TESCOD=A.TESCOD
+		Left join TBS010 D (nolock) on D.PROCOD=A.PROCOD
+			  
+		WHERE 
+		NFSDATEMI between @dateDe and @dateAte and 
+		NFSTIP IN('N','C') and 
+		NFSCAN = 'N' AND
+		B.NFSCLINOM NOT LIKE ('TANBY%') AND
+		(C.TESCNTVEN = 'S' OR NFSROPCNTVEN = 'S') AND                       -- BEST                       -- PAPELYNA                    -- MISASPEL
+		NFSCLICOD IN ((SELECT CLICOD FROM TBS002 NOLOCK WHERE CLICGC LIKE('05118717000%') OR CLICGC LIKE('44125185000%') OR CLICGC LIKE('52080207000%')))
+		),
+		
+NFSCUP as (
+		SELECT
+		dbo.FCNDIASUTEIS(@dateDe,@dateAte) - 
+		(SELECT count(*) FROM #FER
+			where 
+			(Sg_UF = 'SJ' or Tp_Feriado = 1 ) and 
+			(Nr_Ano between substring(convert(char(10),@dateDe,103),7,4) and substring(convert(char(10),@dateAte,103),7,4) OR (Nr_Ano between 0 and 0)) and 
+			Nr_Mes between substring(convert(char(10),@dateDe,103),4,2) and substring(convert(char(10),@dateAte,103),4,2) and 
+			Nr_Dia between substring(convert(char(10),@dateDe,103),1,2) and  substring(convert(char(10),@dateAte,103),1,2)) as UTEL,
+		CASE DATEPART(w,NFSDATEMI) 
+		WHEN 1 THEN 'Dom'
+		WHEN 2 THEN 'Seg'
+		WHEN 3 THEN 'Ter'
+		WHEN 4 THEN 'Qua'
+		WHEN 5 THEN 'Qui' 
+		WHEN 6 THEN 'Sex'
+		WHEN 7 THEN 'Sáb'
+		END AS DIA,
+		CONVERT(CHAR (10), NFSDATEMI,103) AS NFSDATEMICUP,
+		SUM(dbo.NFSTOTITEST(B.NFSEMPCOD,B.NFSNUM,B.SNEEMPCOD,B.SNESER,B.NFSITE)) AS NFSTOTITESTCUP,
+		COUNT(DISTINCT A.NFSNUM) AS QTDNOTCUP
+		
+		FROM 
+		TBS0671 B (nolock)
+		LEFT JOIN TBS067 A (nolock) ON A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+		LEFT JOIN TBS042 C (NOLOCK) ON B.TESCOD = C.TESCOD
+			  
+		WHERE 
+		NFSDATEMI between @dateDe and @dateAte and 
+		NFSTIP = 'L' and 
+		NFSCAN = 'N' AND
+		A.NFSCLINOM NOT LIKE ('TANBY%') AND
+		(C.TESCNTVEN = 'S' OR NFSROPCNTVEN = 'S')
+		--C.SNESER = 1 AND 
+		--and B.NFSNUM = 30566 
+		GROUP BY 
+		NFSDATEMI
+		),		
+		
+CUP AS (
+		SELECT
+		dbo.FCNDIASUTEIS(@dateDe,@dateAte) - 
+		(SELECT count(*) FROM #FER
+			where 
+			(Sg_UF = 'SJ' or Tp_Feriado = 1 ) and 
+			(Nr_Ano between substring(convert(char(10),@dateDe,103),7,4) and substring(convert(char(10),@dateAte,103),7,4) OR (Nr_Ano between 0 and 0)) and 
+			Nr_Mes between substring(convert(char(10),@dateDe,103),4,2) and substring(convert(char(10),@dateAte,103),4,2) and 
+			Nr_Dia between substring(convert(char(10),@dateDe,103),1,2) and  substring(convert(char(10),@dateAte,103),1,2)) as UTEL,
+		CASE DATEPART(w,DATAS) 
+		WHEN 1 THEN 'Dom'
+		WHEN 2 THEN 'Seg'
+		WHEN 3 THEN 'Ter'
+		WHEN 4 THEN 'Qua'
+		WHEN 5 THEN 'Qui' 
+		WHEN 6 THEN 'Sex'
+		WHEN 7 THEN 'Sáb'
+		END AS DIA, 
+		CONVERT(CHAR(10),datas,103) AS DATAS,
+		valortot AS VALORTOT
+		
+		FROM 
+		#MSL002),
+		
+DEV AS (
+		SELECT 
+		dbo.FCNDIASUTEIS(@dateDe,@dateAte) - 
+		(SELECT count(*) FROM #FER
+			where 
+			(Sg_UF = 'SJ' or Tp_Feriado = 1 ) and 
+			(Nr_Ano between substring(convert(char(10),@dateDe,103),7,4) and substring(convert(char(10),@dateAte,103),7,4) OR (Nr_Ano between 0 and 0)) and 
+			Nr_Mes between substring(convert(char(10),@dateDe,103),4,2) and substring(convert(char(10),@dateAte,103),4,2) and 
+			Nr_Dia between substring(convert(char(10),@dateDe,103),1,2) and  substring(convert(char(10),@dateAte,103),1,2)) as UTEL,
+		CASE DATEPART(w,NFEDATEFE) 
+		WHEN 1 THEN 'Dom'
+		WHEN 2 THEN 'Seg'
+		WHEN 3 THEN 'Ter'
+		WHEN 4 THEN 'Qua'
+		WHEN 5 THEN 'Qui' 
+		WHEN 6 THEN 'Sex'
+		WHEN 7 THEN 'Sáb'
+		END AS DIA, 
+		CONVERT(CHAR (10), NFEDATEFE,103) AS NFEDATEFE,
+		SUM(dbo.NFETOTITE(A.NFEEMPCOD, A.NFETIP, A.NFENUM, A.NFECOD, A.SEREMPCOD, A.SERCOD, A.NFEITE)) AS VALDEV,
+		COUNT(DISTINCT B.NFENUM) AS QTDNOTDEV
+				
+		FROM
+		TBS0591 A (NOLOCK) 
+		LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND 
+		A.NFENUM = B.NFENUM AND A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND A.SEREMPCOD = B.SEREMPCOD
+		
+		WHERE 
+		NFEDATEFE between @dateDe and @dateAte and 
+		A.NFETIP IN ('D') and 
+		NFECAN = 'N' AND
+		NFEDATEFE <> '' 
+		--AND A.NFENUM = 100
+		
+		GROUP BY 
+		NFEDATEFE)
+		
+SELECT 
+ISNULL(ISNULL(ISNULL(ISNULL(A.UTEL,B.UTEL),C.UTEL),D.UTEL),E.UTEL) AS UTEL,
+ISNULL(ISNULL(ISNULL(ISNULL(A.NFSDATEMI,B.DATAS),C.NFEDATEFE),D.NFSDATEMICUP),E.NFSDATEMI) as NFSDATEMI,
+ISNULL(ISNULL(ISNULL(ISNULL(A.DIA,B.DIA),C.DIA),D.DIA),E.DIA) AS DIA,
+ISNULL(A.QTDNOT,0) AS QTDNOT,
+ISNULL(A.NFSTOTITEST,0) AS NFSVAL,
+ISNULL(D.QTDNOTCUP,0) AS QTDNOTCUP,
+ISNULL(D.NFSTOTITESTCUP,0) AS NFSVALCUP,
+ISNULL(VALORTOT,0) - ISNULL(D.NFSTOTITESTCUP,0) AS CUPNAONFS,
+ISNULL(VALORTOT,0) AS CUPVAL,
+ISNULL(A.NFSTOTITEST,0) + ISNULL(VALORTOT,0) AS VALBRU,
+ISNULL(VALDEV,0) AS VALDEV,
+ISNULL(C.QTDNOTDEV,0) AS QTDNOTDEV,
+ISNULL(D.QTDNOTCUP,0) + ISNULL(A.QTDNOT,0) as QTDNOTTOT,
+ISNULL(A.NFSTOTITEST,0) + ISNULL(VALORTOT,0) - ISNULL(VALDEV,0) AS VALLIQ,
+ISNULL(A.NFSTOTITEST,0) + ISNULL(VALORTOT,0) - ISNULL(VALDEV,0) - ISNULL(E.NFSTOTITEST,0)  AS VALLIQSEMGRU,
+ISNULL(E.QTDNOT,0) AS QTDNOTGRU,
+ISNULL(E.NFSTOTITEST,0) AS NFSVALGRU
+
+FROM 
+NFS A 
+FULL OUTER JOIN CUP B ON A.NFSDATEMI = B.DATAS
+FULL OUTER JOIN DEV C ON ISNULL(A.NFSDATEMI,B.DATAS) = C.NFEDATEFE
+FULL OUTER JOIN NFSCUP D ON ISNULL(ISNULL(A.NFSDATEMI,B.DATAS),C.NFEDATEFE) = D.NFSDATEMICUP
+FULL OUTER JOIN NFSGRU E ON ISNULL(ISNULL(ISNULL(A.NFSDATEMI,B.DATAS),C.NFEDATEFE),D.NFSDATEMICUP) = E.NFSDATEMI
+
+--WHERE 
+--ISNULL(ISNULL(ISNULL(ISNULL(A.DIA,B.DIA),C.DIA),D.DIA),E.DIA) IN (@DIAS)
+
+ORDER BY 
+ISNULL(ISNULL(ISNULL(ISNULL(A.NFSDATEMI,B.DATAS),C.NFEDATEFE),D.NFSDATEMICUP),E.NFSDATEMI)
+

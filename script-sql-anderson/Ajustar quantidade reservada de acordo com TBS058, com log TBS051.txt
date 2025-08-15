@@ -1,0 +1,182 @@
+if object_id ('TempDB.dbo.#TBS032') is not null
+   drop table #TBS032
+
+SELECT 
+PROCOD, 
+ESTLOC, 
+ESTQTDRES,
+ESTQTDATU,
+ESTQTDCMP,
+ESTQTDPEN,
+ESTQTDATU-ESTQTDRES AS ESTQTDDIS,
+(SELECT PROUM1 FROM TBS010 B (NOLOCK) WHERE A.PROCOD = B.PROCOD) AS PROUM1
+
+INTO #TBS032 
+FROM TBS032 A (NOLOCK) WHERE ESTQTDRES > 0 
+
+SELECT * FROM TBS055 NOLOCK WHERE PDVNUM = 163638
+
+BEGIN TRAN 
+DELETE TBS058 WHERE PRPNUM = 163638
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id ('TempDB.dbo.#TBS058') is not null
+   drop table #TBS058
+
+SELECT PROCOD,PRPESTLOC,SUM(PRPQTD*PRPQTDEMB) AS QTD INTO #TBS058 FROM TBS058 NOLOCK WHERE PRPSIT = 'R' AND PRPMOVEST = 'S' GROUP BY PROCOD, PRPESTLOC
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id ('TempDB.dbo.#TBS051') is not null
+   drop table #TBS051
+
+SELECT 
+ISNULL(A.PROCOD,B.PROCOD) AS PROCOD,
+ISNULL(A.ESTLOC,B.PRPESTLOC) AS ESTLOC,
+'R' AS INFALT,
+CASE WHEN ISNULL(QTD,0) > ISNULL(ESTQTDRES,0) THEN 'E' ELSE 'S' END ACAO,
+CASE WHEN ISNULL(QTD,0) > ISNULL(ESTQTDRES,0) THEN ISNULL(QTD,0) - ISNULL(ESTQTDRES,0) ELSE ISNULL(ESTQTDRES,0) - ISNULL(QTD,0) END AS MOV,
+ISNULL(QTD,0) AS QTD,
+ISNULL(ESTQTDRES,0) AS ESTQTDRES,
+ISNULL(ESTQTDATU,0) AS ESTQTDATU,
+ISNULL(ESTQTDCMP,0) AS ESTQTDCMP,
+ISNULL(ESTQTDPEN,0) AS ESTQTDPEN,
+ISNULL(ESTQTDDIS,0) AS ESTQTDDIS,
+ISNULL(PROUM1,0) AS PROUM1
+
+INTO #TBS051
+FROM #TBS032 A 
+FULL OUTER JOIN #TBS058 B ON A.PROCOD = B.PROCOD AND A.ESTLOC = B.PRPESTLOC
+WHERE 
+ISNULL(ESTQTDRES,0) <> ISNULL(QTD,0) 
+
+SELECT * FROM #TBS051
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+BEGIN TRAN 
+
+INSERT INTO 
+TBS051( LMEEMPCOD, -- 0
+		LMEREG, --1
+		LMEDOC, --2
+		LMEROT, --3
+		LMEDESROT, --4
+		LMEACA, --5
+		LMEDATHOR, --6
+		LMEUSU, --7
+		LMEMOD, --8
+		LMEINFALT, --9
+		PROCOD, --10
+		PROEMPCOD, --11
+		LMEQTDSAL, -- 12
+		LMEQTDMOV, -- 13
+		LMEQTDATU, -- 14
+		LMEQTDRES, -- 15
+		LMEQTDPEN, -- 16
+		LMEQTDCMP,  -- 17
+		LMEUNI, -- 18
+		LMEQTDDIS, -- 19
+		LMELOCEST) -- 20
+ 
+
+SELECT 0, --0 
+	   (SELECT MAX(LMEREG) FROM TBS051 (NOLOCK)) + rank() OVER (ORDER BY A.PROCOD,A.ESTLOC) AS [RANK], -- 1
+	   0, -- 2
+	   'SQL', -- 3
+	   'AJUSTE DE RESERVA', -- 4
+	   ACAO, --5 
+	   GETDATE(), -- 6
+	   'ANDERSONL', -- 7
+	   'NENHUM', -- 8
+	   INFALT, -- 9
+	   A.PROCOD, -- 10
+	   0, -- 11
+	   QTD, -- 12
+	   MOV, -- 13
+	   ESTQTDATU, --14
+	   ESTQTDRES, --15
+	   ESTQTDPEN, -- 16
+	   ESTQTDCMP, -- 17
+	   PROUM1, -- 18
+	   ESTQTDDIS, -- 19
+	   ESTLOC -- 20 
+	    
+	   
+	   FROM #TBS051 A
+	   
+-- não posso mexer no saldo como fiz na PAPELYNA, porque não sei se o material tem ou não
+	   
+--	   WHERE
+--	   PROCOD = '1640054'
+	   
+/*	   UNION 
+	   
+SELECT 0, --0 
+	   (SELECT MAX(LMEREG) FROM TBS051 (NOLOCK)) + rank() OVER (ORDER BY A.PROCOD,A.ESTLOC)+(SELECT COUNT(*) FROM #TBS051) AS [RANK], -- 1
+	   0, -- 2
+	   'SQL', -- 3
+	   'AJUSTE DE SALDO ATU\RES', -- 4
+	   CASE WHEN ACAO = 'E' THEN 'S' ELSE 'E' END AS ACAO, --5 
+	   GETDATE(), -- 6
+	   'ANDERSONL', -- 7
+	   'NENHUM', -- 8
+	   'E', -- 9
+	   A.PROCOD, -- 10
+	   0, -- 11
+	   ESTQTDATU-MOV, -- 12
+	   MOV, -- 13
+	   ESTQTDATU, --14
+	   QTD, --15
+	   ESTQTDPEN, -- 16
+	   ESTQTDCMP, -- 17
+	   PROUM1, -- 18
+	   ESTQTDDIS+MOV, -- 19
+	   ESTLOC -- 20 
+	    
+	   
+	   FROM #TBS051 A
+
+--	   WHERE
+--	   PROCOD = '1640054'*/
+	   
+
+	   
+UPDATE TBS024 
+SET TBSVALSEQ = (SELECT MAX(LMEREG) FROM TBS051 (NOLOCK))
+WHERE TBSNOM = 'TBS051'
+
+
+-- 
+
+BEGIN TRAN 
+UPDATE TBS032 SET 
+ESTQTDRES = (SELECT QTD FROM #TBS051 A WHERE A.PROCOD = TBS032.PROCOD AND A.ESTLOC = TBS032.ESTLOC)--, 
+--ESTQTDATU = ESTQTDATU - (SELECT MOV FROM #TBS051 A WHERE A.PROCOD = TBS032.PROCOD AND A.ESTLOC = TBS032.ESTLOC)
+WHERE
+PROCOD IN (SELECT PROCOD FROM #TBS051) AND
+ESTLOC IN (SELECT ESTLOC FROM #TBS051)
+
+SELECT * FROM TBS032 NOLOCK WHERE PROCOD = '9840191'
+
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+
+-- FIZ NA PAPELYNA 
+select
+GETDATE() SQLDAT,
+ESTLOC AS SQLEST,
+PROCOD AS SQLPROCOD,
+ACAO AS SQLACA,
+MOV AS SQLMOV
+
+INTO MOVSQL 
+
+FROM #TBS051
+
+SELECT * FROM MOVSQL

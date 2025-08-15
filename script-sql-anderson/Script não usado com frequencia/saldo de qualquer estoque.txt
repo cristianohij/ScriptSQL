@@ -1,0 +1,497 @@
+-- SALDOS EM ESTOQUE 
+-- FILTROS POR PRODUTO, MARCA, GRUPO, LOCAL ESTOQUE, STATUS, E ORERNAR POR UMA VARIAVEL 
+
+DECLARE 
+@PROCOD CHAR(15), @PRODES CHAR(60), @MARCOD INT, @MARNOM CHAR(60), @ESTLOC INT, @PROSTATUS CHAR(1), @PROLOCFIS CHAR(10), @SALDO CHAR(1),@LOC CHAR(1)
+
+SET @PROCOD = ''
+SET @PRODES = ''
+SET @MARCOD = 0
+SET @MARNOM = ''
+SET @ESTLOC = 1
+SET @PROSTATUS = 'A'
+SET @PROLOCFIS = ''
+SET @SALDO = 'T' 	-- SALDO ? S - POSITIVOS, N - NEGATIVOS ,Z - ZERADOS, D - DIFERENTE DE ZERO, T - TODOS
+SET @LOC = 'T' 		-- PRODUTOS: TODOS (T), SEM LOCALIZAÇÃO (S), COM LOCALIZAÇÃO (N)
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#TBS010') is not null 
+drop table #TBS010
+
+SELECT 
+PROSTATUS,
+RTRIM(LTRIM(PROLOCFIS)) AS PROLOCFIS,
+RTRIM(LTRIM(PROCOD)) AS PROCOD,
+RTRIM(LTRIM(PRODES)) AS PRODES,
+case when len(A.MARCOD) = 4 
+	then rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) 
+	else right(('00' + ltrim(str(A.MARCOD))),3) + ' - ' + rtrim(A.MARNOM) 
+end as MARNOM,
+CASE WHEN PROUM1QTD > 1 
+	THEN RTRIM(LTRIM(PROUM1)) + ' ' + RTRIM(CONVERT(DECIMAL, PROUM1QTD, 0)) + '' + 
+		CASE WHEN PROUMV = '' 
+			THEN PROUM1 
+			ELSE PROUMV 
+		END 
+	ELSE RTRIM(CONVERT(DECIMAL, PROUM1QTD, 0)) + '' + 
+		CASE WHEN PROUMV = '' 
+			THEN PROUM1 
+			ELSE PROUMV 
+		END 
+END AS PROUM1,
+CASE WHEN PROLOCFIS = ''
+	THEN 1 
+	ELSE 0
+END AS SEMPROLOCFIS,
+CASE WHEN PROLOCFIS <> '' 
+	THEN 1
+	ELSE 0
+END AS COMPROLOCFIS
+
+INTO #TBS010
+FROM TBS010 A (NOLOCK)
+
+WHERE 
+PROCOD = CASE WHEN @PROCOD = '' THEN PROCOD ELSE @PROCOD END AND
+MARCOD = CASE WHEN @MARCOD = 0 THEN MARCOD ELSE @MARCOD END AND
+MARNOM LIKE(CASE WHEN @MARNOM = '' THEN MARNOM ELSE RTRIM(UPPER(@MARNOM)) + '%' END) AND
+PRODES LIKE(CASE WHEN @PRODES = '' THEN PRODES ELSE RTRIM(UPPER(@PRODES)) + '%' END) AND 
+-- PROSTATUS IN (@PROSTATUS) AND 
+PROLOCFIS LIKE(CASE WHEN @PROLOCFIS = '' THEN PROLOCFIS ELSE RTRIM(UPPER(@PROLOCFIS)) + '%' END )
+
+ORDER BY 
+PROCOD
+
+------------------------------------------------------------------------------------------------------------------
+
+-- PRODUTOS COM SALDO
+
+IF @SALDO = 'S'
+BEGIN 
+SELECT
+ESTLOC, 
+B.*,
+ESTQTDATU,
+ESTQTDRES,
+ESTQTDATU-ESTQTDRES AS ESTQTDDIS
+FROM TBS032 A (NOLOCK)
+INNER JOIN #TBS010 B (NOLOCK) ON A.PROCOD = B.PROCOD 
+WHERE 
+ESTLOC IN (@ESTLOC) AND 
+ESTQTDATU > 0 AND 
+B.SEMPROLOCFIS = CASE WHEN @LOC = 'T' THEN B.SEMPROLOCFIS ELSE CASE WHEN @LOC = 'S' THEN 1 ELSE 0 END END 
+END 
+
+---------------------------------------------------------------------------------------------------------------------------
+
+-- PRODUTOS NEGATIVOS
+
+IF @SALDO = 'N'
+BEGIN 
+SELECT
+ESTLOC, 
+B.*,
+ESTQTDATU,
+ESTQTDRES,
+ESTQTDATU-ESTQTDRES AS ESTQTDDIS
+FROM TBS032 A (NOLOCK)
+INNER JOIN #TBS010 B (NOLOCK) ON A.PROCOD = B.PROCOD 
+WHERE 
+ESTLOC IN (@ESTLOC) AND 
+ESTQTDATU < 0 AND
+B.SEMPROLOCFIS = CASE WHEN @LOC = 'T' THEN B.SEMPROLOCFIS ELSE CASE WHEN @LOC = 'S' THEN 1 ELSE 0 END END 
+END 
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+IF @SALDO = 'Z' -- ZERADO
+BEGIN 
+SELECT
+ESTLOC, 
+B.*,
+ESTQTDATU,
+ESTQTDRES,
+ESTQTDATU-ESTQTDRES AS ESTQTDDIS
+FROM TBS032 A (NOLOCK)
+INNER JOIN #TBS010 B (NOLOCK) ON A.PROCOD = B.PROCOD 
+WHERE 
+ESTLOC IN (@ESTLOC) AND 
+ESTQTDATU = 0 AND 
+B.SEMPROLOCFIS = CASE WHEN @LOC = 'T' THEN B.SEMPROLOCFIS ELSE CASE WHEN @LOC = 'S' THEN 1 ELSE 0 END END 
+END 
+
+-----------------------------------------------------------------------------------------------------------------------------------
+
+-- PRODUTOS COM SALDO TODOS
+
+IF @SALDO = 'T'
+BEGIN 
+SELECT
+ESTLOC, 
+B.*,
+ESTQTDATU,
+ESTQTDRES,
+ESTQTDATU-ESTQTDRES AS ESTQTDDIS
+FROM TBS032 A (NOLOCK)
+INNER JOIN #TBS010 B (NOLOCK) ON A.PROCOD = B.PROCOD 
+WHERE 
+ESTLOC IN (@ESTLOC) AND 
+B.SEMPROLOCFIS = CASE WHEN @LOC = 'T' THEN B.SEMPROLOCFIS ELSE CASE WHEN @LOC = 'S' THEN 1 ELSE 0 END END 
+END 
+
+
+-----------------------------------------------------------------------------------------------------------------------------------
+
+-- PRODUTOS COM SALDO DIFERENTE DE ZERO
+
+IF @SALDO = 'D'
+BEGIN 
+SELECT
+ESTLOC, 
+B.*,
+ESTQTDATU,
+ESTQTDRES,
+ESTQTDATU-ESTQTDRES AS ESTQTDDIS
+FROM TBS032 A (NOLOCK)
+INNER JOIN #TBS010 B (NOLOCK) ON A.PROCOD = B.PROCOD 
+WHERE 
+ESTLOC IN (@ESTLOC) AND 
+ESTQTDATU <> 0 AND 
+B.SEMPROLOCFIS = CASE WHEN @LOC = 'T' THEN B.SEMPROLOCFIS ELSE CASE WHEN @LOC = 'S' THEN 1 ELSE 0 END END 
+END 
+
+/*
+SELECT
+ESTLOC, 
+B.*,
+ESTQTDATU,
+ESTQTDRES,
+ESTQTDATU-ESTQTDRES AS ESTQTDDIS
+FROM TBS032 A (NOLOCK)
+INNER JOIN #TBS010 B (NOLOCK) ON A.PROCOD = B.PROCOD*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SELECT 
+'ND' as 'EMPRESA',
+A.PROSTATUS AS S,
+rtrim(ltrim(A.PROCOD)) collate Latin1_General_BIN as 'CODIGO',
+A.PRODES collate Latin1_General_BIN as 'DESCRICAO',							
+case when len(A.MARCOD) = 4 then rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) else right(('00' + ltrim(str(A.MARCOD))),3) + ' - ' + rtrim(A.MARNOM) end collate Latin1_General_BIN as 'MARCA',
+A.PROUM1 collate Latin1_General_BIN as 'UNIDMEDIDA',
+REPLACE(STR(ISNULL(SALDO.SALTT,0),10,4),'.',',') AS 'EST6'
+
+from TBS010 A (nolock)	
+LEFT JOIN (	SELECT PROCOD AS COD,
+			SUM(ESTQTDATU-ESTQTDRES) AS SALTT, 
+			SUM(ESTQTDRES) AS RES , 
+			SUM(ESTQTDCMP) AS CMP, 
+			SUM(ESTQTDPEN) AS PEN,
+			SUM(ESTQTDATU) AS ATU
+			
+			FROM TBS032 A (nolock) 
+			
+			WHERE 
+			ESTLOC IN (6) and 
+			(ESTQTDATU <> 0 OR ESTQTDPEN <> 0 OR ESTQTDCMP <>0) GROUP BY PROCOd) AS SALDO ON SALDO.COD = A.PROCOD
+
+WHERE 
+ISNULL(SALDO.SALTT,0) <> 0
+
+
+
+
+
+
+
+
+-------------- 
+
+SELECT 
+'ND' as 'UNIDADE',
+rtrim(ltrim(A.PROCOD)) collate Latin1_General_BIN as 'CODIGO',
+A.PRODES collate Latin1_General_BIN as 'DESCRICAO',							
+case when len(A.MARCOD) = 4 
+	then rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) 
+	else right(('00' + ltrim(str(A.MARCOD))),3) + ' - ' + rtrim(A.MARNOM) 
+end collate Latin1_General_BIN as 'MARCA',
+A.PROUM1 collate Latin1_General_BIN as 'UNIDMEDIDA',
+REPLACE(STR(ISNULL(SALDO1.SALTT,0),10,4),'.',',') AS 'EST1',
+REPLACE(STR(ISNULL(SALDO2.SALTT,0),10,4),'.',',') AS 'EST2'
+
+FROM TBS010 A (nolock)	
+LEFT JOIN (	SELECT 
+			PROCOD AS COD,
+			ESTQTDATU-ESTQTDRES AS SALTT
+						
+			FROM TBS032 A (nolock) 
+			
+			WHERE 
+			ESTLOC = 1 and 
+			ESTQTDATU-ESTQTDRES <> 0 ) AS SALDO1 ON SALDO1.COD = A.PROCOD
+			
+LEFT JOIN (	SELECT 
+			PROCOD AS COD,
+			ESTQTDATU-ESTQTDRES AS SALTT
+						
+			FROM TBS032 A (nolock) 
+			
+			WHERE 
+			ESTLOC = 2 and 
+			ESTQTDATU-ESTQTDRES <> 0 ) AS SALDO2 ON SALDO2.COD = A.PROCOD
+
+WHERE 
+(ISNULL(SALDO1.SALTT,0) <> 0 OR  ISNULL(SALDO2.SALTT,0) <> 0 )AND 
+A.PROSTATUS = 'I'
+
+UNION 
+
+SELECT 
+'CD' as 'UNIDADE',
+rtrim(ltrim(A.PROCOD)) collate Latin1_General_BIN as 'CODIGO',
+A.PRODES collate Latin1_General_BIN as 'DESCRICAO',							
+case when len(A.MARCOD) = 4 
+	then rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) 
+	else right(('00' + ltrim(str(A.MARCOD))),3) + ' - ' + rtrim(A.MARNOM) 
+end collate Latin1_General_BIN as 'MARCA',
+A.PROUM1 collate Latin1_General_BIN as 'UNIDMEDIDA',
+REPLACE(STR(ISNULL(SALDO1.SALTT,0),10,4),'.',',') AS 'EST1',
+REPLACE(STR(ISNULL(SALDO2.SALTT,0),10,4),'.',',') AS 'EST2'
+
+FROM cd.SIBD.dbo.TBS010 A (nolock)	
+LEFT JOIN (	SELECT 
+			PROCOD AS COD,
+			ESTQTDATU-ESTQTDRES AS SALTT
+						
+			FROM cd.SIBD.dbo.TBS032 A (nolock) 
+			
+			WHERE 
+			ESTLOC = 1 and 
+			ESTQTDATU-ESTQTDRES <> 0 ) AS SALDO1 ON SALDO1.COD = A.PROCOD
+			
+LEFT JOIN (	SELECT 
+			PROCOD AS COD,
+			ESTQTDATU-ESTQTDRES AS SALTT
+						
+			FROM cd.SIBD.dbo.TBS032 A (nolock) 
+			
+			WHERE 
+			ESTLOC = 2 and 
+			ESTQTDATU-ESTQTDRES <> 0 ) AS SALDO2 ON SALDO2.COD = A.PROCOD
+
+WHERE 
+(ISNULL(SALDO1.SALTT,0) <> 0 OR  ISNULL(SALDO2.SALTT,0) <> 0 )AND 
+A.PROSTATUS = 'I'
+
+UNION 
+
+SELECT 
+'PAP' as 'UNIDADE',
+rtrim(ltrim(A.PROCOD)) collate Latin1_General_BIN as 'CODIGO',
+A.PRODES collate Latin1_General_BIN as 'DESCRICAO',							
+case when len(A.MARCOD) = 4 
+	then rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) 
+	else right(('00' + ltrim(str(A.MARCOD))),3) + ' - ' + rtrim(A.MARNOM) 
+end collate Latin1_General_BIN as 'MARCA',
+A.PROUM1 collate Latin1_General_BIN as 'UNIDMEDIDA',
+REPLACE(STR(ISNULL(SALDO1.SALTT,0),10,4),'.',',') AS 'EST1',
+REPLACE(STR(ISNULL(SALDO2.SALTT,0),10,4),'.',',') AS 'EST2'
+
+FROM py.SIBD.dbo.TBS010 A (nolock)	
+LEFT JOIN (	SELECT 
+			PROCOD AS COD,
+			ESTQTDATU-ESTQTDRES AS SALTT
+						
+			FROM py.SIBD.dbo.TBS032 A (nolock) 
+			
+			WHERE 
+			ESTLOC = 1 and 
+			ESTQTDATU-ESTQTDRES <> 0 ) AS SALDO1 ON SALDO1.COD = A.PROCOD
+			
+LEFT JOIN (	SELECT 
+			PROCOD AS COD,
+			ESTQTDATU-ESTQTDRES AS SALTT
+						
+			FROM py.SIBD.dbo.TBS032 A (nolock) 
+			
+			WHERE 
+			ESTLOC = 2 and 
+			ESTQTDATU-ESTQTDRES <> 0 ) AS SALDO2 ON SALDO2.COD = A.PROCOD
+
+WHERE 
+(ISNULL(SALDO1.SALTT,0) <> 0 OR  ISNULL(SALDO2.SALTT,0) <> 0 )AND 
+A.PROSTATUS = 'I'
+
+
+UNION 
+
+SELECT 
+'BAG' as 'UNIDADE',
+rtrim(ltrim(A.PROCOD)) collate Latin1_General_BIN as 'CODIGO',
+A.PRODES collate Latin1_General_BIN as 'DESCRICAO',							
+case when len(A.MARCOD) = 4 
+	then rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) 
+	else right(('00' + ltrim(str(A.MARCOD))),3) + ' - ' + rtrim(A.MARNOM) 
+end collate Latin1_General_BIN as 'MARCA',
+A.PROUM1 collate Latin1_General_BIN as 'UNIDMEDIDA',
+REPLACE(STR(ISNULL(SALDO1.SALTT,0),10,4),'.',',') AS 'EST1',
+REPLACE(STR(ISNULL(SALDO2.SALTT,0),10,4),'.',',') AS 'EST2'
+
+FROM bb2.SIBD2.dbo.TBS010 A (nolock)	
+LEFT JOIN (	SELECT 
+			PROCOD AS COD,
+			ESTQTDATU-ESTQTDRES AS SALTT
+						
+			FROM bb2.SIBD2.dbo.TBS032 A (nolock) 
+			
+			WHERE 
+			ESTLOC = 1 and 
+			ESTQTDATU-ESTQTDRES <> 0 ) AS SALDO1 ON SALDO1.COD = A.PROCOD
+			
+LEFT JOIN (	SELECT 
+			PROCOD AS COD,
+			ESTQTDATU-ESTQTDRES AS SALTT
+						
+			FROM bb2.SIBD2.dbo.TBS032 A (nolock) 
+			
+			WHERE 
+			ESTLOC = 2 and 
+			ESTQTDATU-ESTQTDRES <> 0 ) AS SALDO2 ON SALDO2.COD = A.PROCOD
+
+WHERE 
+(ISNULL(SALDO1.SALTT,0) <> 0 OR  ISNULL(SALDO2.SALTT,0) <> 0 )AND 
+A.PROSTATUS = 'I'
+
+
+UNION 
+
+SELECT 
+'MIS' as 'UNIDADE',
+rtrim(ltrim(A.PROCOD)) collate Latin1_General_BIN as 'CODIGO',
+A.PRODES collate Latin1_General_BIN as 'DESCRICAO',							
+case when len(A.MARCOD) = 4 
+	then rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) 
+	else right(('00' + ltrim(str(A.MARCOD))),3) + ' - ' + rtrim(A.MARNOM) 
+end collate Latin1_General_BIN as 'MARCA',
+A.PROUM1 collate Latin1_General_BIN as 'UNIDMEDIDA',
+REPLACE(STR(ISNULL(SALDO1.SALTT,0),10,4),'.',',') AS 'EST1',
+REPLACE(STR(ISNULL(SALDO2.SALTT,0),10,4),'.',',') AS 'EST2'
+
+FROM mi.SIBD.dbo.TBS010 A (nolock)	
+LEFT JOIN (	SELECT 
+			PROCOD AS COD,
+			ESTQTDATU-ESTQTDRES AS SALTT
+						
+			FROM mi.SIBD.dbo.TBS032 A (nolock) 
+			
+			WHERE 
+			ESTLOC = 1 and 
+			ESTQTDATU-ESTQTDRES <> 0 ) AS SALDO1 ON SALDO1.COD = A.PROCOD
+			
+LEFT JOIN (	SELECT 
+			PROCOD AS COD,
+			ESTQTDATU-ESTQTDRES AS SALTT
+						
+			FROM mi.SIBD.dbo.TBS032 A (nolock) 
+			
+			WHERE 
+			ESTLOC = 2 and 
+			ESTQTDATU-ESTQTDRES <> 0 ) AS SALDO2 ON SALDO2.COD = A.PROCOD
+
+WHERE 
+(ISNULL(SALDO1.SALTT,0) <> 0 OR  ISNULL(SALDO2.SALTT,0) <> 0 )AND 
+A.PROSTATUS = 'I'
+
+UNION 
+
+SELECT 
+'TTE' as 'UNIDADE',
+rtrim(ltrim(A.PROCOD)) collate Latin1_General_BIN as 'CODIGO',
+A.PRODES collate Latin1_General_BIN as 'DESCRICAO',							
+case when len(A.MARCOD) = 4 
+	then rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) 
+	else right(('00' + ltrim(str(A.MARCOD))),3) + ' - ' + rtrim(A.MARNOM) 
+end collate Latin1_General_BIN as 'MARCA',
+A.PROUM1 collate Latin1_General_BIN as 'UNIDMEDIDA',
+REPLACE(STR(ISNULL(SALDO1.SALTT,0),10,4),'.',',') AS 'EST1',
+REPLACE(STR(ISNULL(SALDO2.SALTT,0),10,4),'.',',') AS 'EST2'
+
+FROM tt.SIBD.dbo.TBS010 A (nolock)	
+LEFT JOIN (	SELECT 
+			PROCOD AS COD,
+			ESTQTDATU-ESTQTDRES AS SALTT
+						
+			FROM tt.SIBD.dbo.TBS032 A (nolock) 
+			
+			WHERE 
+			ESTLOC = 1 and 
+			ESTQTDATU-ESTQTDRES <> 0 ) AS SALDO1 ON SALDO1.COD = A.PROCOD
+			
+LEFT JOIN (	SELECT 
+			PROCOD AS COD,
+			ESTQTDATU-ESTQTDRES AS SALTT
+						
+			FROM tt.SIBD.dbo.TBS032 A (nolock) 
+			
+			WHERE 
+			ESTLOC = 2 and 
+			ESTQTDATU-ESTQTDRES <> 0 ) AS SALDO2 ON SALDO2.COD = A.PROCOD
+
+WHERE 
+(ISNULL(SALDO1.SALTT,0) <> 0 OR  ISNULL(SALDO2.SALTT,0) <> 0 )AND 
+A.PROSTATUS = 'I'

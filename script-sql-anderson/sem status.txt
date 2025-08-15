@@ -1,0 +1,13 @@
+
+24/10/2016 14:53
+
+no cd e em tté
+SELECT PROSTATUS, * FROM TBS010 WHERE  PROCOD IN( '1750459','8407612')  
+
+SELECT PROSTATUS,* FROM TBS010 WHERE PROSTATUS = ''
+
+
+
+--chammando job
+
+https://msdn.microsoft.com/pt-br/library/ms186757.aspx

@@ -1,0 +1,11 @@
+select * from TBS067 (nolock) where NFSNUM=10268
+
+begin tran
+update TBS067 set VENCOD=611
+ where SNESER=2 and NFSNUM in(10268,10954,11270,11312,11492,11664,11991,12062,12234)
+commit tran
+
+begin tran
+update TBS069 set PDFVENCOD=611
+ where PDFSER=2 and PDFNFSNUM in(10268,10954,11270,11312,11492,11664,11991,12062,12234)
+commit tran

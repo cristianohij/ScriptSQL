@@ -1,0 +1,26 @@
+-- habilitar select coma função openrowset
+
+USE master
+GO
+sp_configure 'allow updates', 1
+GO
+RECONFIGURE WITH OVERRIDE
+GO
+-- para permitir as alteracoes
+
+sp_configure 'show advanced options', 1;
+GO
+RECONFIGURE WITH OVERRIDE
+GO
+-- para permitir as alteracoes
+
+sp_configure 'Ad Hoc Distributed Queries', 1;
+GO
+RECONFIGURE WITH OVERRIDE
+GO
+-- para permitir as alteracoes
+
+sp_configure 'allow updates', 0
+GO
+RECONFIGURE WITH OVERRIDE
+GO

@@ -1,0 +1,25 @@
+09/09/20116
+
+
+select codigo,cest
+into #cest
+from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 8.0;Database=C:\integros\temp\cest.xlsx', 'select * from [cest$]')
+
+select PROCOD, PROCEST , PROUSUALT , PRODATALT  from TBS010 NOLOCK WHERE PROCOD collate Latin1_General_CI_AS in (SELECT codigo from #cest)
+
+BEGIN TRAN 
+UPDATE TBS010
+
+SET PROCEST = (SELECT cest FROM #cest where codigo collate Latin1_General_CI_AS = TBS010.PROCOD) ,
+PROUSUALT = 'GELDER',
+PRODATALT = (SELECT CONVERT(VARCHAR(10),GETDATE(),103) + ' ' + CONVERT(VARCHAR(8),GETDATE(),108))
+output inserted.PROCOD, INSERTED.PROCEST,INSERTED.PROUSUALT,INSERTED.PRODATALT,DELETED.PROCEST,DELETED.PROUSUALT,DELETED.PRODATALT
+WHERE 
+PROCOD collate Latin1_General_CI_AS IN (SELECT codigo FROM #cest)
+
+
+
+SELECT GETDATE()
+
+SELECT CAST(GETDATE() AS DATE)
+SELECT CAST(GETDATE() AS TIME)

@@ -1,0 +1,633 @@
+-- ARQUIVO TXT DE ENTRADA PARA REALIZAR SPED -- DADOS DA NF 
+
+-- 05118717000156 -- BEST BAG
+-- 65069593000350 -- CD
+-- 52080207000117 -- Misaspel
+-- 65069593000198 -- TANBY ND
+-- 44125185000136 -- PAPELYNA
+-- 65069593000279 -- TTE
+
+-- FILTROS
+DECLARE @Data_de DATETIME , @Data_ate DATETIME , @NFSTIP CHAR(1) , @CFOP CHAR(100), @NFSSUBTIP CHAR(13), @CNPJ CHAR(14),@anoDe varchar (4), @mesDe varchar (2)
+SET @Data_de = '20171101'
+SET @Data_ate = '20171130'
+SET @CNPJ = '65069593000198'
+SET @anoDe = (select substring(convert(char(10),@Data_de,103),7,4))
+SET @mesDe = (select substring(convert(char(10),@Data_de,103),4,2))
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- cfop 2.910 e 1.910 não toma credito de ICMS, tenho que arrumar o select, para não contabilizar isso.
+
+-- ESSES CFOP NÃO PODE APARECER NO RELATORIO DE ICMS
+
+if object_id('TempDB.dbo.#CFOP') is not null
+   drop table #CFOP
+   
+create table #CFOP (TIPO CHAR (1), CFOP CHAR(5), PAGAR CHAR(1))
+
+-- ENTRADAS '1.922','2.922', VALOR ANTECIPADO '1.403','2.403' -- PAGAR '1.252','1.352','2.352'
+--INSERT INTO #CFOP VALUES ('E','1.403','N') -- ESSE VALOR TENHO QUE ZERAR NO RELATORIO -- VALOR ANTECIPADO
+--INSERT INTO #CFOP VALUES ('E','2.403','N') -- ESSE VALOR TENHO QUE ZERAR NO RELATORIO -- VALOR ANTECIPADO
+--INSERT INTO #CFOP VALUES ('E','1.922','N')
+--INSERT INTO #CFOP VALUES ('E','2.922','N')
+INSERT INTO #CFOP VALUES ('E','1.252','S') -- ESE VAI APARECER SOMENTE NO CONTAS A PAGAR
+INSERT INTO #CFOP VALUES ('E','1.253','S')
+INSERT INTO #CFOP VALUES ('E','1.352','S') -- ESE VAI APARECER
+INSERT INTO #CFOP VALUES ('E','2.352','S') -- ESE VAI APARECER
+--
+---- SAIDAS '5.922','6.922'
+--INSERT INTO #CFOP VALUES ('S','5.922','N')
+--INSERT INTO #CFOP VALUES ('S','6.922','N')
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- DADOS DO FORNECEDOR 
+
+if object_id('TempDB.dbo.#TBS006') is not null
+   drop table #TBS006
+
+SELECT 
+-- CHARINDEX(RTRIM(LTRIM(FORNUM)),RTRIM(FOREND)),
+FORCOD,
+CASE WHEN FORCGC = '' 
+	THEN FORCPF
+	ELSE FORCGC
+END AS FORCGC,
+FORNOM,
+RTRIM(FOREND) + CASE WHEN CHARINDEX(RTRIM(LTRIM(FORNUM)),RTRIM(FOREND)) > 0 THEN '' ELSE ' - N° ' + RTRIM(LTRIM(FORNUM)) END AS FOREND,
+FORBAI,
+(SELECT MUNNOM FROM TBS003 B (NOLOCK) WHERE A.MUNCOD = B.MUNCOD) AS MUNNOM,
+UFESIG AS UF,
+FORCEP ,
+FORIES
+
+INTO #TBS006
+FROM TBS006 A (NOLOCK)  
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- DADOS DO CLIENTE 
+
+if object_id('TempDB.dbo.#TBS002') is not null
+   drop table #TBS002
+
+SELECT 
+-- CHARINDEX(RTRIM(LTRIM(CLINUM)),RTRIM(CLIEND)),
+CLICOD,
+CASE WHEN CLICGC = '' 
+	THEN CLICPF
+	ELSE CLICGC
+END CLICGC,
+CLINOM,
+RTRIM(CLIEND) + CASE WHEN CHARINDEX(RTRIM(LTRIM(CLINUM)),RTRIM(CLIEND)) > 0 THEN '' ELSE ' - N° ' + RTRIM(LTRIM(CLINUM)) END AS CLIEND,
+CLIBAI,
+(SELECT MUNNOM FROM TBS003 B (NOLOCK) WHERE A.MUNCOD = B.MUNCOD) AS MUNNOM,
+UFESIG AS UF,
+CLICEP ,
+CLIIES
+
+INTO #TBS002
+FROM TBS002 A (NOLOCK)  
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#NFE') is not null
+   drop table #NFE
+
+SELECT
+0 AS REG,
+@CNPJ AS CNPJEMP,
+B.NFEDATEFE,
+B.NFENUM,
+0 AS SERIE,
+CASE WHEN B.NFETIP = 'D' 
+	THEN CLICGC
+	ELSE FORCGC
+END AS CNPJ,
+B.NFEDATEMI,
+B.SERCOD,
+'E' AS TIPO,
+B.NFECHAACE,
+B.NFECAN,
+CASE WHEN B.NFETIP = 'D' 
+	THEN CLINOM
+	ELSE E.FORNOM
+END AS NOME,
+CASE WHEN B.NFETIP = 'D' 
+	THEN CLIEND 
+	ELSE FOREND
+END AS ENDERECO,
+CASE WHEN B.NFETIP = 'D' 
+	THEN CLIBAI 
+	ELSE FORBAI
+END AS BAIRRO,
+CASE WHEN B.NFETIP = 'D'
+	THEN F.MUNNOM 
+	ELSE E.MUNNOM
+END MUNICIPIO,
+CASE WHEN B.NFETIP = 'D'
+	THEN F.UF
+	ELSE E.UF
+END AS UF,
+CASE WHEN B.NFETIP = 'D' 
+	THEN CLICEP
+	ELSE FORCEP
+END AS CEP ,
+CASE WHEN B.NFETIP = 'D' 
+	THEN CLIIES
+	ELSE FORIES
+END IES,
+SUM(ROUND(dbo.NFETOTITE(A.NFEEMPCOD, A.NFETIP, A.NFENUM, A.NFECOD, A.SEREMPCOD, A.SERCOD, A.NFEITE),2)) AS NFETOTITE,
+SUM(ROUND(NFETOTOPEITE,2)) AS NFETOTOPEITE,
+SUM(round(A.NFEBASICMS,2)) AS NFEBASICMS, 
+SUM(round(A.NFEVALICMS,2)) AS NFEVALICMS,
+SUM(ROUND(NFEVALIPI,2)) AS NFEVALIPI,
+SUM(round(NFEVALICMSST,2)) AS NFEVALICMSST,
+CASE WHEN A.NFECFOP IN ('1.102','1.403','2.102','2.202','2.403','1.252','1.202','2.411','1.411','1.653')
+	THEN ROUND((SUM(ROUND(NFETOTOPEITE,2)) - SUM(ROUND(NFEVALIPI,2))) * 0.0165,2) 
+	ELSE 0 
+END AS PIS, -- TOTAL NOTA - IPI * 0.0165 = PIS
+CASE WHEN A.NFECFOP IN ('1.102','1.403','2.102','2.202','2.403','1.252','1.202','2.411','1.411','1.653')
+	THEN ROUND((SUM(ROUND(NFETOTOPEITE,2)) - SUM(ROUND(NFEVALIPI,2))) * 0.076,2) 
+	ELSE 0
+END AS COFINS
+
+INTO #NFE
+FROM TBS0591 A (NOLOCK)
+LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND A.NFENUM = B.NFENUM AND 
+A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND  A.SEREMPCOD = B.SEREMPCOD
+LEFT JOIN TBS080 D (NOLOCK) ON A.NFENUM = D.ENFNUM AND A.NFECOD = D.ENFCODDES
+LEFT JOIN #TBS006 E ON A.NFECOD = E.FORCOD
+LEFT JOIN #TBS002 F ON A.NFECOD = F.CLICOD
+
+WHERE 
+((D.ENFSIT = 6 AND D.ENFFINEMI = 4 AND D.ENFTIPDOC = 0) OR ((NFENOSFOR = 'N' OR NFENOSFOR = '') AND (B.NFECAN = 'N' OR B.NFECAN = '') AND NFEDATEFE <> '' )) AND
+B.NFEDATEFE BETWEEN @Data_de AND @Data_ate 
+
+GROUP BY 
+B.NFEDATEMI,
+B.SERCOD,
+B.NFEDATEFE,
+B.NFENUM,
+B.NFECHAACE,
+B.NFECAN,
+CLICGC,
+FORCGC,
+CLINOM,
+E.FORNOM,
+CLIEND ,
+FOREND,
+CLIBAI, 
+FORBAI,
+F.MUNNOM,
+E.MUNNOM,
+F.UF,
+E.UF,
+CLICEP,
+FORCEP,
+CLIIES,
+FORIES,
+NFECFOP,
+B.NFETIP
+
+UNION 
+
+-- BUSCAR VALORES NO CONTAS A PAGAR
+
+SELECT 
+0 AS REG,
+@CNPJ AS CNPJEMP,
+CONVERT(CHAR(10),CASE WHEN CPAREFMES = 2 THEN '28' ELSE '30' END + '/'+right(('0' + ltrim(str(CPAREFMES))),2)+'/'+LTRIM(STR(CPAREFANO)),103) AS DATALANCAMENTO,
+CPATIT,
+0,
+FORCGC,
+CPADATEMI,
+'ENE',
+'E',
+'',
+'N',
+E.FORNOM AS NOME,
+FOREND AS ENDERECO,
+FORBAI AS BAIRRO,
+E.MUNNOM AS MUNICIPIO,
+E.UF AS UF,
+FORCEP AS CEP ,
+FORIES AS IES,
+SUM(ROUND(CPAVAL,2)) AS NFETOTOPEITE,
+SUM(ROUND(CPAVAL,2)) AS NFETOTOPEITE,
+SUM(ROUND(CPABASCAL,2)) AS NFEBASCAL,
+ROUND(SUM(ROUND(CPABASCAL,2)) *  CPAALIICMS / 100 ,2) AS NFEVALICMS,
+0,
+0,
+ROUND(SUM(ROUND(CPAVAL,2)) * CPAALICOFINS /100,2) AS COFINS,
+ROUND(SUM(ROUND(CPAVAL,2)) * CPAALIPIS /100 ,2) AS PIS
+
+FROM 
+TBS057 A (NOLOCK) 
+LEFT JOIN #TBS006 E ON A.FORCOD = E.FORCOD
+
+WHERE 
+CASE WHEN CPAREFMES > 0 
+	THEN CONVERT(DATETIME,CONVERT(CHAR(10),CASE WHEN CPAREFMES = 2 THEN '28' ELSE '30' END + '/'+right(('0' + ltrim(str(CPAREFMES))),2)+'/'+LTRIM(STR(CPAREFANO)),103))
+	ELSE CONVERT(DATETIME,'17530101')
+END BETWEEN @Data_de AND @Data_ate AND 
+CPACFOP COLLATE DATABASE_DEFAULT IN (SELECT CFOP FROM #CFOP WHERE TIPO = 'E' AND PAGAR = 'S')
+
+GROUP BY 
+CONVERT(CHAR(10),'02/'+right(('0' + ltrim(str(CPAREFMES))),2)+'/'+LTRIM(STR(CPAREFANO)),103),
+CPATIT,
+FORCGC,
+CPADATEMI,
+E.FORNOM ,
+FOREND ,
+FORBAI ,
+E.MUNNOM ,
+E.UF ,
+FORCEP  ,
+FORIES ,
+CPAALIICMS,
+CPAALICOFINS,
+CPAALIPIS,
+CPAREFMES,
+CPAREFANO
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#TXT') is not null
+   drop table #TXT
+
+SELECT 
+REG,
+CNPJEMP,
+NFEDATEFE,
+NFENUM,
+SERIE,
+CNPJ,
+NFEDATEMI,
+SERCOD,
+TIPO,
+NFECHAACE,
+NFECAN,
+RTRIM(REPLACE(NOME,';',' ')) AS NOME ,
+RTRIM(REPLACE(ENDERECO,';',' ')) AS ENDERECO,
+RTRIM(REPLACE(BAIRRO,';',' ')) AS BAIRRO,
+RTRIM(REPLACE(MUNICIPIO,';',' ')) AS MUNICIPIO,
+RTRIM(REPLACE(UF,';',' ')) AS UF,
+RTRIM(REPLACE(CEP,';',' ')) AS CEP,
+RTRIM(REPLACE(IES,';',' ')) AS IES,
+SUM(NFETOTITE) AS NFETOTITE,
+SUM(NFETOTOPEITE) AS NFETOTOPEITE,
+SUM(NFEBASICMS) AS NFEBASICMS, 
+SUM(NFEVALICMS) AS NFEVALICMS,
+SUM(NFEVALIPI) AS NFEVALIPI,
+SUM(NFEVALICMSST) AS NFEVALICMSST,
+SUM(PIS) AS PIS , -- TOTAL NOTA - IPI * 0.0165 = PIS
+SUM(COFINS) AS COFINS
+
+INTO #TXT
+FROM #NFE
+
+GROUP BY 
+REG,
+CNPJEMP,
+NFEDATEFE,
+NFENUM,
+SERIE,
+CNPJ,
+NFEDATEMI,
+SERCOD,
+TIPO,
+NFECHAACE,
+NFECAN,
+NOME,
+ENDERECO,
+BAIRRO,
+MUNICIPIO,
+UF,
+CEP ,
+IES
+
+
+--SELECT CHARINDEX(';',NOME) AS NOME ,
+--CHARINDEX(';',ENDERECO) AS ENDERECO, 
+--CHARINDEX(';',BAIRRO) AS BAIRRO,
+--CHARINDEX(';',MUNICIPIO) AS MUNICIPIO, 
+--CHARINDEX(';',UF) AS UF,
+--CHARINDEX(';',CEP) AS CEP, 
+--CHARINDEX(';',IES) AS IES
+--
+--FROM #NFE 
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+SELECT 
+LTRIM(STR(REG))+';'+					-- Tipo do Registro
+CNPJEMP+';'+							-- CNPJ da Tanby
+CONVERT(CHAR(10),NFEDATEFE,103)+';'+	-- Data de Entrada (efetivação)
+LTRIM(STR(NFENUM))+';'+					-- Numero Nota
+LTRIM(STR(SERIE))+';'+					-- Serie
+CNPJ COLLATE DATABASE_DEFAULT+';'+		-- Cnpj do Cliente/fornecedor
+CONVERT(CHAR(10),NFEDATEMI,103)+';'+	-- Data de Emissao
+SERCOD+';'+								-- Especie (NF/NFE/CTR/A-SERVICOS)
+TIPO+';'+								-- Tipo Nota Fiscal E-entrada S-saida
+NFECHAACE+';'+							-- Chave nfe
+NFECAN+';'+								-- Cancelada
+NOME+';'+								-- Razão Social
+ENDERECO+';'+							-- Endereco
+BAIRRO+';'+								-- Bairro
+MUNICIPIO+';'+							-- Cidade
+UF+';'+									-- Sigla da UF
+CEP+';'+								-- Cep
+IES+';'+								-- Inscricao Estadual		
+LTRIM(NFETOTITE)+';'+					-- Valor Total Produto
+LTRIM(NFETOTOPEITE)+';'+				-- Total da Nota Fiscal
+LTRIM(NFEBASICMS)+';'+					-- Base de Icms
+LTRIM(NFEVALICMS)+';'+					-- Valor do Icms
+LTRIM(NFEVALIPI)+';'+					-- Valor do Ipi	
+LTRIM(NFEVALICMSST)+';'+				-- Valor da ST
+LTRIM(PIS)+';'+							-- Pis 
+LTRIM(COFINS)+';'+						-- Cofins
+ltrim(str(0))+';'						-- Imposto de Renda Retido na Fonte (IRRF)
+
+FROM #TXT
+
+
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+-- ARQUIVO TXT DE ENTRADA PARA REALIZAR SPED -- ITENS DA NF 
+
+-- FILTROS
+--DECLARE @Data_de DATETIME , @Data_ate DATETIME , @NFSTIP CHAR(1) , @CFOP CHAR(100), @NFSSUBTIP CHAR(13)
+--SET @Data_de = '20170301'
+--SET @Data_ate = '20170331'
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- DADOS DO FORNECEDOR 
+
+--if object_id('TempDB.dbo.#TBS006') is not null
+--   drop table #TBS006
+
+--SELECT 
+-- CHARINDEX(RTRIM(LTRIM(FORNUM)),RTRIM(FOREND)),
+--FORCOD,
+--FORCGC
+
+--INTO #TBS006
+--FROM TBS006 A (NOLOCK)  
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- DADOS DO CLIENTE 
+
+--if object_id('TempDB.dbo.#TBS002') is not null
+--   drop table #TBS002
+
+--SELECT 
+-- CHARINDEX(RTRIM(LTRIM(CLINUM)),RTRIM(CLIEND)),
+--CLICOD,
+--CLICGC
+
+--INTO #TBS002
+--FROM TBS002 A (NOLOCK)  
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#NFE2') is not null
+   drop table #NFE2
+
+SELECT
+1 AS REG,
+@CNPJ AS CNPJEMP,
+B.NFEDATEFE,
+B.NFENUM,
+0 AS SERIE,
+CASE WHEN B.NFETIP = 'D' 
+	THEN CLICGC
+	ELSE FORCGC
+END AS CNPJ,
+A.NFEITE,
+A.PROCOD,
+REPLACE(A.NFEDES,';',' ') AS NFEDES,
+A.NFEQTD,
+A.NFEUNI,
+A.NFEPRE,
+A.NFECFOP,
+A.NFENCMXML,
+A.NFEQTD * A.NFEPRE AS NFETOTITEBRU,
+A.NFEBASICMS AS NFEBASICMS,
+A.NFEPERICMS,
+A.NFEVALICMS AS NFEVALICMS,
+A.NFEBASIPI,
+A.NFEPERIPI,
+A.NFEVALIPI,
+A.NFEVALICMSST,
+A.NFEVALFREITE,
+A.NFEVALOUTDES,
+CASE WHEN A.NFETIP = 'T' AND A.NFESUBTIPITE = ''
+	THEN 'TRANSFERENCIA'
+	ELSE 
+		CASE WHEN A.NFETIP = 'D' AND A.NFESUBTIPITE = 'V'
+			THEN 'DEVOLUCAO DE VENDAS'
+			ELSE
+				CASE WHEN A.NFETIP = 'N' AND 
+						  (FORCGC LIKE('05118717000%') OR FORCGC LIKE('44125185000%') OR FORCGC LIKE('52080207000%') OR FORCGC LIKE('6506959300%')) AND
+						  A.NFESUBTIPITE = 'R'				
+					THEN 'COMPRA INTER COMPANY'
+					ELSE
+						CASE A.NFESUBTIPITE 
+							WHEN 'R' THEN 'VENDA'
+							WHEN 'A' THEN 'AMOSTRA'
+							WHEN 'B' THEN 'BONIFICACAO'
+							WHEN 'U' THEN 'USO E CONSUMO'
+						END
+				END
+		END			
+END AS 	NFESUBTIPITE,  -- A.NFESUBTIPITE,
+A.NFEVALDESITE,
+A.NFECST,
+A.NFEBASICMSST
+
+INTO #NFE2
+FROM TBS0591 A (NOLOCK)
+LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND A.NFENUM = B.NFENUM AND 
+A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND  A.SEREMPCOD = B.SEREMPCOD
+LEFT JOIN TBS080 D (NOLOCK) ON A.NFENUM = D.ENFNUM AND A.NFECOD = D.ENFCODDES
+LEFT JOIN #TBS006 E ON A.NFECOD = E.FORCOD
+LEFT JOIN #TBS002 F ON A.NFECOD = F.CLICOD
+
+WHERE 
+((D.ENFSIT = 6 AND D.ENFFINEMI = 4 AND D.ENFTIPDOC = 0) OR ((NFENOSFOR = 'N' OR NFENOSFOR = '') AND (B.NFECAN = 'N' OR B.NFECAN = '') AND NFEDATEFE <> '' )) AND
+B.NFEDATEFE BETWEEN @Data_de AND @Data_ate 
+
+
+-- SELECT DISTINCT NFESUBTIPITE FROM TBS0591 NOLOCK
+-- SELECT * FROM TBS0591 NOLOCK WHERE NFESUBTIPITE = 'V' AND NFETIP <> 'D'
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+SELECT 
+LTRIM(STR(REG))+';'+					-- Tipo do Registro
+CNPJEMP+';'+							-- CNPJ da Tanby
+CONVERT(CHAR(10),NFEDATEFE,103)+';'+	-- Data de Entrada (efetivação)
+LTRIM(STR(NFENUM))+';'+					-- Numero Nota
+LTRIM(STR(SERIE))+';'+					-- Serie
+CNPJ COLLATE DATABASE_DEFAULT+';'+		-- Cnpj do Cliente/fornecedor
+LTRIM(STR(NFEITE))+';'+					-- Sequencia
+LTRIM(RTRIM(PROCOD))+';'+				-- Codigo do produto
+LTRIM(RTRIM(NFEDES))+';'+				-- Descrição do produto
+LTRIM(STR(NFEQTD))+';'+					-- QUANTIDADE
+LTRIM(NFEUNI)+';'+						-- Unidade de Medida
+LTRIM(NFEPRE)+';'+						-- Valor Unitario
+LTRIM(NFECFOP)+';'+						-- CFOP
+LTRIM(NFENCMXML) +';'+					-- Ncm conforme nota fiscal
+LTRIM(NFETOTITEBRU)+';'+				-- Valor total do Item
+LTRIM(NFEBASICMS)+';'+					-- BASE ICMS
+LTRIM(NFEPERICMS)+';'+					-- % de Icms AliquotaIcms
+LTRIM(NFEVALICMS)+';'+					-- Valor do Icms
+LTRIM(NFEBASIPI)+';'+					-- Base do Ipi
+LTRIM(NFEPERIPI)+';'+					-- % de Ipi AliquotaIpi
+LTRIM(NFEVALIPI)+';'+					-- Valor do Ipi
+LTRIM(NFEVALICMSST)+';'+				-- Valor da ST
+LTRIM(NFEVALFREITE)+';'+				-- Valor do Frete
+LTRIM(NFEVALOUTDES)+';'+				-- Valor de Outras Despesas
+LTRIM(NFESUBTIPITE)+';'+				-- Classificacao REVENDA/IMOBILIZADO/CONSUMO/SERVIÇO/OUTROS
+LTRIM(NFEVALDESITE)+';'+				-- desconto por item 
+LTRIM(NFECST)+';'+						-- cst por item 
+LTRIM(NFEBASICMSST)+';'						-- cst por item 
+
+FROM #NFE2
+
+-- SELECT * FROM #NFE
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+-- ARQUIVO TXT DE ENTRADA PARA REALIZAR SPED -- PARCELA DE PAGAMENTO
+
+-- FILTROS
+--DECLARE @Data_de DATETIME , @Data_ate DATETIME , @NFSTIP CHAR(1) , @CFOP CHAR(100), @NFSSUBTIP CHAR(13)
+--SET @Data_de = '20170301'
+--SET @Data_ate = '20170331'
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- DADOS DO FORNECEDOR 
+
+--if object_id('TempDB.dbo.#TBS006') is not null
+--   drop table #TBS006
+
+--SELECT 
+-- CHARINDEX(RTRIM(LTRIM(FORNUM)),RTRIM(FOREND)),
+--FORCOD,
+--FORCGC
+
+--INTO #TBS006
+--FROM TBS006 A (NOLOCK)  
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- DADOS DO CLIENTE 
+
+--if object_id('TempDB.dbo.#TBS002') is not null
+ --  drop table #TBS002
+
+--SELECT 
+-- CHARINDEX(RTRIM(LTRIM(CLINUM)),RTRIM(CLIEND)),
+--CLICOD,
+--CLICGC
+
+--INTO #TBS002
+--FROM TBS002 A (NOLOCK)  
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#NFE3') is not null
+   drop table #NFE3
+
+SELECT
+2 AS REG,
+@CNPJ AS CNPJEMP,
+B.NFEDATEFE,
+B.NFENUM,
+0 AS SERIE,
+CASE WHEN B.NFETIP = 'D' 
+	THEN CLICGC
+	ELSE FORCGC
+END AS CNPJ,
+ROW_NUMBER() OVER (Partition by A.NFEEMPCOD,A.NFECOD,A.NFENUM,A.NFETIP,A.SERCOD,A.SEREMPCOD order by A.NFEDATVEN) AS PARCELA,
+A.NFEDATVEN, 
+NFEVALPAR
+
+INTO #NFE3
+FROM TBS0593 A (NOLOCK)
+LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND A.NFENUM = B.NFENUM AND 
+A.NFETIP COLLATE DATABASE_DEFAULT = B.NFETIP AND A.SERCOD COLLATE DATABASE_DEFAULT = B.SERCOD AND  A.SEREMPCOD = B.SEREMPCOD
+LEFT JOIN TBS080 D (NOLOCK) ON A.NFENUM = D.ENFNUM AND A.NFECOD = D.ENFCODDES
+LEFT JOIN #TBS006 E ON A.NFECOD = E.FORCOD
+LEFT JOIN #TBS002 F ON A.NFECOD = F.CLICOD
+
+WHERE 
+((D.ENFSIT = 6 AND D.ENFFINEMI = 4 AND D.ENFTIPDOC = 0) OR ((NFENOSFOR = 'N' OR NFENOSFOR = '') AND (B.NFECAN = 'N' OR B.NFECAN = '') AND NFEDATEFE <> '' )) AND
+B.NFEDATEFE BETWEEN @Data_de AND @Data_ate 
+
+UNION 
+
+-- BUSCAR VALORES NO CONTAS A PAGAR
+
+SELECT 
+2 AS REG,
+@CNPJ AS CNPJEMP,
+CONVERT(CHAR(10),CASE WHEN CPAREFMES = 2 THEN '28' ELSE '30' END + '/'+right(('0' + ltrim(str(CPAREFMES))),2)+'/'+LTRIM(STR(CPAREFANO)),103) AS DATALANCAMENTO,
+CPATIT,
+0,
+FORCGC,
+1,
+CPADATVENREA,
+ROUND(CPAVAL,2) AS NFETOTOPEITE
+
+FROM 
+TBS057 A (NOLOCK) 
+LEFT JOIN #TBS006 E ON A.FORCOD = E.FORCOD
+
+WHERE
+CASE WHEN CPAREFMES > 0 
+	THEN CONVERT(DATETIME,CONVERT(CHAR(10),CASE WHEN CPAREFMES = 2 THEN '28' ELSE '30' END + '/'+right(('0' + ltrim(str(CPAREFMES))),2)+'/'+LTRIM(STR(CPAREFANO)),103))
+	ELSE CONVERT(DATETIME,'17530101')
+END BETWEEN @Data_de AND @Data_ate AND 
+CPACFOP COLLATE DATABASE_DEFAULT IN (SELECT CFOP FROM #CFOP WHERE TIPO = 'E' AND PAGAR = 'S')
+
+
+-- SELECT DISTINCT NFESUBTIPITE FROM TBS0591 NOLOCK
+-- SELECT * FROM TBS0591 NOLOCK WHERE NFESUBTIPITE = 'V' AND NFETIP <> 'D'
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+SELECT 
+LTRIM(STR(REG))+';'+					-- Tipo do Registro
+CNPJEMP+';'+							-- CNPJ da Tanby
+CONVERT(CHAR(10),NFEDATEFE,103)+';'+	-- Data de Entrada (efetivação)
+LTRIM(STR(NFENUM))+';'+					-- Numero Nota
+LTRIM(STR(SERIE))+';'+					-- Serie
+CNPJ COLLATE DATABASE_DEFAULT+';'+		-- Cnpj do Cliente/fornecedor
+LTRIM(STR(PARCELA))+';'+				-- Parcela
+CONVERT(CHAR(10),NFEDATVEN,103)+';'+	-- Data do vencimento
+LTRIM(NFEVALPAR)+';'					-- Valor Parcela
+
+FROM #NFE3
+
+
+-- SELECT * FROM #NFE

@@ -1,0 +1,101 @@
+DECLARE @ano char (4), @mes char (2), @cod char (15), @descri char (60), @marcod smallint , @marnom char (30)
+set @ano ='2016'
+set @mes= '03'
+set @cod = ''
+set @descri = ''
+set @marcod = 0
+set @marnom = ''
+	
+select 
+CONVERT(DATE,SINDAT - 1) as referencia2,
+SINPROCOD as produto,
+PRODES AS descricao ,--(select PRODES from TBS010 (nolock) where PROCOD COLLATE Latin1_General_BIN =SINPROCOD) as descricao,
+SINUNI as unidade,
+CASE WHEN len(A.MARCOD) = 4 
+	THEN rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) 
+	ELSE RIGHT(('00' + ltrim(str(A.MARCOD))), 3) + ' - ' + rtrim(A.MARNOM) 
+	END AS marca,
+custoCompra = isnull(round(avg(SINCUSAQU),4),0),
+custoPolitica = isnull(round((select dbo.PDPCUSBAS(0,PDPCOD) from TBS015 (nolock) where PDPCOD COLLATE Latin1_General_BIN =SINPROCOD),4),0),
+estoque1 = isnull(sum(case when LESCOD=1 then SINQTD end),0),
+CASE WHEN isnull(round(avg(SINCUSAQU),4),0) > 0 
+	THEN isnull(round(avg(SINCUSAQU),4),0) 
+	ELSE isnull(round((select dbo.PDPCUSBAS(0,PDPCOD) from TBS015 (nolock) where PDPCOD COLLATE Latin1_General_BIN =SINPROCOD),4),0)
+	END * isnull(sum(case when LESCOD=1 then SINQTD end),0) AS Valest1,
+estoque2 = isnull(sum(case when LESCOD=2 then SINQTD end),0),
+CASE WHEN isnull(round(avg(SINCUSAQU),4),0) > 0 
+	THEN isnull(round(avg(SINCUSAQU),4),0) 
+	ELSE isnull(round((select dbo.PDPCUSBAS(0,PDPCOD) from TBS015 (nolock) where PDPCOD COLLATE Latin1_General_BIN =SINPROCOD),4),0)
+	END * isnull(sum(case when LESCOD=2 then SINQTD end),0) AS Valest2,
+estoque3 = isnull(sum(case when LESCOD=3 then SINQTD end),0),
+CASE WHEN isnull(round(avg(SINCUSAQU),4),0) > 0 
+	THEN isnull(round(avg(SINCUSAQU),4),0) 
+	ELSE isnull(round((select dbo.PDPCUSBAS(0,PDPCOD) from TBS015 (nolock) where PDPCOD COLLATE Latin1_General_BIN =SINPROCOD),4),0)
+	END * isnull(sum(case when LESCOD=3 then SINQTD end),0) AS Valest3,
+estoque4 = isnull(sum(case when LESCOD=4 then SINQTD end),0),
+CASE WHEN isnull(round(avg(SINCUSAQU),4),0) > 0 
+	THEN isnull(round(avg(SINCUSAQU),4),0) 
+	ELSE isnull(round((select dbo.PDPCUSBAS(0,PDPCOD) from TBS015 (nolock) where PDPCOD COLLATE Latin1_General_BIN =SINPROCOD),4),0)
+	END * isnull(sum(case when LESCOD=4 then SINQTD end),0) AS Valest4,
+estoque5 = isnull(sum(case when LESCOD=5 then SINQTD end),0),
+CASE WHEN isnull(round(avg(SINCUSAQU),4),0) > 0 
+	THEN isnull(round(avg(SINCUSAQU),4),0) 
+	ELSE isnull(round((select dbo.PDPCUSBAS(0,PDPCOD) from TBS015 (nolock) where PDPCOD COLLATE Latin1_General_BIN =SINPROCOD),4),0)
+	END * isnull(sum(case when LESCOD=5 then SINQTD end),0) AS Valest5,
+estoque6 = isnull(sum(case when LESCOD=6 then SINQTD end),0),
+CASE WHEN isnull(round(avg(SINCUSAQU),4),0) > 0 
+	THEN isnull(round(avg(SINCUSAQU),4),0) 
+	ELSE isnull(round((select dbo.PDPCUSBAS(0,PDPCOD) from TBS015 (nolock) where PDPCOD COLLATE Latin1_General_BIN =SINPROCOD),4),0)
+	END * isnull(sum(case when LESCOD=6 then SINQTD end),0) AS Valest6,
+estoque7 = isnull(sum(case when LESCOD=7 then SINQTD end),0),
+CASE WHEN isnull(round(avg(SINCUSAQU),4),0) > 0 
+	THEN isnull(round(avg(SINCUSAQU),4),0) 
+	ELSE isnull(round((select dbo.PDPCUSBAS(0,PDPCOD) from TBS015 (nolock) where PDPCOD COLLATE Latin1_General_BIN =SINPROCOD),4),0)
+	END * isnull(sum(case when LESCOD=7 then SINQTD end),0) AS Valest7,
+estoque8 = isnull(sum(case when LESCOD=8 then SINQTD end),0),
+CASE WHEN isnull(round(avg(SINCUSAQU),4),0) > 0 
+	THEN isnull(round(avg(SINCUSAQU),4),0) 
+	ELSE isnull(round((select dbo.PDPCUSBAS(0,PDPCOD) from TBS015 (nolock) where PDPCOD COLLATE Latin1_General_BIN =SINPROCOD),4),0)
+	END * isnull(sum(case when LESCOD=8 then SINQTD end),0) AS Valest8,
+estoque9 = isnull(sum(case when LESCOD=9 then SINQTD end),0),
+CASE WHEN isnull(round(avg(SINCUSAQU),4),0) > 0 
+	THEN isnull(round(avg(SINCUSAQU),4),0) 
+	ELSE isnull(round((select dbo.PDPCUSBAS(0,PDPCOD) from TBS015 (nolock) where PDPCOD COLLATE Latin1_General_BIN =SINPROCOD),4),0)
+	END * isnull(sum(case when LESCOD=9 then SINQTD end),0) AS Valest9
+					
+FROM 
+TBS124 B (NOLOCK)
+LEFT JOIN TBS010 A (nolock) ON A.PROCOD = B.SINPROCOD
+					
+WHERE
+SINDAT - 1 = DATEADD(d,-1,DATEADD(M,1,CONVERT(DATETIME,@ano + @mes + '01'))) AND 
+SINQTD <> 0 AND
+
+PRODES LIKE(CASE WHEN @descri = '' THEN '% %' ELSE Upper(RTRIM(@descri))+'%' END) AND
+SINPROCOD LIKE(CASE WHEN @cod = '' THEN '% %' ELSE Upper(RTRIM(@cod))+'%' END) AND
+MARCOD = (CASE WHEN @marcod = 0 THEN MARCOD ELSE @marcod END ) AND 
+MARNOM LIKE (CASE WHEN @marnom = '' THEN MARNOM ELSE UPPER(RTRIM(@marnom))+'%' END) 
+									
+					
+GROUP BY
+SINPROCOD,SINUNI,SINDAT,PRODES,MARNOM,MARCOD 
+
+ORDER BY SINPROCOD
+
+
+
+
+--APAGAR AS SINQTD  = 0 ]
+/*BEGIN TRAN 
+DELETE TBS124
+OUTPUT DELETED.*,REPLACE(STR(DELETED.SINQTDEMB,10,4),'.',',') AS SINQTDEMB2, REPLACE(STR(DELETED.SINQTD,10,4),'.',',') AS SINQTD2, 
+REPLACE(STR(DELETED.SINCUSAQU,10,4),'.',',') AS SINCUSAQU2
+
+WHERE SINQTD = 0 
+
+SELECT * FROM TBS124 WHERE SINQTD = 0 */
+
+
+
+--- EXITEM PRODUTOS COM SALDO QUE NAO TEM PREÇO NENHUM
+--SELECT * FROM TBS124 (NOLOCK) WHERE SINCUSAQU = 0 AND isnull(round((select dbo.PDPCUSBAS(0,PDPCOD) from TBS015 (nolock) where PDPCOD=SINPROCOD),4),0) = 0 

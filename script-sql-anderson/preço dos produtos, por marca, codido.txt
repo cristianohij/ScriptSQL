@@ -1,0 +1,30 @@
+declare @produtoDe varchar(10) ,@produtoAte varchar(10) , @codigoDaMarca int , @nomeDaMarca char (60), @nomeProduto char(100)
+
+set @produtoDe = ''
+set @produtoAte = ''
+set @codigoDaMarca = '164'
+set @nomeDaMarca =''
+set @nomeProduto=''
+
+
+select --case when len(MARCOD) = 4 then rtrim(MARCOD) else right(('00' + ltrim(str(MARCOD))),3)  end as marca,
+rtrim(MARNOM)+' ('+ case when len(MARCOD) = 4 then rtrim(MARCOD) else right(('00' + ltrim(str(MARCOD))),3)  end + ')' as 'NomeECodigoDaMarca',
+       TDPPROCOD as 'CodigoDoProduto',
+       PRODES as 'DescricaoDoProduto',
+       PROUM1 as 'UnidadeDeMedida1',
+       case when TDPVALPROI<=getdate() and getdate()<=TDPVALPROF and TDPPROLOJ='S' then TDPPREPRO1 else TDPPRELOJ1 end as 'Preco1',
+       PROUM2 as 'UnidadeDeMedida2',
+       case when TDPVALPROI<=getdate() and getdate()<=TDPVALPROF and TDPPROLOJ='S' then TDPPREPRO2*PROUM2QTD else TDPPRELOJ2*PROUM2QTD end as 'Preco2',
+       TDPDATATU as 'DataDaAtualizacao',
+	   convert(char(8),TDPVALPROI,3) AS 'Promoçao inicia',
+       case when TDPVALPROI<=getdate() and getdate()<=TDPVALPROF and TDPPROLOJ='S' then convert(char(8),TDPVALPROF,3) else ' ' end as 'PromocaoValidaAte'
+  from TBS031 (nolock) right join TBS010 (nolock) on PROCOD=TDPPROCOD
+ where 
+	   TDPPROCOD between @produtoDe and case when @produtoAte='' then 'Z' else @produtoAte end and
+       
+       MARCOD = case when @codigoDaMarca = '' then MARCOD else @codigoDaMarca end and
+	   MARNOM like(case when @nomeDaMarca ='' then '% %' else rtrim(ltrim(upper(@nomeDaMarca)))+'%'end) and
+	   
+	   PRODES LIKE(case when @nomeProduto ='' then '% %' else rtrim(ltrim(upper(@nomeProduto)))+'%'end)
+       
+ order by TDPPROCOD,PRODES

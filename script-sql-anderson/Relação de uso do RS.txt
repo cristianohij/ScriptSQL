@@ -1,0 +1,246 @@
+-- PELO INTEGROS 
+
+SELECT A.USUCOD,A.PRGCOD, B.PRGNOM, A.PRGCON, B.PRGURL
+FROM TBS0166 A (NOLOCK) 
+INNER JOIN TBS018 B (NOLOCK) ON A.PRGCOD = B.PRGCOD
+
+WHERE 
+A.PRGCOD LIKE('WREL%') AND 
+USUCOD NOT IN ('DESENV') AND 
+PRGCON <> 0
+
+ORDER BY 
+ PRGNOM, PRGCON DESC 
+
+
+-- tempo médio de execução dos relatorios , e quant de utilização
+
+-- tanby 26
+-- best office 25
+-- best bag 22
+-- misaspel 22
+-- papelyna 22
+-- taubaté  21
+-- tanby cd 22
+
+declare @sub int
+set @sub = 26
+
+select 
+--substring(E.ReportPath,26,120),
+--convert(int,charindex('/',substring(E.ReportPath,26,120))),
+substring(substring(E.ReportPath,@sub,120),convert(int,charindex('/',substring(E.ReportPath,@sub,120)))+1,120) as Relatório,
+substring(substring(E.ReportPath,@sub,120),1,case when convert(int,charindex('/',substring(E.ReportPath,@sub,120)))-1 < 0 then 0 else convert(int,charindex('/',substring(E.ReportPath,@sub,120)))-1 end) as Departamento,
+-- case when convert(int,charindex('/',substring(E.ReportPath,26,120)))-1 < 0 then 0 else convert(int,charindex('/',substring(E.ReportPath,26,120)))-1 ,
+-- E.ReportPath as Relatório,
+count(*) as 'Quantidade Usada'
+--replace(avg(E.TimeDataRetrieval)*0.001,'.',',') as 'Recuperação(s)',
+--replace(avg(E.TimeProcessing)*0.001,'.',',') as 'Processamento(s)',
+--replace(avg(E.TimeRendering)*0.001,'.',',') as 'Redenrização(s)',
+--avg(DATEDIFF(second, E.TimeStart,E.TimeEnd)) as 'Tempo médio(s)'
+
+from ExecutionLog2 E
+ 
+where
+E.ReportPath is not null and E.ReportPath not in ('Unknown')
+group by E.ReportPath
+
+
+union 
+
+select 
+C.Name as Relatório,
+substring(substring(C.Path,@sub,120),1,case when convert(int,charindex('/',substring(C.Path,@sub,120)))-1 < 0 then 0 else convert(int,charindex('/',substring(C.Path,@sub,120)))-1 end) as Departamento,
+0
+
+from ExecutionLog2 E 
+full outer join Catalog C on e.ReportPath = C.Path
+
+where 
+e.ReportPath is null and 
+C.Name not in ('Relatórios integros','Best Office','Tanby','Acompanhamento Pedidos Pendente x Compras','Matriz','Teste','Tanby_ND','best_bag','Projetos integros','best_office','Best Bag','emporium','Financeiro','Fontes de Dados','gz_tanby_matriz','Íntegros','misaspel','papelyna',
+'Tanby_CD','Tanby CD','tanby_matriz','tanby_taubate','','Vendas','Estoque','Loja','Compras','Contábil','Relatórios Tanby Matriz','Relatórios Best Office',
+'Relatórios Best Bag','Relatórios Papelyna','Relatórios Tanby CD','Relatórios Misaspel','Relatórios Taubaté','Tanby-2014','SERVER2012','tanby_tte2014')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- relatorios sem uso
+select 
+C.Name,
+substring(substring(C.Path,26,120),1,convert(int,charindex('/',substring(C.Path,26,120)))-1) as Departamento,
+E.TimeStart ,
+E.TimeEnd,
+E.TimeDataRetrieval as 'RecuperacaoMili',
+E.TimeProcessing as 'ProcessamentoMili',
+E.TimeRendering as 'RenderizacaoMili',
+C.Path as 'Relatório', 
+E.UserName as 'Usuario', 
+E.Format as 'Formato', 
+E.Parameters as 'Parametros', 
+E.Status as 'Gerou?'  
+from ExecutionLog2 E full outer join Catalog C on e.ReportPath = C.Path
+where 
+e.ReportPath is null and 
+C.Name not in ('Relatórios integros','Best Office','Tanby','Acompanhamento Pedidos Pendente x Compras','Matriz','Teste','Tanby_ND','best_bag','Projetos integros','best_office','Best Bag','emporium','Financeiro','Fontes de Dados','gz_tanby_matriz','Íntegros','misaspel','papelyna',
+'Tanby_CD','Tanby CD','tanby_matriz','tanby_taubate','','Vendas','Estoque','Loja','Compras','Contábil','Relatórios Tanby Matriz','Relatórios Best Office',
+'Relatórios Best Bag','Relatórios Papelyna','Relatórios Tanby CD','Relatórios Misaspel','Relatórios Taubaté')
+
+order by 
+E.TimeStart desc 
+
+
+-- papelyna
+
+select Name, 
+convert(int,charindex('Papelyna',Name))-2 ,
+case when convert(int,charindex('Papelyna',Name))-2 < 0 
+	then Name
+	else substring(Name,0,convert(int,charindex('Papelyna',Name))-2)
+end as nome
+ from Catalog 
+where 
+Type = 2 
+ --where not Path = '/Íntegros/Best Office/CFOP de entrada (Best Office)'
+ 
+ 
+-- tabnby integros
+select Name, 
+convert(int,charindex('Tanby',Name))-2 ,
+case when convert(int,charindex('Tanby',Name))-2 < 0 
+	then Name
+	else substring(Name,0,convert(int,charindex('Tanby',Name))-2)
+end as nome
+ from Catalog 
+where 
+Type = 2 
+
+
+-- tabnby taubaté
+select Name, 
+convert(int,charindex('Tanby',Name))-2 ,
+case when convert(int,charindex('Tanby',Name))-2 < 0 
+	then Name
+	else substring(Name,0,convert(int,charindex('Tanby',Name))-2)
+end as nome
+ from Catalog 
+where 
+Type = 2 
+
+-- tabnby cd
+select Name, 
+convert(int,charindex('Tanby',Name))-2 ,
+case when convert(int,charindex('Tanby',Name))-2 < 0 
+	then Name
+	else substring(Name,0,convert(int,charindex('Tanby',Name))-2)
+end as nome
+ from Catalog 
+where 
+Type = 2 
+
+
+-- misaspel
+select Name, 
+convert(int,charindex('Misaspel',Name))-2 ,
+case when convert(int,charindex('Misaspel',Name))-2 < 0 
+	then Name
+	else substring(Name,0,convert(int,charindex('Misaspel',Name))-2)
+end as nome
+ from Catalog 
+where 
+Type = 2 
+
+
+-- Best bag
+select Name, 
+convert(int,charindex('Best',Name))-2 ,
+case when convert(int,charindex('Best',Name))-2 < 0 
+	then Name
+	else substring(Name,0,convert(int,charindex('Best',Name))-2)
+end as nome
+ from Catalog 
+where 
+Type = 2
+
+-------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SELECT 
+InstanceName,
+COALESCE(C.Path, 'Unknown') AS ReportPath, 
+UserName, 
+ExecutionId,
+CASE(RequestType)
+	WHEN 0 THEN 'Interactive'
+	WHEN 1 THEN 'Subscription' 
+	ELSE 'Unknown'
+	END AS RequestType,
+	-- SubscriptionId,
+	Format,
+	Parameters,
+	CASE(ReportAction)
+		WHEN 1 THEN 'Render'
+		WHEN 2 THEN 'BookmarkNavigation'
+		WHEN 3 THEN 'DocumentMapNavigation'
+		WHEN 4 THEN 'DrillThrough'
+		WHEN 5 THEN 'FindString'
+		WHEN 6 THEN 'GetDocumentMap'
+		WHEN 7 THEN 'Toggle'
+		WHEN 8 THEN 'Sort'
+		ELSE 'Unknown'
+	END AS ReportAction,
+	TimeStart,
+	TimeEnd,
+	TimeDataRetrieval,
+	TimeProcessing,
+	TimeRendering,
+	CASE(Source)
+		WHEN 1 THEN 'Live'
+		WHEN 2 THEN 'Cache'
+		WHEN 3 THEN 'Snapshot'
+		WHEN 4 THEN 'History'
+		WHEN 5 THEN 'AdHoc'
+		WHEN 6 THEN 'Session'
+		WHEN 7 THEN 'Rdce'
+		ELSE 'Unknown'
+	END AS Source,
+	Status,
+	ByteCount,
+	[RowCount],
+	AdditionalInfo
+
+FROM
+ExecutionLogStorage EL WITH(NOLOCK)
+lEFT OUTER JOIN Catalog C WITH(NOLOCK) ON (EL.ReportID = C.ItemID)

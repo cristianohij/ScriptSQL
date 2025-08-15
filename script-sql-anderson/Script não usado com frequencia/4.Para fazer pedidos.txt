@@ -1,0 +1,142 @@
+select
+PROLOCFIS collate Latin1_General_CI_AS as 'Localização', 
+PROSTATUS  collate Latin1_General_CI_AS as 'Status', 
+ltrim(rtrim(PROCOD))  collate Latin1_General_CI_AS as 'Código', 
+PRODES  collate Latin1_General_CI_AS as 'Descrição',
+rtrim(PROUM1) + ' - ' + replace(rtrim(PROUM1QTD),'.',',') collate Latin1_General_CI_AS as 'UN1', 
+rtrim(PROUM2)+ ' - ' + replace(rtrim(PROUM2QTD),'.',',') collate Latin1_General_CI_AS as 'UN2' ,
+rtrim(PROUM3)+ ' - ' + replace(rtrim(PROUM3QTD),'.',',') collate Latin1_General_CI_AS as 'UN3', 
+rtrim(PROUM4)+ ' - ' + replace(rtrim(PROUM4QTD),'.',',') collate Latin1_General_CI_AS as 'UN4', 
+rtrim(MARCOD) + ' - ' + rtrim(MARNOM) collate Latin1_General_CI_AS as 'Nome Marca', 
+PROUM1  collate Latin1_General_CI_AS as 'Unid. Medida',
+replace(str(isnull(SaldoEstCD.SDISEST,0),10,4),'.',',') collate Latin1_General_CI_AS as 'Saldo Disponivel Estoque CD', 
+replace(str(isnull(SaldoEstCD.SRESEST,0),10,4),'.',',')  collate Latin1_General_CI_AS as 'Saldo Reservado Estoque CD',
+' ' AS TRANSITO,
+replace(str(isnull(SaldoEstND.SDISEST,0),10,4),'.',',') collate Latin1_General_CI_AS as 'Saldo Disponivel Estoque ND',
+replace(str(isnull(SaldoEstND.SRESEST,0),10,4),'.',',') collate Latin1_General_CI_AS as 'Saldo Reservado Estoque ND',
+replace(str(isnull(SDISLOJA,0),10,4),'.',',')  collate Latin1_General_CI_AS as 'Saldo Disponivel Loja'
+from nd.SIBD.dbo.TBS010 P
+
+left join (select A.PROCOD  collate Latin1_General_CI_AS as PRO, str(sum(A.ESTQTDATU-A.ESTQTDRES))  collate Latin1_General_CI_AS as SDISLOJA, str(A.ESTQTDRES)  collate Latin1_General_CI_AS as SRESLOJA
+from nd.SIBD.dbo.TBS032 A join nd.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+group by A.PROCOD, A.ESTQTDRES) as SaldoLoja on P.PROCOD = SaldoLoja.PRO
+
+left join (select A.PROCOD  collate Latin1_General_CI_AS as PRO, str(sum(A.ESTQTDATU-A.ESTQTDRES)) collate Latin1_General_CI_AS as SDISEST, str(A.ESTQTDRES)  collate Latin1_General_CI_AS as SRESEST
+from nd.SIBD.dbo.TBS032 A join nd.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (1) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+group by A.PROCOD, A.ESTQTDRES) as SaldoEstND on P.PROCOD = SaldoEstND.PRO
+
+left join (select A.PROCOD  collate Latin1_General_CI_AS as PRO, str(sum(A.ESTQTDATU-A.ESTQTDRES)) collate Latin1_General_CI_AS as SDISEST, str(A.ESTQTDRES)  collate Latin1_General_CI_AS as SRESEST
+from cd.SIBD.dbo.TBS032 A join cd.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (1) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+group by A.PROCOD, A.ESTQTDRES) as SaldoEstCD on P.PROCOD = SaldoEstCD.PRO
+where SDISLOJA <> 0 or SaldoEstND.SDISEST <> 0 or SaldoEstCD.SDISEST <> 0
+order by PROCOD
+
+
+
+
+
+
+
+
+
+
+
+-- puxa saldo ND e Res , Loja Dis-- diferente de zero.
+
+select
+PROCOD as 'Código', 
+PROLOCFIS as 'Localização', 
+PROSTATUS as 'Status', 
+PROCOD as 'Código', 
+PRODES as 'Descrição', 
+str(MARCOD) + ' - ' + MARNOM as 'Nome Marca', 
+PROUM1 as 'Unid. Medida',
+replace(str(isnull(SaldoEstND.SDISEST,0),10,4),'.',',') as 'Saldo Disponivel Estoque ND',
+replace(str(isnull(SaldoEstND.SRESEST,0),10,4),'.',',') as 'Saldo Reservado Estoque ND',
+replace(str(isnull(SDISLOJA,0),10,4),'.',',') as 'Saldo Disponivel Loja'
+from TBS010 P
+
+left join (select A.PROCOD as PRO, sum(A.ESTQTDATU-A.ESTQTDRES) as SDISLOJA, A.ESTQTDRES as SRESLOJA
+from TBS032 A join TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+group by A.PROCOD, A.ESTQTDRES) as SaldoLoja on P.PROCOD = SaldoLoja.PRO
+
+left join (select A.PROCOD as PRO, sum(A.ESTQTDATU-A.ESTQTDRES) as SDISEST, A.ESTQTDRES as SRESEST
+from TBS032 A join TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (1) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+group by A.PROCOD, A.ESTQTDRES) as SaldoEstND on P.PROCOD = SaldoEstND.PRO
+
+where SDISLOJA <> 0 or SaldoEstND.SDISEST <> 0 
+order by PROCOD
+
+
+
+
+
+
+
+-- puxar tudo CD
+
+select
+PROCOD as 'Código', 
+PROLOCFIS as 'Localização', 
+PROSTATUS as 'Status', 
+PROCOD as 'Código', 
+PRODES as 'Descrição', 
+str(MARCOD) + ' - ' + MARNOM as 'Nome Marca', 
+PROUM1 as 'Unid. Medida',
+replace(str(isnull(SaldoEstCD.SDISEST,0),10,4),'.',',') as 'Saldo Disponivel Estoque CD', 
+replace(str(isnull(SaldoEstCD.SRESEST,0),10,4),'.',',') as 'Saldo Reservado Estoque CD'
+from TBS010 P
+
+
+left join (select A.PROCOD as PRO, sum(A.ESTQTDATU-A.ESTQTDRES) as SDISEST, A.ESTQTDRES as SRESEST
+from TBS032 A join TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (1) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+group by A.PROCOD, A.ESTQTDRES) as SaldoEstCD on P.PROCOD = SaldoEstCD.PRO
+where SaldoEstCD.SDISEST <> 0
+order by PROCOD
+
+
+
+
+----Materiais penden e em compras + saldo do cd.
+
+select
+PROCOD collate Latin1_General_CI_AS as 'Código', 
+PROLOCFIS collate Latin1_General_CI_AS as 'Localização', 
+PROSTATUS  collate Latin1_General_CI_AS as 'Status', 
+PROCOD  collate Latin1_General_CI_AS as 'Código', 
+rtrim(MARCOD) + ' - ' + rtrim(MARNOM) collate Latin1_General_CI_AS as 'Nome Marca', 
+PROUM1  collate Latin1_General_CI_AS as 'Unid. Medida',
+replace(str(isnull(SaldoEstCD.SDISEST,0),10,4),'.',',') collate Latin1_General_CI_AS as 'Saldo Disponivel Estoque CD', 
+replace(str(isnull(SaldoEstND.SDISEST,0),10,4),'.',',') collate Latin1_General_CI_AS as 'Saldo Disponivel Estoque ND',
+replace(str(isnull(SDISLOJA,0),10,4),'.',',')  collate Latin1_General_CI_AS as 'Saldo Disponivel Loja',
+replace(str(isnull(SaldoEstND.SPENEST,0),10,4),'.',',') collate Latin1_General_CI_AS as 'Saldo Pendente Estoque ND',
+replace(str(isnull(SaldoEstND.SCOMEST,0),10,4),'.',',')  collate Latin1_General_CI_AS as 'Saldo Compras Estoque ND'
+
+from nd.SIBD.dbo.TBS010 P
+
+left join (select A.PROCOD  collate Latin1_General_CI_AS as PRO, str(sum(A.ESTQTDATU-A.ESTQTDRES))  collate Latin1_General_CI_AS as SDISLOJA, str(A.ESTQTDRES)  collate Latin1_General_CI_AS as SRESLOJA
+from nd.SIBD.dbo.TBS032 A join nd.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (2) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+group by A.PROCOD, A.ESTQTDRES) as SaldoLoja on P.PROCOD = SaldoLoja.PRO
+
+left join (select A.PROCOD  collate Latin1_General_CI_AS as PRO, str(sum(A.ESTQTDATU-A.ESTQTDRES)) collate Latin1_General_CI_AS as SDISEST, 
+str(A.ESTQTDRES)  collate Latin1_General_CI_AS as SRESEST, str(A.ESTQTDPEN) collate Latin1_General_CI_AS AS SPENEST,
+str(A.ESTQTDCMP) collate Latin1_General_CI_AS AS SCOMEST
+from nd.SIBD.dbo.TBS032 A join nd.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (1) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+group by A.PROCOD, A.ESTQTDRES,A.ESTQTDPEN,A.ESTQTDCMP) as SaldoEstND on P.PROCOD = SaldoEstND.PRO
+
+left join (select A.PROCOD  collate Latin1_General_CI_AS as PRO, str(sum(A.ESTQTDATU-A.ESTQTDRES)) collate Latin1_General_CI_AS as SDISEST, str(A.ESTQTDRES)  collate Latin1_General_CI_AS as SRESEST
+from cd.SIBD.dbo.TBS032 A join cd.SIBD.dbo.TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (1) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+group by A.PROCOD, A.ESTQTDRES) as SaldoEstCD on P.PROCOD = SaldoEstCD.PRO
+where SDISLOJA <> 0 or SaldoEstND.SDISEST <> 0 or SaldoEstCD.SDISEST <> 0 AND SaldoEstND.SPENEST >'0'
+order by PROCOD
+
+

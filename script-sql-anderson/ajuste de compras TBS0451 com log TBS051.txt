@@ -1,0 +1,152 @@
+-- CRIA TABELA TEMPORARIA, COM AS CHAVES EMPRESA, LOCAL ESTOQUE E CODIGO
+begin tran 
+IF OBJECT_ID('TempDB.dbo.#CMP') is not null 
+	BEGIN 
+		drop table #CMP
+	END
+
+CREATE TABLE #CMP(
+EMPCOD tinyint not null default 0, 
+LESCOD tinyint not null default 0, 
+PROCOD char(15) not null default '',
+PROUM1 varchar(3),
+ESTQTDATU money default 0,
+ESTQTDRES money default 0,
+ESTQTDPEN money default 0,
+ESTQTDCMP money default 0, 
+PDCQTD money default 0,
+
+constraint i#CMP primary key(EMPCOD, LESCOD, PROCOD))
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+-- INSERE NA TABELA #CMP, OS ITENS DIVERGENTES 
+
+insert into #CMP
+select 
+A.PROEMPCOD,
+A.ESTLOC,
+A.PROCOD,
+C.PROUM1,
+A.ESTQTDATU,
+A.ESTQTDRES,
+A.ESTQTDPEN,
+A.ESTQTDCMP,
+case when C.PROPESAVEL = 'N' -- CASO O PRODUTO NÃO FOR PESAVEL ARREDONDA A QUANTIDADE NO PDC, CASO CONTRARIO NÃO
+	THEN 
+		CASE WHEN ROUND(isNull(sum((B.PDCQTD - (B.PDCQTDENT + B.PDCQTDRES)) * B.PDCQTDEMB),0),0) < 0  -- SE EXISTIR ITEM COM SALDO NEGATIVO NO PEDIDO ZERAR
+			THEN 0 
+			ELSE ROUND(isNull(sum((B.PDCQTD - (B.PDCQTDENT + B.PDCQTDRES)) * B.PDCQTDEMB),0),0)
+		 END 
+	ELSE 
+		CASE WHEN isNull(sum((B.PDCQTD - (B.PDCQTDENT + B.PDCQTDRES)) * B.PDCQTDEMB),0) < 0 
+			THEN 0 
+			ELSE isNull(sum((B.PDCQTD - (B.PDCQTDENT + B.PDCQTDRES)) * B.PDCQTDEMB),0)
+		 END
+END 
+
+from 
+TBS032 A (nolock) 
+join TBS0451 B (nolock) on B.PROEMPCOD = A.PROEMPCOD and B.PROCOD = A.PROCOD and B.LESCOD = A.ESTLOC
+join TBS010 C (NOLOCK) ON A.PROEMPCOD = C.PROEMPCOD AND A.PROCOD = C.PROCOD
+
+group by 
+A.PROEMPCOD,
+A.ESTLOC,
+A.PROCOD,
+C.PROUM1,
+A.ESTQTDATU,
+A.ESTQTDRES,
+A.ESTQTDPEN,
+A.ESTQTDCMP,
+C.PROPESAVEL
+
+having 			
+A.ESTQTDCMP <> case when C.PROPESAVEL = 'N'
+					THEN CASE WHEN ROUND(isNull(sum((B.PDCQTD - (B.PDCQTDENT + B.PDCQTDRES)) * B.PDCQTDEMB),0),0) < 0 
+							THEN 0 
+							ELSE ROUND(isNull(sum((B.PDCQTD - (B.PDCQTDENT + B.PDCQTDRES)) * B.PDCQTDEMB),0),0)
+						 END 
+					ELSE CASE WHEN isNull(sum((B.PDCQTD - (B.PDCQTDENT + B.PDCQTDRES)) * B.PDCQTDEMB),0) < 0 
+							THEN 0 
+							ELSE isNull(sum((B.PDCQTD - (B.PDCQTDENT + B.PDCQTDRES)) * B.PDCQTDEMB),0)
+						 END
+				END 
+-- select * from #CMP				
+-------------------------------------------------------------------------------------------------------------------------------------------
+
+-- GERAR LOG NA TBS051 DE AJUSTE DE COMRPRAS
+
+--BEGIN TRAN 
+INSERT INTO 
+TBS051( LMEEMPCOD, -- 0
+		LMEREG, --1
+		LMEDOC, --2
+		LMEROT, --3
+		LMEDESROT, --4
+		LMEACA, --5
+		LMEDATHOR, --6
+		LMEUSU, --7
+		LMEMOD, --8
+		LMEINFALT, --9
+		PROCOD, --10
+		PROEMPCOD, --11
+		LMEQTDSAL, -- 12
+		LMEQTDMOV, -- 13
+		LMEQTDATU, -- 14
+		LMEQTDRES, -- 15
+		LMEQTDPEN, -- 16
+		LMEQTDCMP,  -- 17
+		LMEUNI, -- 18
+		LMEQTDDIS, -- 19
+		LMELOCEST) -- 20
+
+
+SELECT 
+EMPCOD, -- LMEEMPCOD 
+(SELECT MAX(LMEREG) FROM TBS051 (NOLOCK)) + rank() OVER (ORDER BY A.PROCOD) AS [RANK], -- LMEREG
+0, 							-- LMEDOC
+'SQL', 						-- LMEROT
+'AJUSTE DE COMPRAS', 		-- LMEDESROT
+case when ESTQTDCMP < PDCQTD
+	then 'E'
+	else 'S'
+end acao,  					-- LMEACA
+GETDATE(), 					-- LMEDATHOR
+'ANDERSONL',			 	-- LMEUSU
+'NENHUM', 					-- LMEMOD
+'C', 						-- LMEINFALT
+A.PROCOD, 					-- PROCOD
+0, 							-- PROEMPCOD
+PDCQTD as saldo, 			-- LMEQTDSAL
+case when ESTQTDCMP < 0 
+	then (ESTQTDCMP*(-1)) + PDCQTD
+	else 
+		CASE WHEN ESTQTDCMP < PDCQTD 
+			THEN PDCQTD - ESTQTDCMP
+			ELSE ESTQTDCMP - PDCQTD
+		END
+end mov , 					-- LMEQTDMOV
+ESTQTDATU, 					-- LMEQTDATU
+ESTQTDRES, 					-- LMEQTDRES
+ESTQTDPEN, 					-- LMEQTDPEN
+ESTQTDCMP, 					-- LMEQTDCMP
+PROUM1, 					-- LMEUNI
+ESTQTDATU - ESTQTDRES, 		-- LMEQTDDIS
+LESCOD 						-- LMELOCEST 
+
+FROM #CMP A
+
+UPDATE TBS024 
+SET TBSVALSEQ = (SELECT MAX(LMEREG) FROM TBS051 (NOLOCK))
+WHERE TBSNOM = 'TBS051'
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+-- ATUALIZA SALDO EM COMPRAS NA TBS032
+
+-- begin tran 
+update TBS032 set ESTQTDCMP = PDCQTD from #CMP where EMPCOD = PROEMPCOD and LESCOD = ESTLOC and #CMP.PROCOD collate database_default = TBS032.PROCOD
+
+
+select * FROM TBS051 NOLOCK WHERE LMEDATHOR > '20171005' AND LMEDESROT = 'AJUSTE DE COMPRAS'

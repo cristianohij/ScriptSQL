@@ -1,0 +1,241 @@
+--declare @dataDe as date, @dataAte as date
+--
+--select @dataDe='20160518', @dataAte='20221231'
+--
+--if object_id('TempDB.dbo.#PERIODO') is not null
+--   begin
+--      drop table #PERIODO
+--   end
+--
+--select @dataDe as dataDe,@dataAte as dataAte into #PERIODO
+--;
+
+if object_id('TempDB.dbo.#GRUPOCLI') is not null
+   begin
+      drop table #GRUPOCLI
+   end
+
+select 
+CLICOD into #GRUPOCLI 
+
+FROM 
+TBS002 (nolock) 
+
+ where CLICGC Like('65069593%') or CLICGC Like('05118717%') or CLICGC Like('52080207%') -- or CLICGC Like('44125185%');
+ 	 	-- TANBYS			-- BAG			-- MISAS			-- PAPE
+
+-- 09135487000194 TIRAR BEST OFFICE TANTO DO CLIENTE COMO DO FORNECEDOR ENTRE OS GRUPOS
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#GRUPOFOR') is not null
+   begin
+      drop table #GRUPOFOR
+   end
+
+select * INTO #GRUPOFOR 
+
+FROM
+TBS006 (nolock)
+
+WHERE
+FORCGC Like('65069593%') or FORCGC Like('05118717%') or FORCGC Like('52080207%') or FORCGC Like('44125185%');
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- receber
+
+-- fora grupo/ com grupo
+
+with recforgru as (
+	select 
+	case when CLICOD not in(select CLICOD from #GRUPOCLI)
+		then 'Outras Empresas'
+		else 'Empresas do Grupo'
+	end as GRUPO,
+	convert(date,CREDATVENREA) AS DATA,
+	A.CLICOD,
+    A.CLINOM,
+	A.CRETIT AS TITULO,
+	CASE WHEN convert(date,CREDATVENREA) >= CONVERT(DATE,GETDATE()) 
+		THEN sum(dbo.CREVALSDO(CREEMPCOD,PFXEMPCOD,CLIEMPCOD,PFXCOD,CRETIT,CREPAR,CLICOD))
+	   	ELSE 0
+	END AS 'À VENCER',
+	CASE WHEN convert(date,CREDATVENREA) BETWEEN CONVERT(DATE,GETDATE()-31) AND CONVERT(DATE,GETDATE()-1)
+		THEN sum(dbo.CREVALSDO(CREEMPCOD,PFXEMPCOD,CLIEMPCOD,PFXCOD,CRETIT,CREPAR,CLICOD))
+		ELSE 0
+	END AS 'VEN_ATÉ30',
+	CASE WHEN convert(date,CREDATVENREA) BETWEEN CONVERT(DATE,GETDATE()-61) AND CONVERT(DATE,GETDATE()-32)
+	   	THEN sum(dbo.CREVALSDO(CREEMPCOD,PFXEMPCOD,CLIEMPCOD,PFXCOD,CRETIT,CREPAR,CLICOD))
+	   	ELSE 0
+	END AS 'VEN_31A60',
+	CASE WHEN convert(date,CREDATVENREA) BETWEEN CONVERT(DATE,GETDATE()-91) AND CONVERT(DATE,GETDATE()-62)
+	   	THEN sum(dbo.CREVALSDO(CREEMPCOD,PFXEMPCOD,CLIEMPCOD,PFXCOD,CRETIT,CREPAR,CLICOD))
+	   	ELSE 0
+	END AS 'VEN_61A90',
+	CASE WHEN convert(date,CREDATVENREA) < convert(DATE,GETDATE()-91) 
+	   	THEN sum(dbo.CREVALSDO(CREEMPCOD,PFXEMPCOD,CLIEMPCOD,PFXCOD,CRETIT,CREPAR,CLICOD))
+	   	ELSE 0
+	END AS 'VEN_91'
+
+FROM TBS056 A (nolock)
+
+WHERE 
+dbo.CREVALSDO(CREEMPCOD,PFXEMPCOD,CLIEMPCOD,PFXCOD,CRETIT,CREPAR,CLICOD) > 0
+
+GROUP BY
+A.CLICOD,A.CLINOM,convert(date,CREDATVENREA),A.CRETIT),
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- pagar
+
+-- fora grupo
+
+pagforgru as (
+	SELECT 
+	CASE WHEN FORCOD not in(select FORCOD from #GRUPOFOR) 
+		THEN 'Outras Empresas'
+		ELSE 'Empresas do Grupo'
+	END as GRUPO, 
+	CONVERT(date,CPADATVENREA) AS DATA,
+	A.FORCOD,
+    A.FORNOM,
+	A.CPATIT AS TITULO,
+	CASE WHEN convert(date,CPADATVENREA) >= CONVERT(DATE,GETDATE()) 
+	   	THEN sum(dbo.CPAVALSDO(CPAEMPCOD,PFXEMPCOD,FOREMPCOD,PFXCOD,CPATIT,CPAPAR,FORCOD))*-1
+	   	ELSE 0 
+	END AS 'À VENCER',
+	CASE WHEN convert(date,CPADATVENREA) BETWEEN CONVERT(DATE,GETDATE()-31) AND CONVERT(DATE,GETDATE()-1)
+	   	THEN sum(dbo.CPAVALSDO(CPAEMPCOD,PFXEMPCOD,FOREMPCOD,PFXCOD,CPATIT,CPAPAR,FORCOD))*-1
+	   	ELSE 0
+	END AS 'VEN_ATÉ30',
+	CASE WHEN convert(date,CPADATVENREA) BETWEEN CONVERT(DATE,GETDATE()-61) AND CONVERT(DATE,GETDATE()-32)
+	   	THEN sum(dbo.CPAVALSDO(CPAEMPCOD,PFXEMPCOD,FOREMPCOD,PFXCOD,CPATIT,CPAPAR,FORCOD))*-1
+	   	ELSE 0
+	END AS 'VEN_31A60',
+	CASE WHEN convert(date,CPADATVENREA) BETWEEN CONVERT(DATE,GETDATE()-91) AND CONVERT(DATE,GETDATE()-62)
+	   	THEN sum(dbo.CPAVALSDO(CPAEMPCOD,PFXEMPCOD,FOREMPCOD,PFXCOD,CPATIT,CPAPAR,FORCOD))*-1
+	   	ELSE 0
+	END AS 'VEN_61A90',
+	CASE WHEN convert(date,CPADATVENREA) < convert(DATE,GETDATE()-91) 
+	   	THEN sum(dbo.CPAVALSDO(CPAEMPCOD,PFXEMPCOD,FOREMPCOD,PFXCOD,CPATIT,CPAPAR,FORCOD))*-1
+	   	ELSE 0
+	END AS 'VEN_91'
+
+FROM  
+TBS057 A (nolock)
+
+WHERE 
+dbo.CPAVALSDO(CPAEMPCOD,PFXEMPCOD,FOREMPCOD,PFXCOD,CPATIT,CPAPAR,FORCOD) > 0
+
+GROUP BY 
+A.FORCOD,A.FORNOM,CONVERT(DATE,CPADATVENREA),A.CPATIT) ,
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+-- com grupo
+
+pagcomgru as (
+
+	SELECT
+	CONVERT(date,CPADATVENREA) AS DATA,
+	A.FORCOD,
+    A.FORNOM,
+	CASE WHEN convert(date,CPADATVENREA) >= CONVERT(DATE,GETDATE()) 
+	   	THEN sum(dbo.CPAVALSDO(CPAEMPCOD,PFXEMPCOD,FOREMPCOD,PFXCOD,CPATIT,CPAPAR,FORCOD))*-1
+	   	ELSE 0 
+	END AS 'À VENCER',
+	CASE WHEN convert(date,CPADATVENREA) BETWEEN CONVERT(DATE,GETDATE()-31) AND CONVERT(DATE,GETDATE()-1)
+	   	THEN sum(dbo.CPAVALSDO(CPAEMPCOD,PFXEMPCOD,FOREMPCOD,PFXCOD,CPATIT,CPAPAR,FORCOD))*-1
+	   	ELSE 0
+	END AS 'VEN_ATÉ30',
+	CASE WHEN convert(date,CPADATVENREA) BETWEEN CONVERT(DATE,GETDATE()-61) AND CONVERT(DATE,GETDATE()-32)
+	   	THEN sum(dbo.CPAVALSDO(CPAEMPCOD,PFXEMPCOD,FOREMPCOD,PFXCOD,CPATIT,CPAPAR,FORCOD))*-1
+	   	ELSE 0
+	END AS 'VEN_31A60',
+	CASE WHEN convert(date,CPADATVENREA) BETWEEN CONVERT(DATE,GETDATE()-91) AND CONVERT(DATE,GETDATE()-62)
+	   	THEN sum(dbo.CPAVALSDO(CPAEMPCOD,PFXEMPCOD,FOREMPCOD,PFXCOD,CPATIT,CPAPAR,FORCOD))*-1
+	   	ELSE 0
+	END AS 'VEN_61A90',
+	CASE WHEN convert(date,CPADATVENREA) < convert(DATE,GETDATE()-91) 
+	   	THEN sum(dbo.CPAVALSDO(CPAEMPCOD,PFXEMPCOD,FOREMPCOD,PFXCOD,CPATIT,CPAPAR,FORCOD))*-1
+	   	ELSE 0
+	END AS 'VEN_91'
+
+FROM 
+TBS057 A (nolock)
+
+WHERE 
+FORCOD in(select FORCOD from #GRUPOFOR) AND 
+dbo.CPAVALSDO(CPAEMPCOD,PFXEMPCOD,FOREMPCOD,PFXCOD,CPATIT,CPAPAR,FORCOD) > 0
+
+GROUP BY A.FORCOD,A.FORNOM,CONVERT(DATE,CPADATVENREA)),
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+-- receber
+tab3 as (
+	select 
+	grupo='Fora do Grupo',
+	case when A.data is not null 
+		then A.data 
+		else B.data 
+	end as data,
+	case when year(A.data) is not null 
+		then year(A.data) 
+		else year(B.data) 
+	end as ano,
+	case when month(A.data) is not null 
+		then month(A.data) 
+		else month(B.data) 
+	end as mes,
+	case when day(A.data) is not null 
+		then day(A.data) 
+		else day(B.data) 
+	end as dia
+
+from recforgru as A
+full join reccomgru as B on B.data=A.data),
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- pagar
+tab6 as (
+	SELECT
+	grupo='Grupo BMPT',
+    case when A.data is not null 
+		then A.data 
+		else B.data
+	end as data,
+	case when year(A.data) is not null 
+		then year(A.data) 
+		else year(B.data) 
+	end as ano,
+	case when month(A.data) is not null 
+		then month(A.data) 
+		else month(B.data) 
+	end as mes,
+	case when day(A.data) is not null 
+		then day(A.data) 
+		else day(B.data) 
+	end as dia,
+	isnull(titpagBMPT,0) as titpag,
+	isnull(titrecBMPT,0) as titrec,
+    isnull(B.efetivo,0) as contasPagas,
+    isnull(A.efetivo,0) as contasRecebidas,
+    isnull(B.previsto,0) as contasAPagar,
+    isnull(B.atraso,0) as atrasoPagar,
+   	isnull(A.previsto,0) as contasAReceber,
+    isnull(A.atraso,0) as atrasoReceber,
+    isnull(A.efetivo,0)+isnull(B.efetivo,0) as saldoEfetivo,
+    isnull(A.efetivo,0)+isnull(A.previsto,0)+isnull(B.efetivo,0)+isnull(B.previsto,0) as saldoPrevisto
+	
+FROM tab4 as A
+FULL OUTER JOIN tab5 as B on B.data=A.data)
+
+select * from tab3 union 
+select * from tab6
+
+
+
+-- SELECT * FROM TBS057 NOLOCK WHERE CPADATEMI > '20161201'

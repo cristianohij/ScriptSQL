@@ -1,0 +1,52 @@
+-- sao jose
+begin tran
+update SZZ010
+   set ZZ_PYUM=PROUM1,
+       ZZ_PYUM2='',
+       ZZ_PYCUSB2=0,
+       ZZ_PYEMDOL='N',
+       ZZ_PYALIPI=PDPIPI,
+       ZZ_PYEF=PDPCUSADM,
+       ZZ_PYFRETE=PDPFRE,
+       ZZ_PYDESC1=PDPPDD1,
+       ZZ_PYDESC2=PDPPDD2,
+       ZZ_PYDESC3=PDPPDD3,
+       ZZ_PYDESC4=PDPPDD4,
+       ZZ_PYDESC5=PDPPDD5,
+       ZZ_PYDICMS=PDPDIFICM,
+       ZZ_PYPERC1=PDPMKPLOJ1,
+       ZZ_PYPERC2=PDPMKPLOJ2,
+       ZZ_PYPERC3=PDPMKPCOR1,
+       ZZ_PYPERC4=PDPMKPCOR2,
+       ZZ_PYCUSTB=PDPPREUNI
+  from SZZ010 join PHANTOM.SIBD.dbo.TBS015 on ZZ_PYCOD=PDPCOD
+              join PHANTOM.SIBD.dbo.TBS010 on ZZ_PYCOD=PROCOD
+ where D_E_L_E_T_=''
+commit tran
+
+
+-- taubate
+begin tran
+update TORNADO.DADOSAP5.dbo.SZZ010
+   set ZZ_PYUM=PROUM1,
+       ZZ_PYUM2='',
+       ZZ_PYCUSB2=0,
+       ZZ_PYEMDOL='N',
+       ZZ_PYALIPI=PDPIPI,
+       ZZ_PYEF=PDPCUSADM,
+       ZZ_PYFRETE=PDPFRE,
+       ZZ_PYDESC1=PDPPDD1,
+       ZZ_PYDESC2=PDPPDD2,
+       ZZ_PYDESC3=PDPPDD3,
+       ZZ_PYDESC4=PDPPDD4,
+       ZZ_PYDESC5=PDPPDD5,
+       ZZ_PYDICMS=PDPDIFICM,
+       ZZ_PYPERC1=PDPMKPLOJ1,
+       ZZ_PYPERC2=PDPMKPLOJ2,
+       ZZ_PYPERC3=PDPMKPCOR1,
+       ZZ_PYPERC4=PDPMKPCOR2,
+       ZZ_PYCUSTB=PDPPREUNI
+  from TORNADO.DADOSAP5.dbo.SZZ010 join TBS015 on ZZ_PYCOD=PDPCOD
+                                   join TBS010 on ZZ_PYCOD=PROCOD
+ where D_E_L_E_T_=''
+commit tran

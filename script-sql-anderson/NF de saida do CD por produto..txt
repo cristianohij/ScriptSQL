@@ -1,0 +1,76 @@
+declare @dataNFde datetime, @dataNFate datetime, @numNF int
+set @dataNFde ='20150629'
+set @dataNFate ='20150630'
+set @numNF = '1616'
+
+SELECT 
+A.NFSNUM  AS NUM_NOTA ,
+NFSCLINOM  AS DESTINATARIO,
+NFSOBS  AS OBS_NOTA,
+A.PROCOD   AS COD
+
+ FROM TBS067 B
+join TBS0671 A on 
+
+A.NFSEMPCOD = B.NFSEMPCOD and
+A.NFSNUM = B.NFSNUM and
+A.SNEEMPCOD = B.SNEEMPCOD and
+A.SNESER = B.SNESER
+
+
+WHERE B.NFSDATEMI  between @dataNFde and @dataNFate 
+or (@dataNFde = '' and @dataNFate = '') and A.NFSNUM = @numNF
+AND B.NFSTIP = 'N'
+
+order by A.NFSNUM 
+
+
+
+
+
+
+
+
+
+
+---MELHOR COM AS QTDS E PRA CADA UNIDADE 
+
+
+declare @dataNFde datetime, @dataNFate datetime
+	set @dataNFde ='20150810'
+	set @dataNFate ='20150814'
+
+
+SELECT
+	A.PROCOD   AS CÓD,
+	A.NFSPRODES AS 'DESCRIÇÃO',
+	REPLACE(STR(ISNULL(NFSQTD*NFSQTDEMB,0),10,4),'.',',') AS QTD, 
+	C.PROUM1 AS UNI1,
+	A.NFSNUM  AS NF,
+	NFSCLINOM  AS DESTINATÁRIO,
+	CONVERT(NVARCHAR,B.NFSDATEMI,2) AS 'DATA SAIDA',
+	NFSOBS  AS OBS_NF
+	
+FROM 
+TBS010 C 
+JOIN TBS0671 A ON A.PROCOD = C.PROCOD
+JOIN TBS067 B ON
+	
+	A.NFSEMPCOD = B.NFSEMPCOD and
+	A.NFSNUM = B.NFSNUM and
+	A.SNEEMPCOD = B.SNEEMPCOD and
+	A.SNESER = B.SNESER
+	
+	
+	
+WHERE B.NFSCLICOD IN (590,6709) AND B.NFSCAN = 'N' AND
+	NFSTIP IN ('N','T')
+	AND B.NFSDATEMI  between @dataNFde and @dataNFate 
+	or (@dataNFde = '' and @dataNFate = '') 
+
+	
+GROUP BY A.NFSNUM,NFSCLINOM,NFSOBS,A.PROCOD,NFSQTD,NFSQTDEMB,C.PROUM1,A.NFSPRODES,B.NFSDATEMI
+	
+order by A.NFSNUM 
+
+

@@ -1,0 +1,265 @@
+select rtrim(TBS010.MARNOM)+' ('+Ltrim(str(TBS010.MARCOD,4))+')' as 'NomeECodigoDaMarca',
+
+       TBS031.TDPPROCOD as 'CodigoDoProduto',
+	   
+       TBS010.PRODES as 'DescricaoDoProduto',
+	   
+       TBS010.PROUM1 as 'UnidadeDeMedida1',
+	   
+       case when TBS031.TDPVALPROI<=getdate() and getdate()<=TBS031.TDPVALPROF and TBS031.TDPPROLOJ='S' then TBS031.TDPPREPRO1 else TBS031.TDPPRELOJ1 end as 'Preco1',
+	   
+       TBS010.PROUM2 as 'UnidadeDeMedida2',
+	   
+       case when TBS031.TDPVALPROI<=getdate() and getdate()<=TBS031.TDPVALPROF and TBS031.TDPPROLOJ='S' then TBS031.TDPPREPRO2*PROUM2QTD else TBS031.TDPPRELOJ2*PROUM2QTD end as 'Preco2',
+	   
+	   TBS031.TDPPREPRO1 as PROMO1,
+	   TBS031.TDPPREPRO2*PROUM2QTD AS PROMO2,
+	   
+       TBS031.TDPDATATU as 'DataDaAtualizacao',
+	   
+       case when TBS031.TDPVALPROI<=getdate() AND getdate()<=TBS031.TDPVALPROF and TBS031.TDPPROLOJ='S' 
+	   		then convert(char(8),TBS031.TDPVALPROF,3) else '' end as 'PromocaoValidaAte',
+			   
+       T32.ESTQTDATU-T32.ESTQTDRES as 'SaldoDisponivel',
+	   
+	   case when T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF and T31.TDPPROLOJ='S' then T31.TDPPREPRO1 else T31.TDPPRELOJ1 end as 'Preco1 TTÉ',
+	   
+	   TBS010.PROUM2 as 'UnidadeDeMedida2',
+	  
+	   case when T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF and T31.TDPPROLOJ='S' then T31.TDPPREPRO2*PROUM2QTD else T31.TDPPRELOJ2*PROUM2QTD end as 'Preco2 TTÉ',
+	   
+	   T31.TDPPREPRO1 AS PROMO1TTE,
+	   
+	   T31.TDPPREPRO2*PROUM2QTD AS PROMO2TTE
+	   
+  from TBS031 (nolock) RIGHT join TBS010 (nolock) on PROCOD=TDPPROCOD
+                             join TANBYT.SIBD.dbo.TBS031 as T31 (nolock) on T31.TDPPROCOD=TBS031.TDPPROCOD
+                             join TANBYT.SIBD.dbo.TBS032 as T32 (nolock) on T32.PROCOD=TBS031.TDPPROCOD 
+ 
+ 
+ 
+ where TBS031.TDPDATATU between '20160105' and Getdate() and
+ 
+       --TBS010.PROCOD = '10790017' AND---between @produtoDe and case when @produtoAte='' then 'Z' else @produtoAte end and
+	   
+       --TBS010.MARCOD>=@codigoDaMarca and
+	   
+      -- TBS010.MARNOM between @nomeDaMarca and case when @nomeDaMarca='' then 'Z' else @nomeDaMarca end and
+	   
+      --T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF /*and T31.TDPPROLOJ='S'*/ and 
+	   ((T31.TDPPREPRO1<>TBS031.TDPPREPRO1) or (T31.TDPPREPRO2<>TBS031.TDPPREPRO2) or
+       (T31.TDPPRELOJ1<>TBS031.TDPPRELOJ1) or (T31.TDPPRELOJ2<>TBS031.TDPPRELOJ2)) and
+		
+       T32.ESTLOC=2 --and
+	   
+       --T32.ESTQTDATU-T32.ESTQTDRES >= case when @somenteComSaldo='N' then 0 else 0.001 end
+	   
+ order by TBS010.MARNOM,TBS010.PRODES
+ 
+ 
+ --SELECT PROCOD FROM TANBYT.SIBD.dbo.TBS032 WHERE PROCOD ='0060730' AND ESTLOC = 2
+
+
+
+
+
+
+
+
+select rtrim(TBS010.MARNOM)+' ('+Ltrim(str(TBS010.MARCOD,4))+')' as 'NomeECodigoDaMarca',
+
+       TBS031.TDPPROCOD as 'CodigoDoProduto',
+	   
+       TBS010.PRODES as 'DescricaoDoProduto',
+	   
+       TBS031.TDPDATATU as 'DataDaAtualizacao',
+	   
+	   case when TBS031.TDPVALPROI<=getdate() and getdate()<=TBS031.TDPVALPROF and TBS031.TDPPROLOJ='S' then 'Sim' else 'Não' end as 'Promoção?',
+	   
+	   case when TBS031.TDPVALPROI<=getdate() AND getdate()<=TBS031.TDPVALPROF and TBS031.TDPPROLOJ='S' 
+	   		then convert(char(8),TBS031.TDPVALPROF,3) else '' end as 'PromocaoValidaAte', 
+			   
+	   TBS010.PROUM1 as 'Un1',
+	   
+       TBS031.TDPPRELOJ1 as 'Preco1 SJC',
+	   
+	   T31.TDPPRELOJ1  as 'Preco1 TTÉ',
+	   
+	   TBS031.TDPPREPRO1 as 'Promo1 SJC',
+	   
+	   T31.TDPPREPRO1 AS 'Promo1 TTE',
+	   
+	   TBS010.PROUM2 as 'Un2',
+	   
+       TBS031.TDPPRELOJ2 as 'Preco2 SJC',
+	   
+	   T31.TDPPRELOJ2 as 'Preco2 TTÉ',
+	   
+	   TBS031.TDPPREPRO2 AS 'Promo2 SJC',
+	   
+       T31.TDPPREPRO2 AS 'Promo2 TTE',
+	   
+	   T32.ESTQTDATU-T32.ESTQTDRES as 'SaldoDispoTTE'
+	   
+	  
+	   from TBS031 (nolock) RIGHT join TBS010 (nolock) on PROCOD=TDPPROCOD
+                             join TANBYT.SIBD.dbo.TBS031 as T31 (nolock) on T31.TDPPROCOD=TBS031.TDPPROCOD
+                             join TANBYT.SIBD.dbo.TBS032 as T32 (nolock) on T32.PROCOD=TBS031.TDPPROCOD 
+ 
+ 
+ 
+ where TBS031.TDPDATATU between '20160105' and Getdate() and
+ 
+       --TBS010.PROCOD = '10790017' AND---between @produtoDe and case when @produtoAte='' then 'Z' else @produtoAte end and
+	   
+       --TBS010.MARCOD>=@codigoDaMarca and
+	   
+      -- TBS010.MARNOM between @nomeDaMarca and case when @nomeDaMarca='' then 'Z' else @nomeDaMarca end and
+	   
+      --T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF /*and T31.TDPPROLOJ='S'*/ and 
+	   ((T31.TDPPREPRO1 <> TBS031.TDPPREPRO1) or (T31.TDPPREPRO2 <> TBS031.TDPPREPRO2) or
+       (T31.TDPPRELOJ1 <> TBS031.TDPPRELOJ1) or (T31.TDPPRELOJ2 <> TBS031.TDPPRELOJ2)) and
+		
+       T32.ESTLOC=2 --and
+	   
+       --T32.ESTQTDATU-T32.ESTQTDRES >= case when @somenteComSaldo='N' then 0 else 0.001 end
+	   
+ order by TBS010.MARNOM,TBS010.PRODES
+ 
+ 
+ --SELECT PROCOD FROM TANBYT.SIBD.dbo.TBS032 WHERE PROCOD ='0060730' AND ESTLOC = 2
+
+
+
+
+
+
+
+
+
+
+select rtrim(TBS010.MARNOM)+' ('+Ltrim(str(TBS010.MARCOD,4))+')' as 'NomeECodigoDaMarca',
+
+       TBS031.TDPPROCOD as 'CodigoDoProduto',
+	   
+       TBS010.PRODES as 'DescricaoDoProduto',
+	   
+       TBS010.PROUM1 as 'UnidadeDeMedida1',
+	   
+       case when TBS031.TDPVALPROI<=getdate() and getdate()<=TBS031.TDPVALPROF and TBS031.TDPPROLOJ='S' then TBS031.TDPPREPRO1 else TBS031.TDPPRELOJ1 end as 'Preco1',
+	   
+       TBS010.PROUM2 as 'UnidadeDeMedida2',
+	   
+       case when TBS031.TDPVALPROI<=getdate() and getdate()<=TBS031.TDPVALPROF and TBS031.TDPPROLOJ='S' then TBS031.TDPPREPRO2*PROUM2QTD else TBS031.TDPPRELOJ2*PROUM2QTD end as 'Preco2',
+	   
+	   TBS031.TDPPREPRO1 as PROMO1,
+	   TBS031.TDPPREPRO2*PROUM2QTD AS PROMO2,
+	   
+       TBS031.TDPDATATU as 'DataDaAtualizacao',
+	   
+       case when TBS031.TDPVALPROI<=getdate() AND getdate()<=TBS031.TDPVALPROF and TBS031.TDPPROLOJ='S' 
+	   		then convert(char(8),TBS031.TDPVALPROF,3) else '' end as 'PromocaoValidaAte',
+			   
+       T32.ESTQTDATU-T32.ESTQTDRES as 'SaldoDisponivel',
+	   
+	   case when T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF and T31.TDPPROLOJ='S' then T31.TDPPREPRO1 else T31.TDPPRELOJ1 end as 'Preco1 TTÉ',
+	   
+	   TBS010.PROUM2 as 'UnidadeDeMedida2',
+	  
+	   case when T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF and T31.TDPPROLOJ='S' then T31.TDPPREPRO2*PROUM2QTD else T31.TDPPRELOJ2*PROUM2QTD end as 'Preco2 TTÉ',
+	   
+	   T31.TDPPREPRO1 AS PROMO1TTE,
+	   
+	   T31.TDPPREPRO2*PROUM2QTD AS PROMO2TTE
+	   
+  from TBS031 (nolock) RIGHT join TBS010 (nolock) on PROCOD=TDPPROCOD
+                             join TANBYT.SIBD.dbo.TBS031 as T31 (nolock) on T31.TDPPROCOD=TBS031.TDPPROCOD
+                             join TANBYT.SIBD.dbo.TBS032 as T32 (nolock) on T32.PROCOD=TBS031.TDPPROCOD 
+ 
+ 
+ 
+ where TBS031.TDPDATATU between '20160105' and Getdate() and
+ 
+       TBS010.PROCOD = '10790017' AND---between @produtoDe and case when @produtoAte='' then 'Z' else @produtoAte end and
+	   
+       --TBS010.MARCOD>=@codigoDaMarca and
+	   
+      -- TBS010.MARNOM between @nomeDaMarca and case when @nomeDaMarca='' then 'Z' else @nomeDaMarca end and
+	   
+      --T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF /*and T31.TDPPROLOJ='S'*/ and 
+	   ((case when TBS031.TDPVALPROI<=getdate() and getdate()<=TBS031.TDPVALPROF and TBS031.TDPPROLOJ='S' then TBS031.TDPPREPRO1 else TBS031.TDPPRELOJ1 end<>
+	   case when T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF and T31.TDPPROLOJ='S' then T31.TDPPREPRO1 else T31.TDPPRELOJ1 end) or (T31.TDPPREPRO2<>TBS031.TDPPREPRO2) or(T31.TDPPRELOJ1<>TBS031.TDPPRELOJ1) or (T31.TDPPRELOJ2<>TBS031.TDPPRELOJ2)) and
+		
+       T32.ESTLOC=2 --and
+	   
+       --T32.ESTQTDATU-T32.ESTQTDRES >= case when @somenteComSaldo='N' then 0 else 0.001 end
+	   
+ order by TBS010.MARNOM,TBS010.PRODES
+ 
+ 
+ --SELECT PROCOD FROM TANBYT.SIBD.dbo.TBS032 WHERE PROCOD ='0060730' AND ESTLOC = 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+----- usando esse 
+
+
+
+select rtrim(TBS010.MARNOM)+' ('+Ltrim(str(TBS010.MARCOD,4))+')' as 'NomeECodigoDaMarca',
+
+       TBS031.TDPPROCOD as 'CodigoDoProduto',
+	   
+       TBS010.PRODES as 'DescricaoDoProduto',
+	   
+       TBS010.PROUM1 as 'UnidadeDeMedida1',
+	   
+       case when TBS031.TDPVALPROI<=getdate() and getdate()<=TBS031.TDPVALPROF and TBS031.TDPPROLOJ='S' then TBS031.TDPPREPRO1 else TBS031.TDPPRELOJ1 end as 'Preco1',
+	   
+       TBS010.PROUM2 as 'UnidadeDeMedida2',
+	   
+       case when TBS031.TDPVALPROI<=getdate() and getdate()<=TBS031.TDPVALPROF and TBS031.TDPPROLOJ='S' then TBS031.TDPPREPRO2*PROUM2QTD else TBS031.TDPPRELOJ2*PROUM2QTD end as 'Preco2',
+	   
+       TBS031.TDPDATATU as 'DataDaAtualizacao',
+	   
+       case when TBS031.TDPVALPROI<=getdate() AND getdate()<=TBS031.TDPVALPROF and TBS031.TDPPROLOJ='S' 
+	   		then convert(char(8),TBS031.TDPVALPROF,3) else '' end as 'PromocaoValidaAte',
+			   
+       T32.ESTQTDATU-T32.ESTQTDRES as 'SaldoDisponivel',
+	   
+	   case when T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF and T31.TDPPROLOJ='S' then T31.TDPPREPRO1 else T31.TDPPRELOJ1 end as 'Preco1 TTÉ',
+	   
+	   case when T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF and T31.TDPPROLOJ='S' then T31.TDPPREPRO2*PROUM2QTD else T31.TDPPRELOJ2*PROUM2QTD end as 'Preco2 TTÉ'
+	   
+  from TBS031 (nolock) RIGHT join TBS010 (nolock) on PROCOD=TDPPROCOD
+                             join TANBYT.SIBD.dbo.TBS031 as T31 (nolock) on T31.TDPPROCOD=TBS031.TDPPROCOD
+                             join TANBYT.SIBD.dbo.TBS032 as T32 (nolock) on T32.PROCOD=TBS031.TDPPROCOD 
+ 
+ 
+ 
+ where convert(char(8),TBS031.TDPDATATU,3) between @dataDe and @dataAte and
+ 
+      TBS010.PROCOD between @produtoDe and case when @produtoAte='' then 'Z' else @produtoAte end and
+	   
+      TBS010.MARCOD>=@codigoDaMarca and
+	   
+      TBS010.MARNOM between @nomeDaMarca and case when @nomeDaMarca='' then 'Z' else @nomeDaMarca end and
+	   
+      
+	  (case when TBS031.TDPVALPROI<=getdate() and getdate()<=TBS031.TDPVALPROF and TBS031.TDPPROLOJ='S' then TBS031.TDPPREPRO1 else TBS031.TDPPRELOJ1 end<>
+	  case when T31.TDPVALPROI<=getdate() and getdate()<=T31.TDPVALPROF and T31.TDPPROLOJ='S' then T31.TDPPREPRO1 else T31.TDPPRELOJ1 end) and 
+		
+     T32.ESTLOC=2 and
+	   
+     T32.ESTQTDATU-T32.ESTQTDRES >= case when @somenteComSaldo='N' then -999999 else 0.001 end
+	   
+ order by TBS010.MARNOM,TBS010.PRODES

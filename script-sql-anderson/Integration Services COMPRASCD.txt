@@ -1,0 +1,39 @@
+	
+MERGE 
+	COMPRASCD AS A -- DESTINO
+	USING cd.SIBD.dbo.COMPRASCD AS B -- ORIGEM 
+	
+	ON A.PROCOD = B.PROCOD AND A.DAT = B.DAT
+		
+	-- Há registro no destino e na origem
+	
+	WHEN MATCHED  AND (A.PDCDES <> B.PDCDES OR A.QTD <> B.QTD)
+		
+	THEN UPDATE SET 
+		
+	A.PDCDES = B.PDCDES, 
+	A.QTD = B.QTD, 
+	A.DAT = B.DAT
+	
+		
+	-- Quando não há registro no destino e há na origem
+	
+	WHEN NOT MATCHED	
+	
+	THEN INSERT (
+	PROCOD,
+	PDCDES, 
+	QTD,
+	DAT)
+		
+	VALUES(
+	B.PROCOD,
+	B.PDCDES, 
+	B.QTD, 
+	B.DAT)
+	
+	-- NAO TEM NA ORIGEM , MAS TEM NO DESTINO 
+	 WHEN NOT MATCHED BY SOURCE 
+	 THEN
+	 DELETE 
+		

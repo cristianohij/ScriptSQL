@@ -1,0 +1,42 @@
+--saldo ND tudo, dispo, reserv, quantidades das unidades un1, cx, cm.
+
+Select PROLOCFIS LOC ,TBS010.PROSTATUS STAT ,TBS010.PROCOD COD ,TBS010.PRODES DESCR,TBS010.MARNOM NOM,
+PROUM1 UN1,
+replace(str(isnull(PROUM1QTD,0),10,4),'.',',') QTD1, 
+PROUM2 UN2 ,
+replace(str(isnull(PROUM2QTD,0),10,4),'.',',') QTD2,
+PROUM3 UN3, 
+replace(str(isnull(PROUM3QTD,0),10,4),'.',',') QTD3 ,
+PROUM4 UN4 ,
+replace(str(isnull(PROUM4QTD,0),10,4),'.',',') QTD4 
+FROM TBS010
+Order by TBS010.PROCOD
+
+
+
+
+
+
+--- SALDO DISP, RESER, PENDE, COMPRAS
+select
+PROCOD as 'Código', 
+PROLOCFIS as 'Localização', 
+PROSTATUS as 'Status', 
+PROCOD as 'Código', 
+PRODES as 'Descrição', 
+str(MARCOD) + ' - ' + MARNOM as 'Nome Marca', 
+PROUM1 as 'Unid. Medida',
+replace(str(isnull(SaldoEstND.SDISEST,0),10,4),'.',',') as 'Saldo Disponivel Estoque ND',
+replace(str(isnull(SaldoEstND.SRESEST,0),10,4),'.',',') as 'Saldo Reservado Estoque ND',
+replace(str(isnull(SaldoEstND.ESTQTDPEN,0),10,4),'.',',') PENDEN,
+replace(str(isnull(SaldoEstND.ESTQTDCMP,0),10,4),'.',',') COMPRAS 
+
+from TBS010 P
+
+left join (select A.PROCOD as PRO, sum(A.ESTQTDATU-A.ESTQTDRES) as SDISEST, A.ESTQTDRES as SRESEST,A.ESTQTDPEN,A.ESTQTDCMP
+from TBS032 A join TBS010 B on A.PROCOD = B.PROCOD
+where A.ESTLOC in (1) and (A.ESTQTDATU <> 0 or A.ESTQTDRES <> 0 or A.ESTQTDPEN <> 0 or A.ESTQTDCMP <> 0)
+group by A.PROCOD, A.ESTQTDRES,A.ESTQTDPEN,A.ESTQTDCMP) as SaldoEstND on P.PROCOD = SaldoEstND.PRO
+
+
+order by PROCOD

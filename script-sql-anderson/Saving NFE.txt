@@ -1,0 +1,206 @@
+
+--- ENTRADA POR DIA, POR FONECEDOR, ND, TTE E CD
+declare @dateDe datetime, @dateAte datetime , @NFEFORCOD INT, @NFEFORNOM CHAR(60), @UTEL INT
+
+SET @NFEFORCOD = 0
+SET @NFEFORNOM =''
+set @dateDe = '20170601'
+set @dateAte = '20171015'
+SET @UTEL = (SELECT dbo.FCNDIASUTEIS(@dateDe,@dateAte))
+--- ENTRADA POR DIA, POR FONECEDOR, ND, TTE E CD
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- TABELA BASE DE FILTROS
+
+if object_id('TempDB.dbo.#TBS010') is not null 
+drop table #TBS010
+
+SELECT 
+PROCOD,
+PRODES,
+PROUM1,
+ISNULL(COMCOD,0) AS COMCOD, 
+ISNULL((SELECT COMNOM FROM TBS046 B (NOLOCK) WHERE A.COMCOD = B.COMCOD),'') AS COMNOM
+
+INTO #TBS010
+FROM TBS010 A (NOLOCK)
+
+/*WHERE 
+PROCOD = CASE WHEN @PROCOD = '' THEN PROCOD ELSE @PROCOD END AND
+MARCOD = CASE WHEN @MARCOD = 0 THEN MARCOD ELSE @MARCOD END AND
+MARNOM LIKE(CASE WHEN @MARNOM = '' THEN MARNOM ELSE RTRIM(UPPER(@MARNOM)) + '%' END) AND
+PRODES LIKE(CASE WHEN @PRODES = '' THEN PRODES ELSE RTRIM(UPPER(@PRODES)) + '%' END) AND
+COMCOD IN (@COMCOD)*/
+-- AND 
+--PROSTATUS IN (@PROSTATUS)
+
+ORDER BY 
+PROCOD
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- GRUPO DE FRONECEDORES DO GRUPO, NÃO CONTABIIZAR 
+
+if object_id('TempDB.dbo.#GRUPOFOR') is not null
+   begin
+      drop table #GRUPOFOR
+   end
+
+select 
+FORCOD into #GRUPOFOR
+
+FROM 
+TBS006 (nolock) 
+
+WHERE FORCGC Like('65069593%') or FORCGC Like('05118717%') or FORCGC Like('52080207%') or FORCGC Like('44125185%');
+ 	 			-- TANBYS			       -- BAG			           -- MISAS			               -- PAPE
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- CRIAR TABELA DE COMPRAS 
+
+if object_id('TempDB.dbo.#NF') is not null
+   begin
+      drop table #NF
+   end
+   
+SELECT
+A.PROCOD,
+CONVERT(CHAR (10), NFEDATEFE,102) AS DATA,
+CONVERT(CHAR (10), NFEDATEFE,103) AS NFEDATEFE,
+C.PRODES,
+C.PROUM1,
+ROUND(sum(ROUND(NFETOTOPEITE,2))/(SUM(A.NFEQTD*A.NFEQTDEMB)),2) AS NFETOTOPEITE,
+A.NFENUM,
+ROW_NUMBER() OVER (Partition by A.PROCOD order by CONVERT(CHAR (10), NFEDATEFE,102),A.PROCOD ) AS RANK,
+LTRIM(RTRIM(STR(COMCOD))) + RTRIM(LTRIM(COMNOM)) AS COMNOM
+
+INTO #NF		 
+FROM 
+TBS0591 A (NOLOCK)
+LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD=B.NFEEMPCOD AND A.NFETIP = B.NFETIP AND A.NFENUM=B.NFENUM AND 
+							   A.NFECOD=B.NFECOD AND A.SEREMPCOD=B.SEREMPCOD AND A.SERCOD=B.SERCOD
+LEFT JOIN #TBS010 C (NOLOCK) ON A.PROCOD = C.PROCOD
+
+WHERE 
+NFEDATEFE between @dateDe and @dateAte and 
+A.NFETIP ='N' and 
+NFECAN <> 'S' AND
+A.NFECOD NOT IN ((SELECT FORCOD FROM #GRUPOFOR)) AND 
+A.NFECFOP IN ('1.102','2.102','1.202','2.202','1.403','2.403','2.411','1.411','1.653','2.653','1.922','2.922') AND
+A.PROCOD IN (SELECT PROCOD FROM #TBS010)
+
+GROUP BY 
+NFEDATEFE, A.PROCOD, A.NFENUM,C.PRODES,C.PROUM1, COMCOD, COMNOM
+		
+ORDER BY 
+A.PROCOD , CONVERT(CHAR (10), NFEDATEFE,102)
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- ULTIMA NOTA ANTES DA DATA DE INICIO
+
+if object_id('TempDB.dbo.#ULTIMA') is not null
+   begin
+      drop table #ULTIMA
+   end
+
+SELECT 
+A.PROCOD,
+CONVERT(CHAR (10), MAX(NFEDATEFE),102) AS DATA,
+CONVERT(CHAR (10), MAX(NFEDATEFE),103) AS NFEDATEFE,
+C.PRODES,
+C.PROUM1,
+ROUND(sum(ROUND(NFETOTOPEITE,2))/(SUM(A.NFEQTD*A.NFEQTDEMB)),2) AS NFETOTOPEITE,
+A.NFENUM,
+ROW_NUMBER() OVER (Partition by A.PROCOD order by CONVERT(CHAR (10), NFEDATEFE,102) DESC ,A.PROCOD ) AS RANK,
+LTRIM(RTRIM(STR(COMCOD))) + RTRIM(LTRIM(COMNOM)) AS COMNOM
+
+INTO #ULTIMA		 
+FROM 
+TBS0591 A (NOLOCK)
+LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD=B.NFEEMPCOD AND A.NFETIP = B.NFETIP AND A.NFENUM=B.NFENUM AND 
+							   A.NFECOD=B.NFECOD AND A.SEREMPCOD=B.SEREMPCOD AND A.SERCOD=B.SERCOD
+LEFT JOIN #TBS010 C (NOLOCK) ON A.PROCOD = C.PROCOD
+
+WHERE 
+NFEDATEFE < @dateDe AND
+A.NFETIP ='N' and 
+NFECAN <> 'S' AND
+A.NFECOD NOT IN ((SELECT FORCOD FROM #GRUPOFOR)) AND 
+A.NFECFOP IN ('1.102','2.102','1.202','2.202','1.403','2.403','2.411','1.411','1.653','2.653','1.922','2.922') AND
+A.PROCOD IN (SELECT PROCOD FROM #NF) 
+
+GROUP BY 
+NFEDATEFE,
+A.PROCOD,
+A.NFENUM,
+A.NFETIP,
+A.NFECOD,
+A.NFEEMPCOD,
+A.SERCOD,
+A.SEREMPCOD,
+C.PRODES,
+C.PROUM1,
+COMCOD,
+COMNOM
+
+ORDER BY 
+A.PROCOD , CONVERT(CHAR (10), NFEDATEFE,102)
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- UNIÃO DA TABELA DO PERIODO FILTRADO E A ULTIMA COMPRA ANTERIOR
+
+if object_id('TempDB.dbo.#NFE') is not null
+   begin
+      drop table #NFE
+   end
+   
+SELECT * INTO #NFE 
+
+FROM #NF  
+
+UNION 
+
+SELECT 
+PROCOD,
+DATA,
+NFEDATEFE,
+PRODES,
+PROUM1,
+NFETOTOPEITE,
+NFENUM,
+0 AS RANK,
+COMNOM 
+
+FROM #ULTIMA 
+
+WHERE 
+RANK = 1
+
+-- SELECT * FROM #NFE
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- ADC COLUNA A TABELA #NFE PARA CONTABLIZAR A PORCENTAGEM 
+
+ALTER TABLE #NFE
+ADD POR DECIMAL(10,4)
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- PORCENTAGEM DA DIFERENÇA ENTRE A ULTIMA COMPRA E A ANTERIOR, PARA VERIFICAR SE TEVE AUMENTO OU DECRESCIMO
+	
+UPDATE #NFE SET 
+POR =	CASE WHEN ISNULL((SELECT NFETOTOPEITE FROM #NFE B WHERE #NFE.PROCOD = B.PROCOD AND B.RANK = #NFE.RANK - 1 ),0) = 0 
+			THEN 0
+			ELSE (ROUND(NFETOTOPEITE,2)-ROUND((SELECT NFETOTOPEITE FROM #NFE B WHERE #NFE.PROCOD = B.PROCOD AND B.RANK = #NFE.RANK - 1 ),2))/ROUND(NFETOTOPEITE,2)
+		END 
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+SELECT * FROM #NFE 
+
+

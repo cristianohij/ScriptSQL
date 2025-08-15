@@ -1,0 +1,106 @@
+declare @marca int, @periodoDe datetime, @periodoAte datetime, @divMes int, @divSem int, @divDia int, @dirCasaDec int, @esqCasaDec int
+
+-- Paremetros
+select @esqCasaDec = 10 --Apenas numero inteiro
+select @dirCasaDec = 4 --Apenas numero inteiro
+select @divMes = 3 --Casa decimal separada por . (ponto)
+select @divSem = 4.35 --Casa decimal separada por . (ponto)
+select @divDia =  6 --Casa decimal separada por . (ponto)
+set @periodoDe = '20150401' --Padrão AAAAMMDD
+set @periodoAte = '20150630' --Padrão AAAAMMDD
+set @marca = '' --Apenas numero inteiro
+
+-- Obs. Todos devem ser preenchidos
+
+select
+PROLOCFIS as 'Localização',
+PROSTATUS as 'Status', 
+P.PROCOD as 'Codigo do Produto', 
+PRODES as 'Descricao', 
+rtrim(MARCOD) + ' - ' + rtrim(MARNOM) as 'MARCA',
+PROUM1 as 'UNID. MEDIDA',
+
+replace(str(isnull(G.QTDE,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Venda GZ', 
+replace(str(isnull(I.QTDE,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Venda Integros'
+
+
+
+from TBS010 P
+left join
+(select M2_PROCOD as PRO, sum(M2_QTD) as QTDE
+from MSL002 A join TBS010 B on M2_PROCOD = B.PROCOD 
+where M2_TIPREG = '01' and M2_REGCAN = 'F'
+and (M2_DAT between @periodoDe and @periodoAte or (@periodoDe = '' and @periodoAte = ''))
+and (MARCOD = @marca or (@marca = ''))
+group by M2_PROCOD) as G on PROCOD = G.PRO
+left join
+(select A.PROCOD as PRO, sum(NFSQTD * NFSQTDEMB) as QTDE
+from TBS0671 A join TBS067 B on A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+join TBS042 C on C.TESCOD = A.TESCOD
+join TBS010 D on A.PROCOD = D.PROCOD
+where NFSTIP = 'N' and NFSCAN = 'N' and TESCNTVEN = 'S'
+and (NFSDATEMI between @periodoDe and @periodoAte or (@periodoDe = '' and @periodoAte = '')) 
+and (MARCOD = @marca or (@marca = ''))
+group by A.PROCOD) as I on P.PROCOD = I.PRO
+
+where (MARCOD = @marca or (@marca = ''))
+order by PROCOD
+
+
+
+
+
+
+
+
+
+
+===== GIRO CD TRANFERENCIA CONTA COMO VENDAS 
+
+declare @marca int, @periodoDe datetime, @periodoAte datetime, @divMes int, @divSem int, @divDia int, @dirCasaDec int, @esqCasaDec int
+
+-- Paremetros
+select @esqCasaDec = 10 --Apenas numero inteiro
+select @dirCasaDec = 4 --Apenas numero inteiro
+select @divMes = 3 --Casa decimal separada por . (ponto)
+select @divSem = 4.35 --Casa decimal separada por . (ponto)
+select @divDia =  6 --Casa decimal separada por . (ponto)
+set @periodoDe = '20150401' --Padrão AAAAMMDD
+set @periodoAte = '20150630' --Padrão AAAAMMDD
+set @marca = '' --Apenas numero inteiro
+
+-- Obs. Todos devem ser preenchidos
+
+select
+PROLOCFIS as 'Localização',
+PROSTATUS as 'Status', 
+P.PROCOD as 'Codigo do Produto', 
+PRODES as 'Descricao', 
+rtrim(MARCOD) + ' - ' + rtrim(MARNOM) as 'MARCA',
+PROUM1 as 'UNID. MEDIDA',
+
+replace(str(isnull(G.QTDE,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Venda GZ', 
+replace(str(isnull(I.QTDE,0),@esqCasaDec,@dirCasaDec),'.',',') as 'Venda Integros',
+
+
+from TBS010 P
+left join
+(select M2_PROCOD as PRO, sum(M2_QTD) as QTDE
+from MSL002 A join TBS010 B on M2_PROCOD = B.PROCOD 
+where M2_TIPREG = '01' and M2_REGCAN = 'F'
+and (M2_DAT between @periodoDe and @periodoAte or (@periodoDe = '' and @periodoAte = ''))
+and (MARCOD = @marca or (@marca = ''))
+group by M2_PROCOD) as G on PROCOD = G.PRO
+left join
+(select A.PROCOD as PRO, sum(NFSQTD * NFSQTDEMB) as QTDE
+from TBS0671 A join TBS067 B on A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+join TBS042 C on C.TESCOD = A.TESCOD
+join TBS010 D on A.PROCOD = D.PROCOD
+where NFSTIP = 'N' and NFSCAN = 'N' 
+and (NFSDATEMI between @periodoDe and @periodoAte or (@periodoDe = '' and @periodoAte = '')) 
+and (MARCOD = @marca or (@marca = ''))
+group by A.PROCOD) as I on P.PROCOD = I.PRO
+
+
+where (MARCOD = @marca or (@marca = ''))
+order by PROCOD

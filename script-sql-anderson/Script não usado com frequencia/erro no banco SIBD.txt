@@ -1,0 +1,69 @@
+--ALTER DATABASE ReportServer SET EMERGENCY;
+--ALTER DATABASE ReportServer SET SINGLE_USER;
+--DBCC CHECKDB (ReportServer, REPAIR_ALLOW_DATA_LOSS) WITH NO_INFOMSGS;
+--ALTER DATABASE ReportServer SET MULTI_USER;
+--GO
+--
+
+EXEC sp_resetstatus ReportServerTempDB
+GO
+
+ALTER DATABASE ReportServerTempDB SET EMERGENCY
+
+DBCC checkdb(ReportServerTempDB)
+
+ALTER DATABASE ReportServerTempDB SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+
+DBCC CheckDB (ReportServerTempDB, REPAIR_ALLOW_DATA_LOSS)
+
+ALTER DATABASE ReportServerTempDB SET MULTI_USER
+
+GO
+
+
+
+
+
+
+
+SELECT  *
+FROM msdb.dbo.suspect_pages
+
+ 
+
+Terá como resultado 
+
+10 , 1, 154456
+
+ 
+ 
+ALTER DATABASE ReportServerTempDB SET EMERGENCY;
+
+ALTER DATABASE ReportServerTempDB SET SINGLE_USER;
+
+DBCC CHECKDB (ReportServerTempDB, REPAIR_ALLOW_DATA_LOSS) WITH NO_INFOMSGS;
+
+ALTER DATABASE ReportServerTempDB SET MULTI_USER;
+
+GO
+ 
+
+-- Agora para achar a tabela faça o seguinte
+
+--Visualização do DBCC Page
+DBCC TRACEON (3604)
+ 
+ 
+--Verificação de Erro
+DBCC PAGE (10 , 1, 154456,1)
+ 
+
+-- Navegue na página e ache o Metadata: ObjectId = ''. Achando o o object_id faça
+USE DatabaseName
+GO
+SELECT OBJECT_NAME('')
+ 
+--CheckTable
+USE DatabaseName
+GO
+DBCC CHECKTABLE ("NomeTabela") WITH PHYSICAL_ONLY

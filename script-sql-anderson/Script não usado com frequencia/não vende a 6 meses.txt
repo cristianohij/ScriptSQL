@@ -1,0 +1,303 @@
+declare @data1de char(8), @data1ate char(8), @comando varchar (max), @PROCOD CHAR(15) , @GRUCOD INT , @SUBGRUCOD INT , @marcod INT, @marcanom CHAR(60) ,
+@PRODES CHAR (60)
+
+set @data1de  ='20161201'
+set @data1ate ='20170528'
+SET @PROCOD = ''
+SET @GRUCOD = 0
+SET @SUBGRUCOD = 0
+SET @marcod = 0 
+SET @marcanom = ''
+SET @PRODES = ''
+
+-- CONTABILIZAR AS VENDAS DE LOJA, DIRETO DO BANCO DA GZ
+
+SET @comando = 'EXECUTE(''
+select
+data,
+cdprod,
+quant
+
+FROM movcaixa
+where
+data between "'+convert(char(8), @data1de, 112)+'" and "'+convert(char(8), @data1ate, 112)+'"  and 
+status =1 and 
+cancelado <> "S" 
+'') at MYSQLGZ' 
+
+if object_id('TempDB.dbo.#MSLAUX') is not null
+   drop table #MSLAUX
+    
+create table #MSLAUX (M2_DAT DATE, M2_PROCOD INT, M2_QTD DECIMAL(10,4))
+INSERT INTO #MSLAUX
+exec(@comando)
+	
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- CRIANDO TABELA DE ITENS COM OS TRIBUTOS NECESSARIOS
+
+if object_id('TempDB.dbo.#LOJA') is not null
+   drop table #LOJA
+
+		SELECT
+		M2_PROCOD AS PROCOD,	
+		SUM(M2_QTD) AS QTD ,
+		M2_DAT AS DATA
+				
+		INTO #LOJA
+		FROM #MSLAUX 
+		
+		GROUP BY 
+		M2_PROCOD, M2_DAT
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- GRUPO DE CLIENTES DO GRUPO, NÃO CONTABIIZAR 
+
+if object_id('TempDB.dbo.#GRUPOCLI') is not null
+   begin
+      drop table #GRUPOCLI
+   end
+
+select 
+CLICOD into #GRUPOCLI 
+
+FROM 
+TBS002 (nolock) 
+
+WHERE CLICGC Like('65069593%') or CLICGC Like('05118717%') or CLICGC Like('52080207%') or CLICGC Like('44125185%');
+ 	 			-- TANBYS			       -- BAG			           -- MISAS			               -- PAPE
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- GRUPO DE FRONECEDORES DO GRUPO, NÃO CONTABIIZAR 
+
+if object_id('TempDB.dbo.#GRUPOFOR') is not null
+   begin
+      drop table #GRUPOFOR
+   end
+
+select 
+FORCOD into #GRUPOFOR
+
+FROM 
+TBS006 (nolock) 
+
+WHERE FORCGC Like('65069593%') or FORCGC Like('05118717%') or FORCGC Like('52080207%') or FORCGC Like('44125185%');
+ 	 			-- TANBYS			       -- BAG			           -- MISAS			               -- PAPE
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+-- TABELA DE AUTORIZAÇÃO
+if object_id('TempDB.dbo.#TBS080') is not null
+   drop table #TBS080
+   
+SELECT 
+ENFNUM ,
+SNEEMPCOD ,
+SNESER,
+ENFSIT,
+ENFTIPDOC,
+ENFFINEMI,
+ENFCODDES
+
+INTO #TBS080
+FROM 
+TBS080 NOLOCK 
+
+WHERE 
+ENFSIT = 6 AND 
+ENFDATEMI between @data1de and @data1ate 
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- contabilizar vendas televendas
+
+if object_id('TempDB.dbo.#CORP') is not null
+   drop table #CORP
+
+SELECT 
+PROCOD,
+sum(B.NFSQTD * B.NFSQTDEMB) AS NFSQTDVEN,
+NFSDATEMI AS DATA
+
+into #CORP
+FROM 
+TBS0671 B (nolock)
+LEFT JOIN TBS067 A (nolock) ON A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+INNER JOIN #TBS080 D (NOLOCK) ON B.NFSNUM = D.ENFNUM AND B.SNEEMPCOD = D.SNEEMPCOD AND B.SNESER = D.SNESER
+			  
+WHERE 
+NFSDATEMI between @data1de and @data1ate and 
+NFSTIP IN('N','C') and 
+D.ENFTIPDOC = 1 AND
+B.NFSCFOP IN ('5.101','5.102','5.116','5.117','5.118','5.119','5.123','5.405','5.551','5.929','6.102','6.108','6.117','6.123','6.403','6.404','6.929') AND
+A.NFSCLINOM NOT LIKE ('TANBY%') AND 		-- TIRO AS TRANSFERENCIAS
+NFSCLICOD NOT IN (SELECT CLICOD FROM #GRUPOCLI) 
+
+GROUP BY 
+PROCOD, NFSDATEMI
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- contabilizar vendas televendas GRUPO
+
+if object_id('TempDB.dbo.#CORPGRU') is not null
+   drop table #CORPGRU
+
+SELECT 
+PROCOD,
+sum(B.NFSQTD * B.NFSQTDEMB) AS NFSQTDVEN,
+NFSDATEMI AS DATA
+
+into #CORPGRU
+FROM 
+TBS0671 B (nolock)
+LEFT JOIN TBS067 A (nolock) ON A.NFSEMPCOD = B.NFSEMPCOD and A.NFSNUM = B.NFSNUM and A.SNEEMPCOD = B.SNEEMPCOD and A.SNESER = B.SNESER
+INNER JOIN #TBS080 D (NOLOCK) ON B.NFSNUM = D.ENFNUM AND B.SNEEMPCOD = D.SNEEMPCOD AND B.SNESER = D.SNESER
+			  
+WHERE 
+NFSDATEMI between @data1de and @data1ate and 
+NFSTIP IN('N','C') and 
+D.ENFTIPDOC = 1 AND
+B.NFSCFOP IN ('5.101','5.102','5.116','5.117','5.118','5.119','5.123','5.405','5.551','5.929','6.102','6.108','6.117','6.123','6.403','6.404','6.929') AND
+A.NFSCLINOM NOT LIKE ('TANBY%') AND 		-- TIRO AS TRANSFERENCIAS
+NFSCLICOD IN (SELECT CLICOD FROM #GRUPOCLI) 
+
+GROUP BY 
+PROCOD, NFSDATEMI
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- NOTAS DE ENTRADA, CONTABILIZAR O CUSTO ND
+
+if object_id('TempDB.dbo.#COMPRA') is not null
+   drop table #COMPRA
+
+SELECT
+PROCOD,
+SUM(NFEQTD*NFEQTDEMB) as NFEQTD,
+NFEDATEFE AS DATA
+
+INTO #COMPRA
+
+FROM
+TBS0591 A (NOLOCK) 
+LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND 
+A.NFENUM = B.NFENUM AND A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND A.SEREMPCOD = B.SEREMPCOD
+		
+WHERE 
+NFEDATEFE between @data1de and @data1ate and 
+A.NFETIP = 'N' and 
+NFENOSFOR <> 'S' AND 
+B.NFECAN <> 'S' AND 
+NFEDATEFE <> '' AND
+A.NFECFOP COLLATE DATABASE_DEFAULT IN ('1.100','1.101','1.102','1.122','1.400','1.401','1.403','1.406','1.407','1.551','1.556','1.922','1.949','2.100','2.101','2.102',
+'2.401','2.403','2.407','2.551','2.556','2.949') AND
+B.NFECOD NOT IN (SELECT FORCOD FROM #GRUPOFOR) 
+		
+GROUP BY 
+PROCOD,
+NFEDATEFE
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- NOTAS DE ENTRADA, CONTABILIZAR O CUSTO ND
+
+if object_id('TempDB.dbo.#COMPRAGRU') is not null
+   drop table #COMPRAGRU
+
+SELECT
+PROCOD,
+SUM(NFEQTD*NFEQTDEMB) as NFEQTD,
+NFEDATEFE AS DATA
+
+INTO #COMPRAGRU
+
+FROM
+TBS0591 A (NOLOCK) 
+LEFT JOIN TBS059 B (NOLOCK) ON A.NFEEMPCOD = B.NFEEMPCOD AND A.NFECOD = B.NFECOD AND 
+A.NFENUM = B.NFENUM AND A.NFETIP = B.NFETIP AND A.SERCOD = B.SERCOD AND A.SEREMPCOD = B.SEREMPCOD
+		
+WHERE 
+NFEDATEFE between @data1de and @data1ate and 
+A.NFETIP = 'N' and 
+NFENOSFOR <> 'S' AND 
+B.NFECAN <> 'S' AND 
+NFEDATEFE <> '' AND
+A.NFECFOP COLLATE DATABASE_DEFAULT IN ('1.100','1.101','1.102','1.122','1.400','1.401','1.403','1.406','1.407','1.551','1.556','1.922','1.949','2.100','2.101','2.102',
+'2.401','2.403','2.407','2.551','2.556','2.949') AND
+B.NFECOD IN (SELECT FORCOD FROM #GRUPOFOR) AND
+B.NFENOM NOT LIKE ('%TANBY%')
+		
+GROUP BY 
+PROCOD,
+NFEDATEFE
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#TBS010') is not null
+   drop table #TBS010
+
+SELECT 
+A.PROCOD,
+PRODES,
+CASE WHEN len(A.MARCOD) = 4 
+	then rtrim(A.MARCOD) + ' - ' + rtrim(A.MARNOM) 
+	else right(('00' + ltrim(str(A.MARCOD))),3) + ' - ' + rtrim(A.MARNOM) 
+end as 'MARCA',
+PROUM1
+
+INTO #TBS010
+FROM TBS010 A (NOLOCK) 
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if object_id('TempDB.dbo.#TBS032') is not null
+   drop table #TBS032
+
+SELECT 
+A.PROCOD,
+(SELECT ESTQTDATU - ESTQTDRES FROM TBS032 B (NOLOCK) WHERE ESTLOC = 1 AND A.PROCOD= B.PROCOD) AS ESTQTD,
+(SELECT ESTQTDATU - ESTQTDRES FROM TBS032 C (NOLOCK) WHERE ESTLOC = 2 AND A.PROCOD= C.PROCOD) AS LOJQTD
+
+INTO #TBS032
+FROM TBS032 A (NOLOCK) 
+
+WHERE 
+ESTQTDATU <> 0 AND ESTLOC IN (1,2)
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
+SELECT
+RTRIM(LTRIM(A.PROCOD)) AS PROCOD,
+RTRIM(LTRIM(PRODES)) AS PRODES,
+RTRIM(LTRIM(MARCA)) AS MARCA,
+RTRIM(LTRIM(PROUM1)) AS PROUM1,
+REPLACE(ISNULL(LOJQTD,0),'.',',') AS LOJ,
+REPLACE(ISNULL(ESTQTD,0),'.',',') AS EST,
+ISNULL((SELECT TOP 1 DATA FROM #COMPRA D WHERE A.PROCOD = D.PROCOD ORDER BY DATA DESC),'') AS DATACOMPRA,
+CASE WHEN ISNULL((SELECT TOP 1 DATA FROM #CORP E WHERE A.PROCOD = E.PROCOD ORDER BY DATA DESC),'') >= 
+		  ISNULL((SELECT TOP 1 DATA FROM #LOJA F WHERE CONVERT(INT,A.PROCOD) = F.PROCOD ORDER BY DATA DESC),'')
+	THEN ISNULL((SELECT TOP 1 DATA FROM #CORP E WHERE A.PROCOD = E.PROCOD ORDER BY DATA DESC),'') 
+	ELSE ISNULL((SELECT TOP 1 DATA FROM #LOJA F WHERE CONVERT(INT,A.PROCOD) = F.PROCOD ORDER BY DATA DESC),'')
+END AS DATAVENDA,
+ISNULL((SELECT TOP 1 DATA FROM #COMPRAGRU G WHERE A.PROCOD = G.PROCOD ORDER BY DATA DESC),'') AS DATACOMPRAGRU,
+ISNULL((SELECT TOP 1 DATA FROM #CORPGRU H WHERE A.PROCOD = H.PROCOD ORDER BY DATA DESC),'') AS DATAVENDA
+
+FROM 
+#TBS010 A 
+LEFT JOIN #TBS032 B ON A.PROCOD = B.PROCOD
+
+WHERE 
+ISNULL((SELECT TOP 1 DATA FROM #COMPRA D WHERE A.PROCOD = D.PROCOD ORDER BY DATA DESC),'') > '19000101' OR 
+ISNULL((SELECT TOP 1 DATA FROM #CORP E WHERE A.PROCOD = E.PROCOD ORDER BY DATA DESC),'') > '19000101' OR
+ISNULL((SELECT TOP 1 DATA FROM #LOJA F WHERE CONVERT(INT,A.PROCOD) = F.PROCOD ORDER BY DATA DESC),'') > '19000101' OR
+ISNULL(LOJQTD,0) <> 0 OR
+ISNULL(ESTQTD,0) <> 0 OR
+ISNULL((SELECT TOP 1 DATA FROM #COMPRAGRU G WHERE A.PROCOD = G.PROCOD ORDER BY DATA DESC),'') <> '19000101' OR
+ISNULL((SELECT TOP 1 DATA FROM #CORPGRU H WHERE A.PROCOD = H.PROCOD ORDER BY DATA DESC),'') <> '19000101'
+
