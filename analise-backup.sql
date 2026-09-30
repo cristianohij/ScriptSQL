@@ -50,3 +50,69 @@ SELECT o.name, i.name, bd.*
  INNER JOIN sys.objects o ON p.object_id = o.object_id
  INNER JOIN sys.indexes i
  ON p.object_id = i.object_id AND p.index_id = i.index_id 
+
+-- Listar todos os backups
+
+SELECT
+    bs.database_name AS Banco,
+    bs.type AS Tipo,
+    CASE bs.type
+        WHEN 'D' THEN 'Backup Completo'
+        WHEN 'I' THEN 'Backup Diferencial'
+        WHEN 'L' THEN 'Backup do Log'
+        WHEN 'F' THEN 'File/Filegroup'
+        ELSE bs.type
+    END AS DescricaoTipo,
+    bs.backup_start_date AS Inicio,
+    bs.backup_finish_date AS Fim,
+    CAST(bs.backup_size / 1024.0 / 1024 AS DECIMAL(18,2)) AS TamanhoMB,
+    bmf.physical_device_name AS ArquivoBackup,
+    bs.user_name AS Usuario
+FROM msdb.dbo.backupset bs
+JOIN msdb.dbo.backupmediafamily bmf
+    ON bs.media_set_id = bmf.media_set_id
+ORDER BY bs.backup_finish_date DESC;
+
+-- Listar apenas os backups de um banco específico
+
+SELECT
+    bs.database_name,
+    CASE bs.type
+        WHEN 'D' THEN 'Completo'
+        WHEN 'I' THEN 'Diferencial'
+        WHEN 'L' THEN 'Log'
+    END AS Tipo,
+    bs.backup_finish_date,
+    CAST(bs.backup_size / 1024.0 / 1024 AS DECIMAL(18,2)) AS TamanhoMB,
+    bmf.physical_device_name
+FROM msdb.dbo.backupset bs
+JOIN msdb.dbo.backupmediafamily bmf
+    ON bs.media_set_id = bmf.media_set_id
+WHERE bs.database_name = 'SIBD2'
+ORDER BY bs.backup_finish_date DESC;
+
+-- Último backup de cada banco
+
+SELECT
+    database_name,
+    MAX(backup_finish_date) AS UltimoBackup
+FROM msdb.dbo.backupset
+WHERE type = 'D'
+GROUP BY database_name
+ORDER BY database_name;
+
+-- Verificar se um banco nunca teve backup
+
+SELECT name
+FROM sys.databases d
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM msdb.dbo.backupset b
+    WHERE b.database_name = d.name
+      AND b.type = 'D'
+);
+
+
+
+
+

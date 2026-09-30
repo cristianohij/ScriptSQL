@@ -62,3 +62,62 @@ order by cdprod
 */
 
 -- select * from DWVendas where data  = '20250818'
+
+select top(100) *
+  from movcaixagz mv with (nolock)
+
+select sum(mv.valortot)		-- 800.227,52
+  from movcaixagz mv with (nolock)
+ where mv.[data] between '20260201' and '20260228'
+       and mv.cancelado <> 'N'
+	   and mv.[status] = '03'
+
+select mv.cupom
+       ,sum(mv.valortot)
+  from movcaixagz mv with (nolock)
+ where data between '20260201' and '20260228'
+       and mv.cancelado = ''
+       and mv.[status] = '03'
+ group by mv.cupom
+ having sum(mv.valortot) = 159.85
+
+select count(*)
+  from movcaixagz mv with (nolock)
+ where mv.[data] between '20260201' and '20260228'
+       and mv.cancelado <> 'N'
+	   and mv.[status] = '03'
+ group by mv.caixa, mv.cupom
+
+SELECT COUNT(DISTINCT CONCAT(mv.caixa,'-',mv.cupom))
+FROM movcaixagz mv with (nolock)
+WHERE mv.[data] between '20260201' and '20260228'
+      --and mv.cancelado <> 'N'
+      and mv.[status] = '03'
+
+select mv.nfce_chave -- 5.512
+  from movcaixagz mv with (nolock)
+ where mv.[data] between '20260201' and '20260228'
+       and mv.cancelado <> 'N'
+	   and mv.[status] = '03'
+ group by mv.nfce_chave
+
+
+DECLARE @xml XML
+
+SELECT @xml = BulkColumn
+FROM OPENROWSET(
+    BULK 'c:\integros\temp\listagem-chaves.xml',
+    SINGLE_BLOB
+) AS x
+
+--SELECT LEN(CONVERT(VARCHAR(MAX), @xml)) AS tamanho_xml
+
+--SELECT CONVERT(VARCHAR(MAX), @xml)
+
+;WITH XMLNAMESPACES (
+'http://www.portalfiscal.inf.br/nfe' AS nfe
+)
+
+SELECT -- 5.490
+    X.value('.', 'varchar(44)') AS ChaveNFCe
+FROM @xml.nodes('//nfe:chNFCe') AS T(X)

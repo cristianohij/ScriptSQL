@@ -1,4 +1,4 @@
--- coleta temporário de dados
+-- coleta temporï¿½rio de dados
 
 declare @dataDe as date, @dataAte as date
 
@@ -38,7 +38,7 @@ select TBS059.NFEDATEFE as data,
  group by TBS059.NFEDATEFE,TBS0591.LESCOD,TBS0591.PROCOD
 go
 
--- NF de entrada de devolução
+-- NF de entrada de devoluï¿½ï¿½o
 
 if object_id('TempDB.dbo.#NFENTDEV') is not null
    begin
@@ -60,7 +60,7 @@ select TBS059.NFEDATEFE as data,
  group by TBS059.NFEDATEFE,TBS0591.LESCOD,TBS0591.PROCOD
 go
 
--- NF de saída canceladas
+-- NF de saï¿½da canceladas
 
 if object_id('TempDB.dbo.#NFSAICAN') is not null
    begin
@@ -102,7 +102,7 @@ select M2_DATPROC as data,
  group by M2_DATPROC,M2_PROCOD
 go
 
--- NF de devolução para fornecedor cancelada ou em aberto
+-- NF de devoluï¿½ï¿½o para fornecedor cancelada ou em aberto
 
 if object_id('TempDB.dbo.#NFDEVCAN') is not null
    begin
@@ -143,7 +143,7 @@ select convert(date,TBS037.MVIDATEFE) as data,
  group by convert(date,TBS037.MVIDATEFE),TBS037.MVILOCDES,TBS0371.PROCOD
 go
 
--- manutenção dos saldos
+-- manutenï¿½ï¿½o dos saldos
 
 if object_id('TempDB.dbo.#SALENT') is not null
    begin
@@ -162,10 +162,10 @@ select convert(date,TBS049.MDSLAN) as data,
  group by convert(date,TBS049.MDSLAN),TBS049.LESCOD,TBS049.PROCOD
 go
 
--- outras entradas... eram feitas via reserva de PV (YEST008) onde o saldo era adicionado ao estoque sem registro da movimentação
+-- outras entradas... eram feitas via reserva de PV (YEST008) onde o saldo era adicionado ao estoque sem registro da movimentaï¿½ï¿½o
 
 -- programa atualizado:
---    tanby matriz/taubaté/papelyna 14/07/16
+--    tanby matriz/taubatï¿½/papelyna 14/07/16
 --    tanby cd 15/08/16
 
 if object_id('TempDB.dbo.#OUTENT') is not null
@@ -195,9 +195,9 @@ go
 
 
 
--- SAÍDAS
+-- SAï¿½DAS
 
--- NF de saída
+-- NF de saï¿½da
 
 if object_id('TempDB.dbo.#NFSAI') is not null
    begin
@@ -237,7 +237,7 @@ select M2_DATPROC as data,
  group by M2_DATPROC,M2_PROCOD
 go
 
--- NF de devolução para fornecedor
+-- NF de devoluï¿½ï¿½o para fornecedor
 
 if object_id('TempDB.dbo.#NFDEV') is not null
    begin
@@ -278,7 +278,7 @@ select convert(date,TBS037.MVIDATEFE) as data,
  group by convert(date,TBS037.MVIDATEFE),TBS037.MVILOCORI,TBS0371.PROCOD
 go
 
--- manutenção dos saldos
+-- manutenï¿½ï¿½o dos saldos
 
 if object_id('TempDB.dbo.#SALSAI') is not null
    begin
@@ -297,12 +297,12 @@ select convert(date,TBS049.MDSLAN) as data,
  group by convert(date,TBS049.MDSLAN),TBS049.LESCOD,TBS049.PROCOD
 go
 
--- fim SAÍDAS
+-- fim SAï¿½DAS
 
--- fim da coleta temporária de dados
+-- fim da coleta temporï¿½ria de dados
 
 
--- popula a tabela de kardex diário das movimentações dos produtos
+-- popula a tabela de kardex diï¿½rio das movimentaï¿½ï¿½es dos produtos
 
 -- tabelas
 
@@ -495,41 +495,41 @@ tab12 as (
 
 insert into TBS125
 select 0,                -- empresa do kardex
-       data,             -- data da movimentação
+       data,             -- data da movimentaï¿½ï¿½o
        0,                -- empresa do local de estoque
        LocalEstoque,     -- local do estoque
        0,                -- empresa do produto
-       CodigoProduto,    -- código do produto
+       CodigoProduto,    -- cï¿½digo do produto
        -- entradas
        NFentrada,        -- nf de entrada
-       EntradaDevolucao, -- entrada de devolução
-       NFsaidaCan,       -- nf de saída cancelada
+       EntradaDevolucao, -- entrada de devoluï¿½ï¿½o
+       NFsaidaCan,       -- nf de saï¿½da cancelada
        ECFcan,           -- cupom fiscal cancelado
-       DEVcan,           -- cancelamento de nf de devolução de saída
+       DEVcan,           -- cancelamento de nf de devoluï¿½ï¿½o de saï¿½da
        MOVentrada,       -- movimento interno de entrada
-       SALentrada,       -- entrada via manutenção do saldo 
-       -- saídas
-       NFsaida,          -- nota fiscal de saída
+       SALentrada,       -- entrada via manutenï¿½ï¿½o do saldo 
+       -- saï¿½das
+       NFsaida,          -- nota fiscal de saï¿½da
        ECF,              -- cupom fiscal
-       NFdevolucao,      -- nf de saída de devolução
-       MOVsaida,         -- movimento interno de saída
-       SALsaida,         -- saída via manutenção do saldo
-       0,                -- custo médio de compra
+       NFdevolucao,      -- nf de saï¿½da de devoluï¿½ï¿½o
+       MOVsaida,         -- movimento interno de saï¿½da
+       SALsaida,         -- saï¿½da via manutenï¿½ï¿½o do saldo
+       0,                -- custo mï¿½dio de compra
        (select PROUM1QTD from TBS010 (nolock) where PROCOD=CodigoProduto), -- quantidade da embalagem da menor unidade de medida
        (select PROUM1 from TBS010 (nolock) where PROCOD=CodigoProduto),    -- menor unidade de medida do produto
        Outras
   from tab12
  order by data,LocalEstoque,CodigoProduto
 
--- fim: popula a tabela de kardex diário das movimentações dos produtos
+-- fim: popula a tabela de kardex diï¿½rio das movimentaï¿½ï¿½es dos produtos
 
 
--- saldos iniciais após contagem - atenção, somente rodar 1 vez
+-- saldos iniciais apï¿½s contagem - atenï¿½ï¿½o, somente rodar 1 vez
 
 -- saldo inicial da contagem
 -- 12/12/15 tanby matriz
 -- 11/12/15 tanby cd
--- 19/12/15 tanby taubaté - retaguarda/loja
+-- 19/12/15 tanby taubatï¿½ - retaguarda/loja
 -- 19/12/15 papelyna
 -- 22/12/15 best bag ?
 -- 30/12/15 misaspel
@@ -544,7 +544,7 @@ select 0,             -- empresa da tabela de saldos iniciais
        0,             -- empresa do local de estoque
        LESCOD,        -- local de estoque
        0,             -- empresa do produto
-       KESPROCOD,     -- código do produto
+       KESPROCOD,     -- cï¿½digo do produto
        (select PROUM1 from TBS010 (nolock) where PROCOD=KESPROCOD collate database_default),    -- menor unidade de medida
        (select PROUM1QTD from TBS010 (nolock) where PROCOD=KESPROCOD collate database_default), -- quantidade da embalagem da menor unidade de medida
        sum(KESMOVENT-KESMOVSAI),
@@ -553,10 +553,10 @@ select 0,             -- empresa da tabela de saldos iniciais
  where KESDAT=@dataSaldo
  group by LESCOD,KESPROCOD
 
--- fim: saldos iniciais após contagem - atenção, somente rodar 1 vez
+-- fim: saldos iniciais apï¿½s contagem - atenï¿½ï¿½o, somente rodar 1 vez
 
 
--- comparativo com inventário
+-- comparativo com inventï¿½rio
 
 select convert(date,TBS037.MVIDATEFE) as data,
        TBS0371.PROCOD as CodigoProduto,
@@ -595,10 +595,10 @@ select * from #inventario
 
 select * from TBS124 (nolock) inner join #inventario on LESCOD=LocalEstoque and SINPROCOD=produto where SINQTD=saldo
 
--- fim: comparativo com inventário
+-- fim: comparativo com inventï¿½rio
 
 
--- saldo iniciais dos proutos que não foram inventariados
+-- saldo iniciais dos proutos que nï¿½o foram inventariados
 
 select distinct LMELOCEST from TBS051 (nolock) where LMEDATHOR<='20151219'
 
@@ -635,27 +635,27 @@ select 0,             -- empresa da tabela de saldos iniciais
        0,             -- empresa do local de estoque
        @estoque,      -- local de estoque
        0,             -- empresa do produto
-       PROCOD,        -- código do produto
+       PROCOD,        -- cï¿½digo do produto
        (select PROUM1 from TBS010 (nolock) where TBS010.PROCOD=#saldoinicial.PROCOD),    -- menor unidade de medida
        (select PROUM1QTD from TBS010 (nolock) where TBS010.PROCOD=#saldoinicial.PROCOD), -- quantidade da embalagem da menor unidade de medida
        EST7,
        0
   from #saldoinicial
 
--- fim: saldo iniciais dos proutos que não foram inventariados
+-- fim: saldo iniciais dos proutos que nï¿½o foram inventariados
 
 
--- saldo inicial nos demais meses após a contagem
+-- saldo inicial nos demais meses apï¿½s a contagem
 
 declare @dataSaldo as date, @dataRegistro as date, @dataDe as date, @dataAte as date
 
 -- data do saldo inicial
 set @dataSaldo='20160701'
 
--- data do registro do próximo saldo inicial
+-- data do registro do prï¿½ximo saldo inicial
 set @dataRegistro='20160801'
 
--- período de contabilização das entradas e saídas
+-- perï¿½odo de contabilizaï¿½ï¿½o das entradas e saï¿½das
 set @dataDe  = '20160701'
 set @dataAte = '20160731'
 
@@ -665,10 +665,10 @@ select 0,             -- empresa da tabela de saldos iniciais
        0,             -- empresa do local de estoque
        LESCOD,        -- local de estoque
        0,             -- empresa do produto
-       KESPROCOD,     -- código do produto
+       KESPROCOD,     -- cï¿½digo do produto
        (select PROUM1 from TBS010 (nolock) where PROCOD=KESPROCOD collate database_default),    -- menor unidade de medida
        (select PROUM1QTD from TBS010 (nolock) where PROCOD=KESPROCOD collate database_default), -- quantidade da embalagem da menor unidade de medida
-       -- cálculo do saldo = saldo inicial + entradas - saídas
+       -- cï¿½lculo do saldo = saldo inicial + entradas - saï¿½das
        case when isnull((select 1 from TBS124 (nolock) where TBS124.SINDAT=@dataSaldo and TBS124.LESCOD=TBS125.LESCOD and TBS124.SINPROCOD=TBS125.KESPROCOD),0) > 0
             then isnull((select SINQTD from TBS124 (nolock) where TBS124.SINDAT=@dataSaldo and TBS124.LESCOD=TBS125.LESCOD and TBS124.SINPROCOD=TBS125.KESPROCOD),0)
             else isnull((select top 1 SINQTD
@@ -676,13 +676,13 @@ select 0,             -- empresa da tabela de saldos iniciais
                           where TBS124.SINDAT < @dataSaldo and TBS124.LESCOD=TBS125.LESCOD and TBS124.SINPROCOD=TBS125.KESPROCOD
                           order by TBS124.SINDAT desc),0) end                                                                                                -- saldo inicial
        + sum((KESNFENT + KESENTDEV + KESCANNFSAI + KESCANCUPFIS + KESCANNFDEV + KESMOVENT + KESSALENT + KESOUT)                                              -- entradas
-       -     (KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI)),                                                                                  -- saídas
-       0 -- custo da aquisição da mercadoria
+       -     (KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI)),                                                                                  -- saï¿½das
+       0 -- custo da aquisiï¿½ï¿½o da mercadoria
   from TBS125 (nolock)
  where KESDAT between @dataDe and @dataAte
  group by LESCOD,KESPROCOD
 
--- fim: saldo inicial nos demais meses após a contagem
+-- fim: saldo inicial nos demais meses apï¿½s a contagem
 
 
 -- custo
@@ -836,8 +836,8 @@ select top 1 * from TBS125 (nolock)
 -- saldo inicial da contagem
 -- 12/12/15 tanby matriz
 -- 11/12/15 tanby cd
--- 18/12/15 tanby taubaté - retaguarda
--- 19/12/15 tanby taubaté - loja
+-- 18/12/15 tanby taubatï¿½ - retaguarda
+-- 19/12/15 tanby taubatï¿½ - loja
 -- 19/12/15 papelyna
 -- 22/12/15 best bag ?
 -- 30/12/15 misaspel
@@ -852,7 +852,7 @@ select 0,             -- empresa da tabela de saldos iniciais
        0,             -- empresa do local de estoque
        LESCOD,        -- local de estoque
        0,             -- empresa do produto
-       KESPROCOD,     -- código do produto
+       KESPROCOD,     -- cï¿½digo do produto
        (select PROUM1 from TBS010 (nolock) where PROCOD=KESPROCOD collate database_default),    -- menor unidade de medida
        (select PROUM1QTD from TBS010 (nolock) where PROCOD=KESPROCOD collate database_default), -- quantidade da embalagem da menor unidade de medida
        sum(KESMOVENT-KESMOVSAI),
@@ -866,17 +866,17 @@ delete TBS124 where SINDAT<>'20151212'
 
 select year(SINDAT),month(SINDAT),count(*) from TBS124 (nolock) group by year(SINDAT),month(SINDAT) order by year(SINDAT),month(SINDAT)
 
--- saldo inicial nos demais meses após a contagem
+-- saldo inicial nos demais meses apï¿½s a contagem
 
 declare @dataSaldo as date, @dataRegistro as date, @dataDe as date, @dataAte as date
 
 -- data do saldo inicial
 set @dataSaldo='20151212'
 
--- data do registro do próximo saldo inicial
+-- data do registro do prï¿½ximo saldo inicial
 set @dataRegistro='20160101'
 
--- período de contabilização das entradas e saídas
+-- perï¿½odo de contabilizaï¿½ï¿½o das entradas e saï¿½das
 set @dataDe  = '20151212'
 set @dataAte = '20151231'
 
@@ -887,14 +887,14 @@ select 0,             -- empresa da tabela de saldos iniciais
        0,             -- empresa do local de estoque
        LESCOD,        -- local de estoque
        0,             -- empresa do produto
-       KESPROCOD,     -- código do produto
+       KESPROCOD,     -- cï¿½digo do produto
        (select PROUM1 from TBS010 (nolock) where PROCOD=KESPROCOD collate database_default),    -- menor unidade de medida
        (select PROUM1QTD from TBS010 (nolock) where PROCOD=KESPROCOD collate database_default), -- quantidade da embalagem da menor unidade de medida
-       -- cálculo do saldo = saldo inicial + entradas - saídas
+       -- cï¿½lculo do saldo = saldo inicial + entradas - saï¿½das
        isnull((select SINQTD from TBS124 (nolock) where TBS124.SINDAT=@dataSaldo and TBS124.LESCOD=TBS125.LESCOD and TBS124.SINPROCOD=TBS125.KESPROCOD),0)   -- saldo inicial
        + sum((KESNFENT + KESENTDEV + KESCANNFSAI + KESCANCUPFIS + KESCANNFDEV + KESMOVENT + KESSALENT)                                                       -- entradas
-       -     (KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI)),                                                                                  -- saídas
-       0 -- custo da aquisição da mercadoria
+       -     (KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI)),                                                                                  -- saï¿½das
+       0 -- custo da aquisiï¿½ï¿½o da mercadoria
   from TBS125 (nolock)
  where KESDAT between @dataDe and @dataAte
  group by LESCOD,KESPROCOD
@@ -908,10 +908,10 @@ select 0,             -- empresa da tabela de saldos iniciais
        0,             -- empresa do local de estoque
        LESCOD,        -- local de estoque
        0,             -- empresa do produto
-       KESPROCOD,     -- código do produto
+       KESPROCOD,     -- cï¿½digo do produto
        (select PROUM1 from TBS010 (nolock) where PROCOD=KESPROCOD collate database_default),    -- menor unidade de medida
        (select PROUM1QTD from TBS010 (nolock) where PROCOD=KESPROCOD collate database_default), -- quantidade da embalagem da menor unidade de medida
-       -- cálculo do saldo = saldo inicial + entradas - saídas
+       -- cï¿½lculo do saldo = saldo inicial + entradas - saï¿½das
        case when isnull((select SINQTD from TBS124 (nolock) where TBS124.SINDAT=@dataSaldo and TBS124.LESCOD=TBS125.LESCOD and TBS124.SINPROCOD=TBS125.KESPROCOD),0) > 0
             then isnull((select SINQTD from TBS124 (nolock) where TBS124.SINDAT=@dataSaldo and TBS124.LESCOD=TBS125.LESCOD and TBS124.SINPROCOD=TBS125.KESPROCOD),0)
             else isnull((select top 1 SINQTD
@@ -919,8 +919,8 @@ select 0,             -- empresa da tabela de saldos iniciais
                           where TBS124.SINDAT < @dataSaldo and TBS124.LESCOD=TBS125.LESCOD and TBS124.SINPROCOD=TBS125.KESPROCOD
                           order by TBS124.SINDAT desc),0) end                                                                                                -- saldo inicial
        + sum((KESNFENT + KESENTDEV + KESCANNFSAI + KESCANCUPFIS + KESCANNFDEV + KESMOVENT + KESSALENT)                                                       -- entradas
-       -     (KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI)),                                                                                  -- saídas
-       0 -- custo da aquisição da mercadoria
+       -     (KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI)),                                                                                  -- saï¿½das
+       0 -- custo da aquisiï¿½ï¿½o da mercadoria
   from TBS125 (nolock)
  where KESDAT between @dataDe and @dataAte
  group by LESCOD,KESPROCOD
@@ -1058,10 +1058,10 @@ declare @dataSaldo as date, @dataRegistro as date, @dataDe as date, @dataAte as 
 -- data do saldo inicial
 set @dataSaldo='20151212'
 
--- data do registro do próximo saldo inicial
+-- data do registro do prï¿½ximo saldo inicial
 set @dataRegistro='20160101'
 
--- período de contabilização das entradas e saídas
+-- perï¿½odo de contabilizaï¿½ï¿½o das entradas e saï¿½das
 set @dataDe  = '20151214'
 set @dataAte = '20151231'
 
@@ -1071,15 +1071,15 @@ select 0 as emp,             -- empresa da tabela de saldos iniciais
        0 as empest,             -- empresa do local de estoque
        LESCOD as estoque,        -- local de estoque
        0 as emppro,             -- empresa do produto
-       KESPROCOD as produto,     -- código do produto
+       KESPROCOD as produto,     -- cï¿½digo do produto
        (select PROUM1 from TBS010 (nolock) where PROCOD=KESPROCOD) as un,    -- menor unidade de medida
        (select PROUM1QTD from TBS010 (nolock) where PROCOD=KESPROCOD) as emb, -- quantidade da embalagem da menor unidade de medida
-       -- cálculo do saldo = saldo inicial + entradas - saídas
+       -- cï¿½lculo do saldo = saldo inicial + entradas - saï¿½das
        isnull((select SINQTD from TBS124 (nolock) where TBS124.SINDAT=@dataSaldo and TBS124.LESCOD=TBS125.LESCOD and TBS124.SINPROCOD=TBS125.KESPROCOD),0), -- saldo inicial
        isnull((select SINQTD from TBS124 (nolock) where TBS124.SINDAT=@dataSaldo and TBS124.LESCOD=TBS125.LESCOD and TBS124.SINPROCOD=TBS125.KESPROCOD),0) +  -- saldo inicial
        sum(KESNFENT + KESENTDEV + KESCANNFSAI + KESCANCUPFIS + KESCANNFDEV + KESMOVENT + KESSALENT) -                      -- entradas
-       sum(KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI) as saldo,                                                    -- saídas
-       0 as custo -- susto da aquisição da mercadoria
+       sum(KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI) as saldo,                                                    -- saï¿½das
+       0 as custo -- susto da aquisiï¿½ï¿½o da mercadoria
 --  into #EST
   from TBS125 (nolock)
  where KESDAT between @dataDe and @dataAte and KESPROCOD='16130055' and LESCOD=6
@@ -1273,7 +1273,7 @@ select min(convert(date,ESTDATSAL)) from SALDODIARIO (nolock)
 
 ---------------------------------------------------------------------------------------------------------------------------------------------
 
--- procedure: coletar movimentações
+-- procedure: coletar movimentaï¿½ï¿½es
 
 if exists(select name from sysobjects where name='SP_MovimentacaoDiaria' and type='P')
    drop procedure [dbo].[SP_MovimentacaoDiaria]
@@ -1281,7 +1281,7 @@ go
 
 create procedure [dbo].[SP_MovimentacaoDiaria] @dataDe as date, @dataAte as date as
    begin
-      -- empresa em execução
+      -- empresa em execuï¿½ï¿½o
       declare @emp varchar(2)
 
       set @emp = (select top 1 case right(EMPCGC,2) 
@@ -1317,7 +1317,7 @@ create procedure [dbo].[SP_MovimentacaoDiaria] @dataDe as date, @dataAte as date
        group by TBS059.NFEDATEFE,TBS0591.LESCOD,TBS0591.PROCOD
       ;
 
-      -- NF de entrada de devolução
+      -- NF de entrada de devoluï¿½ï¿½o
 
       if object_id('TempDB.dbo.##NFENTDEV') is not null
          begin
@@ -1339,7 +1339,7 @@ create procedure [dbo].[SP_MovimentacaoDiaria] @dataDe as date, @dataAte as date
        group by TBS059.NFEDATEFE,TBS0591.LESCOD,TBS0591.PROCOD
       ;
 
-      -- NF de saída canceladas
+      -- NF de saï¿½da canceladas
 
       if object_id('TempDB.dbo.##NFSAICAN') is not null
          begin
@@ -1371,7 +1371,7 @@ create procedure [dbo].[SP_MovimentacaoDiaria] @dataDe as date, @dataAte as date
 
       create table ##ECFCAN (data datetime,CodigoProduto varchar(20) collate database_default,LocalEstoque smallint,QTDE smallmoney);
 
-      -- se empresa igual a best bag ou tanby matriz ou taubaté
+      -- se empresa igual a best bag ou tanby matriz ou taubatï¿½
       if @emp = 'BB' or @emp = 'TM' or @emp = 'TT'
          begin
             declare @comando as char(500)
@@ -1384,7 +1384,7 @@ create procedure [dbo].[SP_MovimentacaoDiaria] @dataDe as date, @dataAte as date
          end
       ;
 
-      -- NF de devolução para fornecedor cancelada ou em aberto
+      -- NF de devoluï¿½ï¿½o para fornecedor cancelada ou em aberto
 
       if object_id('TempDB.dbo.##NFDEVCAN') is not null
          begin
@@ -1425,7 +1425,7 @@ create procedure [dbo].[SP_MovimentacaoDiaria] @dataDe as date, @dataAte as date
        group by convert(date,TBS037.MVIDATEFE),TBS037.MVILOCDES,TBS0371.PROCOD
       ;
 
-      -- manutenção dos saldos
+      -- manutenï¿½ï¿½o dos saldos
 
       if object_id('TempDB.dbo.##SALENT') is not null
          begin
@@ -1448,9 +1448,9 @@ create procedure [dbo].[SP_MovimentacaoDiaria] @dataDe as date, @dataAte as date
 
 
 
-      -- SAÍDAS
+      -- SAï¿½DAS
 
-      -- NF de saída
+      -- NF de saï¿½da
 
       if object_id('TempDB.dbo.##NFSAI') is not null
          begin
@@ -1481,7 +1481,7 @@ create procedure [dbo].[SP_MovimentacaoDiaria] @dataDe as date, @dataAte as date
 
       create table ##ECF (data datetime,CodigoProduto varchar(20) collate database_default,LocalEstoque smallint,QTDE smallmoney);
 
-      -- se empresa igual a best bag ou tanby matriz ou taubaté
+      -- se empresa igual a best bag ou tanby matriz ou taubatï¿½
       if @emp = 'BB' or @emp = 'TM' or @emp = 'TT'
          begin
             declare @comando2 as char(500)
@@ -1494,7 +1494,7 @@ create procedure [dbo].[SP_MovimentacaoDiaria] @dataDe as date, @dataAte as date
          end
       ;
 
-      -- NF de devolução para fornecedor
+      -- NF de devoluï¿½ï¿½o para fornecedor
 
       if object_id('TempDB.dbo.##NFDEV') is not null
          begin
@@ -1534,7 +1534,7 @@ create procedure [dbo].[SP_MovimentacaoDiaria] @dataDe as date, @dataAte as date
        group by convert(date,TBS037.MVIDATEFE),TBS037.MVILOCORI,TBS0371.PROCOD
       ;
 
-      -- manutenção dos saldos
+      -- manutenï¿½ï¿½o dos saldos
 
       if object_id('TempDB.dbo.##SALSAI') is not null
          begin
@@ -1553,16 +1553,16 @@ create procedure [dbo].[SP_MovimentacaoDiaria] @dataDe as date, @dataAte as date
        group by convert(date,TBS049.MDSLAN),TBS049.LESCOD,TBS049.PROCOD
       ;
 
-      -- fim SAÍDAS
+      -- fim SAï¿½DAS
 
-      -- fim da coleta temporária de dados
+      -- fim da coleta temporï¿½ria de dados
 
    end
 
 
 
 
--- procedure: popula a tabela de kardex diário das movimentações dos produtos
+-- procedure: popula a tabela de kardex diï¿½rio das movimentaï¿½ï¿½es dos produtos
 
 if exists(select name from sysobjects where name='SP_PopulaKardexDiario' and type='P')
    drop procedure [dbo].[SP_PopulaKardexDiario]
@@ -1807,31 +1807,31 @@ tab11 as (
 
 insert into TBS125
 select 0 empresa,                -- empresa do kardex
-       data,             -- data da movimentação
+       data,             -- data da movimentaï¿½ï¿½o
        0 empEstoque,                -- empresa do local de estoque
        LocalEstoque,     -- local do estoque
        0 empProduto,                -- empresa do produto
-       CodigoProduto,    -- código do produto
+       CodigoProduto,    -- cï¿½digo do produto
        -- entradas
        NFentrada,        -- nf de entrada
-       EntradaDevolucao, -- entrada de devolução
-       NFsaidaCan,       -- nf de saída cancelada
+       EntradaDevolucao, -- entrada de devoluï¿½ï¿½o
+       NFsaidaCan,       -- nf de saï¿½da cancelada
        ECFcan,           -- cupom fiscal cancelado
-       DEVcan,           -- cancelamento de nf de devolução de saída
+       DEVcan,           -- cancelamento de nf de devoluï¿½ï¿½o de saï¿½da
        MOVentrada,       -- movimento interno de entrada
-       SALentrada,       -- entrada via manutenção do saldo 
-       -- saídas
-       NFsaida,          -- nota fiscal de saída
+       SALentrada,       -- entrada via manutenï¿½ï¿½o do saldo 
+       -- saï¿½das
+       NFsaida,          -- nota fiscal de saï¿½da
        ECF,              -- cupom fiscal
-       NFdevolucao,      -- nf de saída de devolução
-       MOVsaida,         -- movimento interno de saída
-       SALsaida,         -- saída via manutenção do saldo
-       0 custoMedio,                -- custo médio de compra
+       NFdevolucao,      -- nf de saï¿½da de devoluï¿½ï¿½o
+       MOVsaida,         -- movimento interno de saï¿½da
+       SALsaida,         -- saï¿½da via manutenï¿½ï¿½o do saldo
+       0 custoMedio,                -- custo mï¿½dio de compra
        (select PROUM1QTD from TBS010 (nolock) where PROCOD=CodigoProduto) qtdeEmb, -- quantidade da embalagem da menor unidade de medida
 --       0 qtdEmb,
        (select PROUM1 from TBS010 (nolock) where PROCOD=CodigoProduto) uni,    -- menor unidade de medida do produto
 --       '' uni,
-       0 outras,                 -- outras entradas/saídas
+       0 outras,                 -- outras entradas/saï¿½das
 
        -- compras 
        --dbo.saldoTBS051(data, 'C', CodigoProduto) compras,
@@ -1870,7 +1870,7 @@ select 0 empresa,                -- empresa do kardex
        isnull((select top 1 #compra.qtde from #compra (nolock)
                 where #compra.codigo=tab11.CodigoProduto and #compra.estoque=9 and #compra.data <= tab11.data order by rank),0) compras,
 
-       -- pendência
+       -- pendï¿½ncia
        --dbo.saldoTBS051(data, 'P', CodigoProduto) pendencias,
 
        /*
@@ -1922,12 +1922,12 @@ select 0 empresa,                -- empresa do kardex
 
 end
 
--- fim: popula a tabela de kardex diário das movimentações dos produtos
+-- fim: popula a tabela de kardex diï¿½rio das movimentaï¿½ï¿½es dos produtos
 
 
 
 
--- função: saldo da tabela 51
+-- funï¿½ï¿½o: saldo da tabela 51
 
 if exists(select name from sysobjects where name='SP_saldoTBS051' and type='P')
    drop procedure [dbo].[SP_saldoTBS051]
@@ -2049,7 +2049,7 @@ declare cursor_kardex cursor for
 -- abre o cursor
 open cursor_kardex
 
--- le próxima linha
+-- le prï¿½xima linha
 fetch next from cursor_kardex into @emp, @data, @empEst, @estoque, @empPro, @produto
 
 if object_id('TempDB.dbo.#kardex') is not null
@@ -2075,12 +2075,12 @@ while @@fetch_status = 0
       
 --      update TBS125 set KESQTDCOM=@saldo where KESEMPCOD=@emp and KESDAT=@data and LESEMPCOD=@empEst and LESCOD=@estoque and KESPROEMP=@empPro and KESPROCOD=@produto;
 
-      -- atualiza pendências
+      -- atualiza pendï¿½ncias
       set @saldo = 0
 --      exec [dbo].[SP_saldoTBS051] @data, 'P', @produto, @saldo output
 --      update TBS125 set KESQTDCOM=@saldo where KESEMPCOD=@emp and KESDAT=@data and LESEMPCOD=@empEst and LESCOD=@estoque and KESPROEMP=@empPro and KESPROCOD=@produto;
 
-      -- le próxima linha
+      -- le prï¿½xima linha
       fetch next from cursor_kardex into @emp, @data, @empEst, @estoque, @empPro, @produto
    end
 
@@ -2095,7 +2095,7 @@ select * from #kardex
 -- fim: cursor
 
 
--- procedure: saldos iniciais após contagem
+-- procedure: saldos iniciais apï¿½s contagem
 
 if exists(select name from sysobjects where name='SP_SaldoInicialInventario' and type='P')
    drop procedure [dbo].[SP_SaldoInicialInventario]
@@ -2107,7 +2107,7 @@ create procedure [dbo].[SP_SaldoInicialInventario] @dataSaldo as date as
       -- saldo inicial da contagem
       -- 12/12/15 tanby matriz
       -- 11/12/15 tanby cd
-      -- 19/12/15 tanby taubaté - retaguarda/loja
+      -- 19/12/15 tanby taubatï¿½ - retaguarda/loja
       -- 19/12/15 papelyna
       -- 22/12/15 best bag ?
       -- 30/12/15 misaspel
@@ -2118,7 +2118,7 @@ create procedure [dbo].[SP_SaldoInicialInventario] @dataSaldo as date as
              0,             -- empresa do local de estoque
              LESCOD,        -- local de estoque
              0,             -- empresa do produto
-             KESPROCOD,     -- código do produto
+             KESPROCOD,     -- cï¿½digo do produto
              (select PROUM1 from TBS010 (nolock) where PROCOD=KESPROCOD collate database_default),    -- menor unidade de medida
              (select PROUM1QTD from TBS010 (nolock) where PROCOD=KESPROCOD collate database_default), -- quantidade da embalagem da menor unidade de medida
              sum(KESMOVENT-KESMOVSAI),
@@ -2130,11 +2130,11 @@ create procedure [dbo].[SP_SaldoInicialInventario] @dataSaldo as date as
 
    end
 
--- fim: saldos iniciais após contagem - atenção, somente rodar 1 vez
+-- fim: saldos iniciais apï¿½s contagem - atenï¿½ï¿½o, somente rodar 1 vez
 
 
 
--- procedure: saldo inicial nos demais meses após a contagem
+-- procedure: saldo inicial nos demais meses apï¿½s a contagem
 
 if exists(select name from sysobjects where name='SP_SaldoInicialMensal' and type='P')
    drop procedure [dbo].[SP_SaldoInicialMensal]
@@ -2143,17 +2143,17 @@ go
 create procedure [dbo].[SP_SaldoInicialMensal] @dataSaldoBase as date as
    begin
 
-      /* inclusão através da contabilização do saldo anterior e as movimentações de entradas/saídas
+      /* inclusï¿½o atravï¿½s da contabilizaï¿½ï¿½o do saldo anterior e as movimentaï¿½ï¿½es de entradas/saï¿½das
 
       declare @ultimoDiaMes as date, @dataProximoSaldoInicial as date, @movimentoDe as date, @movimentoAte as date
 
-      -- último dia do mês
+      -- ï¿½ltimo dia do mï¿½s
       set @ultimoDiaMes = convert(date,DATEADD(ms, -3, DATEADD(mm, DATEDIFF(mm, 0, @dataSaldoBase) + 1, 0)))
 
-      -- data do próximo saldo inicial = 
+      -- data do prï¿½ximo saldo inicial = 
       set @dataProximoSaldoInicial = DATEADD(day, 1, @ultimoDiaMes)
 
-      -- período das movimentações
+      -- perï¿½odo das movimentaï¿½ï¿½es
       set @movimentoDe  = @dataSaldoBase
       set @movimentoAte = @ultimoDiaMes
 
@@ -2163,10 +2163,10 @@ create procedure [dbo].[SP_SaldoInicialMensal] @dataSaldoBase as date as
              0,                          -- empresa do local de estoque
              LESCOD,                     -- local de estoque
              0,                          -- empresa do produto
-             KESPROCOD,                  -- código do produto
+             KESPROCOD,                  -- cï¿½digo do produto
              (select PROUM1 from TBS010 (nolock) where PROCOD = KESPROCOD collate database_default),    -- menor unidade de medida
              (select PROUM1QTD from TBS010 (nolock) where PROCOD = KESPROCOD collate database_default), -- quantidade da embalagem da menor unidade de medida
-             -- cálculo do saldo = saldo inicial + entradas - saídas
+             -- cï¿½lculo do saldo = saldo inicial + entradas - saï¿½das
              case when isnull((select 1 from TBS124 (nolock) where TBS124.SINDAT=@dataSaldoBase and TBS124.LESCOD=TBS125.LESCOD and TBS124.SINPROCOD=TBS125.KESPROCOD),0) > 0
                   then isnull((select SINQTD from TBS124 (nolock) where TBS124.SINDAT=@dataSaldoBase and TBS124.LESCOD=TBS125.LESCOD and TBS124.SINPROCOD=TBS125.KESPROCOD),0)
                   else isnull((select top 1 SINQTD
@@ -2174,8 +2174,8 @@ create procedure [dbo].[SP_SaldoInicialMensal] @dataSaldoBase as date as
                                 where TBS124.SINDAT < @dataSaldoBase and TBS124.LESCOD=TBS125.LESCOD and TBS124.SINPROCOD=TBS125.KESPROCOD
                                 order by TBS124.SINDAT desc),0) end                                                                                                -- saldo inicial
              + sum((KESNFENT + KESENTDEV + KESCANNFSAI + KESCANCUPFIS + KESCANNFDEV + KESMOVENT + KESSALENT + KESOUT)                                              -- entradas
-             -     (KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI)),                                                                                  -- saídas
-             0 -- custo da aquisição da mercadoria
+             -     (KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI)),                                                                                  -- saï¿½das
+             0 -- custo da aquisiï¿½ï¿½o da mercadoria
         from TBS125 (nolock)
        where KESDAT between @movimentoDe and @movimentoAte and
              isnull((select 1 from TBS124 (nolock)
@@ -2189,18 +2189,18 @@ create procedure [dbo].[SP_SaldoInicialMensal] @dataSaldoBase as date as
                  0,                          -- empresa do local de estoque
                  LESCOD,                     -- local de estoque
                  0,                          -- empresa do produto
-                 SINPROCOD,                  -- código do produto
+                 SINPROCOD,                  -- cï¿½digo do produto
                  (select PROUM1 from TBS010 (nolock) where PROCOD = SINPROCOD collate database_default),    -- menor unidade de medida
                  (select PROUM1QTD from TBS010 (nolock) where PROCOD = SINPROCOD collate database_default), -- quantidade da embalagem da menor unidade de medida
                  SINQTD,                     -- saldo inicial
-                 0 -- custo da aquisição da mercadoria
+                 0 -- custo da aquisiï¿½ï¿½o da mercadoria
             from TBS124 (nolock) A
            where SINDAT=@dataSaldoBase and
                  not exists(select '' from TBS124 (nolock) B
                              where B.SINEMPCOD=A.SINEMPCOD and B.SINDAT=A.SINDAT and B.LESEMPCOD=A.LESEMPCOD and B.LESCOD=A.LESCOD and B.SINEMPPRO=A.SINEMPPRO and B.SINPROCOD=A.SINPROCOD)
       */
 
-      -- inclusão do saldo inicial através do registro da TBS051
+      -- inclusï¿½o do saldo inicial atravï¿½s do registro da TBS051
 
       with tab as (
       select max(LMEREG) registro,
@@ -2219,11 +2219,11 @@ create procedure [dbo].[SP_SaldoInicialMensal] @dataSaldoBase as date as
              0,                          -- empresa do local de estoque
              estoque,                    -- local de estoque
              0,                          -- empresa do produto
-             produto,                    -- código do produto
+             produto,                    -- cï¿½digo do produto
              (select PROUM1 from TBS010 (nolock) where PROCOD=produto collate database_default),    -- menor unidade de medida
              (select PROUM1QTD from TBS010 (nolock) where PROCOD=produto collate database_default), -- quantidade da embalagem da menor unidade de medida
              saldo,
-             0, -- custo da aquisição da mercadoria
+             0, -- custo da aquisiï¿½ï¿½o da mercadoria
              convert(char(6), @dataSaldoBase, 112)
         from tab
        where isnull((select 1 from TBS124 (nolock)
@@ -2236,11 +2236,11 @@ create procedure [dbo].[SP_SaldoInicialMensal] @dataSaldoBase as date as
                  0,                          -- empresa do local de estoque
                  LESCOD,                     -- local de estoque
                  0,                          -- empresa do produto
-                 SINPROCOD,                  -- código do produto
+                 SINPROCOD,                  -- cï¿½digo do produto
                  (select PROUM1 from TBS010 (nolock) where PROCOD = SINPROCOD collate database_default),    -- menor unidade de medida
                  (select PROUM1QTD from TBS010 (nolock) where PROCOD = SINPROCOD collate database_default), -- quantidade da embalagem da menor unidade de medida
                  SINQTD,                     -- saldo inicial
-                 0, -- custo da aquisição da mercadoria
+                 0, -- custo da aquisiï¿½ï¿½o da mercadoria
                  convert(char(6), @dataSaldoBase, 112)
             from TBS124 (nolock) A
            where SINDAT < @dataSaldoBase and
@@ -2269,7 +2269,7 @@ select top 1 * from SALDOINICIAL with (nolock)
 
 select * from SALDOINICIAL with (nolock)
 
--- fim: saldo inicial nos demais meses após a contagem
+-- fim: saldo inicial nos demais meses apï¿½s a contagem
 
 
 -- CNPJ grupo
@@ -2288,7 +2288,7 @@ select * from SALDOINICIAL with (nolock)
 
 drop table CUSTOAQUISICAO
 
--- procedure: grava custo médio mensal
+-- procedure: grava custo mï¿½dio mensal
 
 if exists(select name from sysobjects where name='SP_CustoMedioAquisicao' and type='P')
    drop procedure [dbo].[SP_CustoMedioAquisicao]
@@ -2310,7 +2310,7 @@ create procedure [dbo].[SP_CustoMedioAquisicao] @dataDe as date, @dataAte as dat
                                end
                     from TBS023 (nolock))
 
-      -- criação da tabela de custos, senão existir
+      -- criaï¿½ï¿½o da tabela de custos, senï¿½o existir
       if object_id('CUSTOAQUISICAO') is null
          create table CUSTOAQUISICAO
             (
@@ -2332,13 +2332,13 @@ create procedure [dbo].[SP_CustoMedioAquisicao] @dataDe as date, @dataAte as dat
                 mes=month(TBS059.NFEDATEFE),
                 PROCOD,
 
-                -- qtde compra na menor unidade * preço unitário (sem alguns impostos)
-                sum(NFEQTD * NFEQTDEMB * dbo.NFECUSAQU(TBS0591.NFEEMPCOD,TBS0591.NFETIP,TBS0591.NFENUM,TBS0591.NFECOD,TBS0591.SEREMPCOD,TBS0591.SERCOD,NFEITE)) -- valor total do mês
+                -- qtde compra na menor unidade * preï¿½o unitï¿½rio (sem alguns impostos)
+                sum(NFEQTD * NFEQTDEMB * dbo.NFECUSAQU(TBS0591.NFEEMPCOD,TBS0591.NFETIP,TBS0591.NFENUM,TBS0591.NFECOD,TBS0591.SEREMPCOD,TBS0591.SERCOD,NFEITE)) -- valor total do mï¿½s
                 /
-                sum(NFEQTD * NFEQTDEMB) as custo, -- qtde total do mês
+                sum(NFEQTD * NFEQTDEMB) as custo, -- qtde total do mï¿½s
 
                 sum(NFEQTD * NFEQTDEMB * dbo.NFECUSAQU(TBS0591.NFEEMPCOD,TBS0591.NFETIP,TBS0591.NFENUM,TBS0591.NFECOD,TBS0591.SEREMPCOD,TBS0591.SERCOD,NFEITE)) as valor,
-                sum(NFEQTD * NFEQTDEMB) as qtde -- qtde total do mês
+                sum(NFEQTD * NFEQTDEMB) as qtde -- qtde total do mï¿½s
 
 --                avg(dbo.NFECUSAQU(TBS0591.NFEEMPCOD,TBS0591.NFETIP,TBS0591.NFENUM,TBS0591.NFECOD,TBS0591.SEREMPCOD,TBS0591.SERCOD,NFEITE)) as custo
 
@@ -2353,7 +2353,7 @@ create procedure [dbo].[SP_CustoMedioAquisicao] @dataDe as date, @dataAte as dat
                 --NFECFOP in('1.102','1.403','1.407','1.556','2.102','2.403','2.407','2.556')
                 --right(NFECFOP,3) in('102','152','403','409','121','202','411')
                 right(NFECFOP,3) in('102','403','121','202','411')
---                and right(NFECFOP,3) in('202','411') -- devoluções
+--                and right(NFECFOP,3) in('202','411') -- devoluï¿½ï¿½es
 --                and TBS059.NFENUM<>263505
           group by year(TBS059.NFEDATEFE),month(TBS059.NFEDATEFE),PROCOD
    end
@@ -2395,37 +2395,37 @@ create procedure [dbo].[SP_CriaLinkServidores] as
       declare @emp varchar(2)
 
       select * from master..sysservers where srvname='BA'
-      -- se link para servidor remoto não foi encontrado
+      -- se link para servidor remoto nï¿½o foi encontrado
       if @@rowcount = 0
          exec master.dbo.sp_addlinkedserver @server = N'BA', @srvproduct=N'Best Arts', @provider=N'SQLNCLI10', @datasrc=N'192.168.7.5'
 
       select * from master..sysservers where srvname='BB'
-      -- se link para servidor remoto não foi encontrado
+      -- se link para servidor remoto nï¿½o foi encontrado
       if @@rowcount = 0
          exec master.dbo.sp_addlinkedserver @server = N'BB', @srvproduct=N'Best Bag', @provider=N'SQLNCLI10', @datasrc=N'192.168.0.3'
  
       select * from master..sysservers where srvname='CD'
-      -- se link para servidor remoto não foi encontrado
+      -- se link para servidor remoto nï¿½o foi encontrado
       if @@rowcount = 0
          exec master.dbo.sp_addlinkedserver @server = N'CD', @srvproduct=N'Tanby CD', @provider=N'SQLNCLI10', @datasrc=N'192.168.10.7'
 
       select * from master..sysservers where srvname='MI'
-      -- se link para servidor remoto não foi encontrado
+      -- se link para servidor remoto nï¿½o foi encontrado
       if @@rowcount = 0
          exec master.dbo.sp_addlinkedserver @server = N'MI', @srvproduct=N'Misaspel', @provider=N'SQLNCLI10', @datasrc=N'192.168.0.2'
 
       select * from master..sysservers where srvname='PP'
-      -- se link para servidor remoto não foi encontrado
+      -- se link para servidor remoto nï¿½o foi encontrado
       if @@rowcount = 0
          exec master.dbo.sp_addlinkedserver @server = N'PP', @srvproduct=N'Papelyna', @provider=N'SQLNCLI10', @datasrc=N'192.168.0.7'
 
       select * from master..sysservers where srvname='TM'
-      -- se link para servidor remoto não foi encontrado
+      -- se link para servidor remoto nï¿½o foi encontrado
       if @@rowcount = 0
          exec master.dbo.sp_addlinkedserver @server = N'TM', @srvproduct=N'Tanby matriz', @provider=N'SQLNCLI10', @datasrc=N'192.168.1.205'
 
       select * from master..sysservers where srvname='TT'
-      -- se link para servidor remoto não foi encontrado
+      -- se link para servidor remoto nï¿½o foi encontrado
       if @@rowcount = 0
          exec master.dbo.sp_addlinkedserver @server = N'TT', @srvproduct=N'Tanby Taubate', @provider=N'SQLNCLI10', @datasrc=N'192.168.3.205'
    end
@@ -2464,7 +2464,7 @@ select *
 
 begin tran
 
--- busca preços de compras em outra unidades
+-- busca preï¿½os de compras em outra unidades
 
 select * from sysservers
 
@@ -2492,7 +2492,7 @@ commit tran
 
 
 
--- mescla custo médio mensal de todas as unidades do grupo
+-- mescla custo mï¿½dio mensal de todas as unidades do grupo
 
 if exists(select name from sysobjects where name='SP_MesclaCustoMedioAquisicao' and type='P')
    drop procedure [dbo].[SP_MesclaCustoMedioAquisicao]
@@ -2521,13 +2521,13 @@ create procedure [dbo].[SP_MesclaCustoMedioAquisicao] @dataDe as date, @dataAte 
             using BA.SIBD.dbo.CUSTOAQUISICAO as origem
             on destino.empresa = origem.empresa collate database_default and destino.ano = origem.ano and destino.mes = origem.mes and destino.produto = origem.produto collate database_default
 
-            -- se já existir o registro
+            -- se jï¿½ existir o registro
 
             when matched and @atualizar='S' then
                -- se for para atualizar
                   update set destino.custo = origem.custo
 
-            -- se registro não encontrado
+            -- se registro nï¿½o encontrado
             when not matched then 
                insert (empresa,ano,mes,produto,custo) values (origem.empresa,origem.ano,origem.mes,origem.produto,origem.custo);
          end
@@ -2539,12 +2539,12 @@ create procedure [dbo].[SP_MesclaCustoMedioAquisicao] @dataDe as date, @dataAte 
             using BB.SIBD2.dbo.CUSTOAQUISICAO as origem
             on destino.empresa = origem.empresa collate database_default and destino.ano = origem.ano and destino.mes = origem.mes and destino.produto = origem.produto collate database_default
 
-            -- se já existir o registro
+            -- se jï¿½ existir o registro
             when matched and @atualizar='S' then
                -- se for para atualizar
                   update set destino.custo = origem.custo
 
-            -- se registro não encontrado
+            -- se registro nï¿½o encontrado
             when not matched then 
                insert (empresa,ano,mes,produto,custo) values (origem.empresa,origem.ano,origem.mes,origem.produto,origem.custo);
          end
@@ -2555,12 +2555,12 @@ create procedure [dbo].[SP_MesclaCustoMedioAquisicao] @dataDe as date, @dataAte 
             using CD.SIBD.dbo.CUSTOAQUISICAO as origem
             on destino.empresa = origem.empresa collate database_default and destino.ano = origem.ano and destino.mes = origem.mes and destino.produto = origem.produto collate database_default
 
-            -- se já existir o registro
+            -- se jï¿½ existir o registro
             when matched and @atualizar='S' then
                -- se for para atualizar
                   update set destino.custo = origem.custo
 
-            -- se registro não encontrado
+            -- se registro nï¿½o encontrado
             when not matched then 
                insert (empresa,ano,mes,produto,custo) values (origem.empresa,origem.ano,origem.mes,origem.produto,origem.custo);
          end
@@ -2571,12 +2571,12 @@ create procedure [dbo].[SP_MesclaCustoMedioAquisicao] @dataDe as date, @dataAte 
             using MI.SIBD.dbo.CUSTOAQUISICAO as origem
             on destino.empresa = origem.empresa collate database_default and destino.ano = origem.ano and destino.mes = origem.mes and destino.produto = origem.produto collate database_default
 
-            -- se já existir o registro
+            -- se jï¿½ existir o registro
             when matched and @atualizar='S' then
                -- se for para atualizar
                   update set destino.custo = origem.custo
 
-            -- se registro não encontrado
+            -- se registro nï¿½o encontrado
             when not matched then 
                insert (empresa,ano,mes,produto,custo) values (origem.empresa,origem.ano,origem.mes,origem.produto,origem.custo);
          end
@@ -2587,12 +2587,12 @@ create procedure [dbo].[SP_MesclaCustoMedioAquisicao] @dataDe as date, @dataAte 
             using PP.SIBD.dbo.CUSTOAQUISICAO as origem
             on destino.empresa = origem.empresa collate database_default and destino.ano = origem.ano and destino.mes = origem.mes and destino.produto = origem.produto collate database_default
 
-            -- se já existir o registro
+            -- se jï¿½ existir o registro
             when matched and @atualizar='S' then
                -- se for para atualizar
                   update set destino.custo = origem.custo
 
-            -- se registro não encontrado
+            -- se registro nï¿½o encontrado
             when not matched then 
                insert (empresa,ano,mes,produto,custo) values (origem.empresa,origem.ano,origem.mes,origem.produto,origem.custo);
          end
@@ -2603,12 +2603,12 @@ create procedure [dbo].[SP_MesclaCustoMedioAquisicao] @dataDe as date, @dataAte 
             using TM.SIBD.dbo.CUSTOAQUISICAO as origem
             on destino.empresa = origem.empresa collate database_default and destino.ano = origem.ano and destino.mes = origem.mes and destino.produto = origem.produto collate database_default
 
-            -- se já existir o registro
+            -- se jï¿½ existir o registro
             when matched and @atualizar='S' then
                -- se for para atualizar
                   update set destino.custo = origem.custo
 
-            -- se registro não encontrado
+            -- se registro nï¿½o encontrado
             when not matched then 
                insert (empresa,ano,mes,produto,custo) values (origem.empresa,origem.ano,origem.mes,origem.produto,origem.custo);
          end
@@ -2619,24 +2619,24 @@ create procedure [dbo].[SP_MesclaCustoMedioAquisicao] @dataDe as date, @dataAte 
             using TT.SIBD.dbo.CUSTOAQUISICAO as origem
             on destino.empresa = origem.empresa collate database_default and destino.ano = origem.ano and destino.mes = origem.mes and destino.produto = origem.produto collate database_default
 
-            -- se já existir o registro
+            -- se jï¿½ existir o registro
             when matched and @atualizar='S' then
                -- se for para atualizar
                   update set destino.custo = origem.custo
 
-            -- se registro não encontrado
+            -- se registro nï¿½o encontrado
             when not matched then 
                insert (empresa,ano,mes,produto,custo) values (origem.empresa,origem.ano,origem.mes,origem.produto,origem.custo);
          end
 
-      -- custo médio entre as unidades tanby
+      -- custo mï¿½dio entre as unidades tanby
       --insert into CUSTOAQUISICAO (empresa,ano,mes,produto,custo) select 'MT',ano,mes,produto,avg(custo) from CUSTOAQUISICAO (nolock) where empresa in('TM','CD','TT','BA') group by ano,mes,produto order by produto,mes
       insert into CUSTOAQUISICAO (empresa,ano,mes,produto,custo) select 'MT',ano,mes,produto,avg(custo) from CUSTOAQUISICAO (nolock) where empresa in('TM','CD','TT') group by ano,mes,produto order by produto,mes
 
-      -- custo médio entre as unidades são paulo
+      -- custo mï¿½dio entre as unidades sï¿½o paulo
       insert into CUSTOAQUISICAO (empresa,ano,mes,produto,custo) select 'MS',ano,mes,produto,avg(custo) from CUSTOAQUISICAO (nolock) where empresa in('BB','MI','PP') group by ano,mes,produto order by produto,mes
 
-      -- custo médio entre todas as unidades
+      -- custo mï¿½dio entre todas as unidades
       insert into CUSTOAQUISICAO (empresa,ano,mes,produto,custo) select 'MG',ano,mes,produto,avg(custo) from CUSTOAQUISICAO (nolock) group by ano,mes,produto order by produto,mes
    end
 
@@ -2675,7 +2675,7 @@ create procedure [dbo].[SP_GravaCustoAquisicao] @dataDe as date, @dataAte as dat
       -- unidades tanby
       --if @emp in('BA','CD','TM','TT')
       --if @emp in('CD','TM','TT')
-         -- custo da aquisição
+         -- custo da aquisiï¿½ï¿½o
 
 --str(year(SINDAT),4)+right('00'+Ltrim(str(month(SINDAT),2)),2) <= str(year(KESDAT),4)+right('00'+Ltrim(str(month(KESDAT),2)),2)
 
@@ -2703,17 +2703,17 @@ create procedure [dbo].[SP_GravaCustoAquisicao] @dataDe as date, @dataAte as dat
        order by ano desc, mes desc, produto
 */
 
-      -- zera custos antes da atualização
+      -- zera custos antes da atualizaï¿½ï¿½o
       update TBS124 set SINCUSAQU=0 where SINDAT=@dataDe
 
 
 --select * from #custos
 
-      -- atualiza custos da própria empresa
+      -- atualiza custos da prï¿½pria empresa
       update TBS124 set SINCUSAQU=(select top 1 custo from #custos (nolock)
                                     where empresa=@emp and ano <= year(SINDAT) and mes <= month(SINDAT) and produto=SINPROCOD order by ano desc, mes desc, produto)
 
-      -- atualiza custos conforme média geral
+      -- atualiza custos conforme mï¿½dia geral
       update TBS124 set SINCUSAQU=(select top 1 custo from #custos
                                     where empresa='MG' and ano <= year(SINDAT) and mes <= month(SINDAT) and produto=SINPROCOD order by ano desc, mes desc, produto)
        where SINCUSAQU=0
@@ -2727,7 +2727,7 @@ create procedure [dbo].[SP_GravaCustoAquisicao] @dataDe as date, @dataAte as dat
                then (select top 1 custo from #custos (nolock)
                       where empresa=@emp and ano <= year(SINDAT) and mes <= month(SINDAT) and produto=SINPROCOD order by ano desc, mes desc, produto)
 
-            -- média geral
+            -- mï¿½dia geral
             when (select top 1 1 from #custos
                    where empresa='MG' and ano <= year(SINDAT) and mes <= month(SINDAT) and produto=SINPROCOD order by ano desc, mes desc, produto) > 0
                then (select top 1 custo from #custos
@@ -2740,16 +2740,16 @@ create procedure [dbo].[SP_GravaCustoAquisicao] @dataDe as date, @dataAte as dat
 
 /*
       if @emp='CD'
-         -- custo da aquisição
+         -- custo da aquisiï¿½ï¿½o
          update TBS124 set SINCUSAQU=(
             case
-               -- tanby depósito
+               -- tanby depï¿½sito
                when (select top 1 1 from CUSTOAQUISICAO (nolock)
                       where empresa='CD' and ano <= year(SINDAT) and mes <= month(SINDAT) and produto=SINPROCOD order by ano desc, mes desc, produto) > 0
                   then (select top 1 custo from CUSTOAQUISICAO (nolock)
                          where empresa='CD' and ano <= year(SINDAT) and mes <= month(SINDAT) and produto=SINPROCOD order by ano desc, mes desc, produto)
 
-               -- média geral
+               -- mï¿½dia geral
                when (select top 1 1 from CUSTOAQUISICAO (nolock)
                       where empresa='MG' and ano <= year(SINDAT) and mes <= month(SINDAT) and produto=SINPROCOD order by ano desc, mes desc, produto) > 0
                   then (select top 1 custo from CUSTOAQUISICAO (nolock)
@@ -2770,7 +2770,7 @@ create procedure [dbo].[SP_GravaCustoAquisicao] @dataDe as date, @dataAte as dat
              where empresa in('TM','MG') and custo > 0
              order by ano desc, mes desc, produto
 
-            -- custo da aquisição
+            -- custo da aquisiï¿½ï¿½o
             update TBS124 set SINCUSAQU=(select top 1 case when cuslocal > 0 then cuslocal else cusgeral end 
                                            from #custo (nolock)
                                           where produto=SINPROCOD) -- order by ano desc, mes desc, produto)
@@ -2778,16 +2778,16 @@ create procedure [dbo].[SP_GravaCustoAquisicao] @dataDe as date, @dataAte as dat
          end
 
       if @emp='TT'
-         -- custo da aquisição
+         -- custo da aquisiï¿½ï¿½o
          update TBS124 set SINCUSAQU=(
             case
-               -- tanby taubaté
+               -- tanby taubatï¿½
                when (select top 1 1 from CUSTOAQUISICAO (nolock)
                       where empresa='TT' and ano <= year(SINDAT) and mes <= month(SINDAT) and produto=SINPROCOD order by ano desc, mes desc, produto) > 0
                   then (select top 1 custo from CUSTOAQUISICAO (nolock)
                          where empresa='TT' and ano <= year(SINDAT) and mes <= month(SINDAT) and produto=SINPROCOD order by ano desc, mes desc, produto)
 
-               -- média geral
+               -- mï¿½dia geral
                when (select top 1 1 from CUSTOAQUISICAO (nolock)
                       where empresa='MG' and ano <= year(SINDAT) and mes <= month(SINDAT) and produto=SINPROCOD order by ano desc, mes desc, produto) > 0
                   then (select top 1 custo from CUSTOAQUISICAO (nolock)
@@ -2798,10 +2798,10 @@ create procedure [dbo].[SP_GravaCustoAquisicao] @dataDe as date, @dataAte as dat
 
            from TBS124 (nolock) where SINDAT between @dataDe and @dataAte
 
-      -- unidades são paulo
+      -- unidades sï¿½o paulo
       --if @emp in('BB','MI','PP')
       if @emp='BB'
-         -- custo da aquisição
+         -- custo da aquisiï¿½ï¿½o
          update TBS124 set SINCUSAQU=(
             case
                -- best bag
@@ -2810,7 +2810,7 @@ create procedure [dbo].[SP_GravaCustoAquisicao] @dataDe as date, @dataAte as dat
                   then (select top 1 custo from #custos (nolock)
                          where empresa='BB' and ano <= year(SINDAT) and mes <= month(SINDAT) and produto=SINPROCOD order by ano desc, mes desc, produto)
 
-               -- média geral
+               -- mï¿½dia geral
                when (select top 1 1 from #custos
                       where empresa='MG' and ano <= year(SINDAT) and mes <= month(SINDAT) and produto=SINPROCOD order by ano desc, mes desc, produto) > 0
                   then (select top 1 custo from #custos
@@ -2822,7 +2822,7 @@ create procedure [dbo].[SP_GravaCustoAquisicao] @dataDe as date, @dataAte as dat
            from TBS124 (nolock) where SINDAT between @dataDe and @dataAte
 
       if @emp='MI'
-         -- custo da aquisição
+         -- custo da aquisiï¿½ï¿½o
          update TBS124 set SINCUSAQU=(
             case
                -- misaspel
@@ -2831,7 +2831,7 @@ create procedure [dbo].[SP_GravaCustoAquisicao] @dataDe as date, @dataAte as dat
                   then (select top 1 custo from CUSTOAQUISICAO (nolock)
                          where empresa='MI' and ano <= year(SINDAT) and mes <= month(SINDAT) and produto=SINPROCOD order by ano desc, mes desc, produto)
 
-               -- média geral
+               -- mï¿½dia geral
                when (select top 1 1 from CUSTOAQUISICAO (nolock)
                       where empresa='MG' and ano <= year(SINDAT) and mes <= month(SINDAT) and produto=SINPROCOD order by ano desc, mes desc, produto) > 0
                   then (select top 1 custo from CUSTOAQUISICAO (nolock)
@@ -2843,7 +2843,7 @@ create procedure [dbo].[SP_GravaCustoAquisicao] @dataDe as date, @dataAte as dat
            from TBS124 (nolock) where SINDAT between @dataDe and @dataAte
 
       if @emp='PP'
-         -- custo da aquisição
+         -- custo da aquisiï¿½ï¿½o
          update TBS124 set SINCUSAQU=(
             case
                -- papelyna
@@ -2852,7 +2852,7 @@ create procedure [dbo].[SP_GravaCustoAquisicao] @dataDe as date, @dataAte as dat
                   then (select top 1 custo from CUSTOAQUISICAO (nolock)
                          where empresa='PP' and ano <= year(SINDAT) and mes <= month(SINDAT) and produto=SINPROCOD order by ano desc, mes desc, produto)
 
-               -- média geral
+               -- mï¿½dia geral
                when (select top 1 1 from CUSTOAQUISICAO (nolock)
                       where empresa='MG' and ano <= year(SINDAT) and mes <= month(SINDAT) and produto=SINPROCOD order by ano desc, mes desc, produto) > 0
                   then (select top 1 custo from CUSTOAQUISICAO (nolock)
@@ -2866,13 +2866,13 @@ create procedure [dbo].[SP_GravaCustoAquisicao] @dataDe as date, @dataAte as dat
    end
 
 
--- custo médio da empresa
+-- custo mï¿½dio da empresa
 exec [dbo].[SP_CustoMedioAquisicao] '20180801', '20180831'
 
--- mescla custo médio das empresas
+-- mescla custo mï¿½dio das empresas
 exec [dbo].[SP_MesclaCustoMedioAquisicao] '20180601', '20180831', 'S'
 
--- grava custo da aquisição na tabela de saldos iniciais
+-- grava custo da aquisiï¿½ï¿½o na tabela de saldos iniciais
 exec [dbo].[SP_GravaCustoAquisicao] '20180501', '20180831'
 
 
@@ -2952,7 +2952,7 @@ select 0
   from SALDODIARIO with (nolock)
  where ESTDATSAL='20161231'
 
--- inventário 04/03/17 - retaguarda e loja ND
+-- inventï¿½rio 04/03/17 - retaguarda e loja ND
 
 select * into TBS124BKP from TBS124 (nolock)
 
@@ -2975,7 +2975,7 @@ insert into TBS125 (KESDAT,LESCOD,KESPROCOD) select '20170304',1,produtoCodigo f
 
 --update TBS125 set KESMOVENT=0 where LESCOD=1
 
--- grava as quantidades do inventário
+-- grava as quantidades do inventï¿½rio
 
 update TBS125 set KESMOVENT=isnull((select sum(produtoQtde) from proInvRet (nolock) where produtoCodigo=KESPROCOD group by produtoCodigo),0)
   from TBS125 (nolock) inner join proInvRet (nolock) on produtoCodigo=KESPROCOD
@@ -2989,7 +2989,7 @@ insert into TBS125 (KESDAT,LESCOD,KESPROCOD) select '20170304',2,produtoCodigo f
 
 --update TBS125 set KESMOVENT=0 where LESCOD=2
 
--- grava as quantidades do inventário
+-- grava as quantidades do inventï¿½rio
 
 update TBS125 set KESMOVENT=isnull((select sum(produtoQtde) from proInvLoj (nolock) where produtoCodigo=KESPROCOD group by produtoCodigo),0)
   from TBS125 (nolock) inner join proInvLoj (nolock) on produtoCodigo=KESPROCOD 
@@ -3033,10 +3033,10 @@ select (select top 1 SINDAT
                           order by TBS124.SINDAT desc),0) as saldoInicial,
        @dataSaldo as dataSaldo,    -- data do saldo inicial
        LESCOD as estoque,        -- local de estoque
-       KESPROCOD as produto,     -- código do produto
+       KESPROCOD as produto,     -- cï¿½digo do produto
        (select PROUM1 from TBS010 (nolock) where PROCOD=KESPROCOD collate database_default) as unidade,    -- menor unidade de medida
        (select PROUM1QTD from TBS010 (nolock) where PROCOD=KESPROCOD collate database_default) as embalagem, -- quantidade da embalagem da menor unidade de medida
-       -- cálculo do saldo = saldo inicial + entradas - saídas
+       -- cï¿½lculo do saldo = saldo inicial + entradas - saï¿½das
        case when isnull((select SINQTD from TBS124 (nolock) where TBS124.SINDAT=@dataSaldo and TBS124.LESCOD=TBS125.LESCOD and TBS124.SINPROCOD=TBS125.KESPROCOD),0) > 0
                then isnull((select SINQTD from TBS124 (nolock) where TBS124.SINDAT=@dataSaldo and TBS124.LESCOD=TBS125.LESCOD and TBS124.SINPROCOD=TBS125.KESPROCOD),0)
             else isnull((select top 1 SINQTD
@@ -3045,7 +3045,7 @@ select (select top 1 SINDAT
                           order by TBS124.SINDAT desc),0)
        end                                                                                                -- saldo atual
        + sum((KESNFENT + KESENTDEV + KESCANNFSAI + KESCANCUPFIS + KESCANNFDEV + KESMOVENT + KESSALENT)                                                       -- entradas
-       -     (KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI)) as saldo                                                                                  -- saídas
+       -     (KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI)) as saldo                                                                                  -- saï¿½das
 
   into #est
   from TBS125 (nolock)
@@ -3101,7 +3101,7 @@ select KESDAT from TBS125 (nolock) group by KESDAT order by KESDAT
 
 
 
--- inventário 18/02/17 - estoque 1
+-- inventï¿½rio 18/02/17 - estoque 1
 
 select * into TBS124BKP from TBS124 (nolock)
 
@@ -3123,7 +3123,7 @@ select * from inventCD
 
 insert into TBS125 (KESDAT,LESCOD,KESPROCOD) select '20170218',1,codigo from inventCD (nolock) group by codigo
 
--- grava as quantidades do inventário
+-- grava as quantidades do inventï¿½rio
 
 update TBS125 set KESMOVENT=isnull((select sum(saldoAtual) from inventCD (nolock) where codigo=KESPROCOD group by codigo),0)
   from TBS125 (nolock) inner join inventCD (nolock) on codigo=KESPROCOD
@@ -3136,7 +3136,7 @@ exec [dbo].[SP_MovimentacaoDiaria] '20170601', '20170630'
 exec [dbo].[SP_PopulaKardexDiario]
 
 
--- inventário 25/03/17 - retaguarda e loja taubaté
+-- inventï¿½rio 25/03/17 - retaguarda e loja taubatï¿½
 
 select max(KESDAT) from TBS125
 
@@ -3167,7 +3167,7 @@ insert into TBS125 (KESDAT,LESCOD,KESPROCOD) select '20170325',1,produtoCodigo f
 
 --update TBS125 set KESMOVENT=0 where LESCOD=1
 
--- grava as quantidades do inventário
+-- grava as quantidades do inventï¿½rio
 
 update TBS125 set KESMOVENT=isnull((select sum(produtoQtde) from proInvRet2 (nolock) where produtoCodigo=KESPROCOD group by produtoCodigo),0)
   from TBS125 (nolock) inner join proInvRet2 (nolock) on produtoCodigo=KESPROCOD
@@ -3181,7 +3181,7 @@ insert into TBS125 (KESDAT,LESCOD,KESPROCOD) select '20170325',2,produtoCodigo f
 
 --update TBS125 set KESMOVENT=0 where LESCOD=2
 
--- grava as quantidades do inventário
+-- grava as quantidades do inventï¿½rio
 
 update TBS125 set KESMOVENT=isnull((select sum(produtoQtde) from proInvLoj2 (nolock) where produtoCodigo=KESPROCOD group by produtoCodigo),0)
   from TBS125 (nolock) inner join proInvLoj2 (nolock) on produtoCodigo=KESPROCOD 
@@ -3194,10 +3194,10 @@ delete TBS125 where KESDAT='20170327'
 exec [dbo].[SP_SaldoInicialInventario] '20170325'
 
 
--- inventários
+-- inventï¿½rios
 --    cd	18/02/17
 --    matriz	04/03/17
---    taubaté	25/03/17
+--    taubatï¿½	25/03/17
 
 --    misaspel	29/04/17
 --    papelyna	29/04/17
@@ -3263,23 +3263,23 @@ select * from TBS124
 
 select * from TBS125 (nolock) where KESDAT between '20170601' and '20170630' and KESPROCOD='1640054' and LESCOD=1
 
--- regressão do saldo do estoque
+-- regressï¿½o do saldo do estoque
 
 select * from TBS124 (nolock) where SINDAT='20170701' and SINPROCOD='1640054'
 
 select * from SALDODIARIO (nolock) where ESTDATSAL='20170701' and PROCOD='1640054'
 
--- saldo inicial nos demais meses após a contagem
+-- saldo inicial nos demais meses apï¿½s a contagem
 
 declare @dataSaldo as date, @dataRegistro as date, @dataDe as date, @dataAte as date
 
 -- data do saldo inicial
 set @dataSaldo='20170501'
 
--- data do registro do próximo saldo inicial
+-- data do registro do prï¿½ximo saldo inicial
 set @dataRegistro='20161231'
 
--- período de contabilização das entradas e saídas
+-- perï¿½odo de contabilizaï¿½ï¿½o das entradas e saï¿½das
 set @dataDe  = '20170101'
 set @dataAte = '20170506'
 
@@ -3289,19 +3289,19 @@ select 0,             -- empresa da tabela de saldos iniciais
        0,             -- empresa do local de estoque
        LESCOD,        -- local de estoque
        0,             -- empresa do produto
-       KESPROCOD,     -- código do produto
+       KESPROCOD,     -- cï¿½digo do produto
        (select PROUM1 from TBS010 (nolock) where PROCOD=KESPROCOD collate database_default),    -- menor unidade de medida
        (select PROUM1QTD from TBS010 (nolock) where PROCOD=KESPROCOD collate database_default), -- quantidade da embalagem da menor unidade de medida
-       -- cálculo do saldo = saldo inicial + entradas - saídas
+       -- cï¿½lculo do saldo = saldo inicial + entradas - saï¿½das
        case when isnull((select 1 from TBS124 (nolock) where TBS124.SINDAT=@dataSaldo and TBS124.LESCOD=TBS125.LESCOD and TBS124.SINPROCOD=TBS125.KESPROCOD collate database_default),0) > 0
             then isnull((select SINQTD from TBS124 (nolock) where TBS124.SINDAT=@dataSaldo and TBS124.LESCOD=TBS125.LESCOD and TBS124.SINPROCOD=TBS125.KESPROCOD collate database_default),0)
             else 0
        end                                                                                                -- saldo inicial
 --       + sum((KESNFENT + KESENTDEV + KESCANNFSAI + KESCANCUPFIS + KESCANNFDEV + KESMOVENT + KESSALENT + KESOUT)                                              -- entradas
---       -     (KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI)),                                                                                  -- saídas
+--       -     (KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI)),                                                                                  -- saï¿½das
        + sum(-(KESNFENT + KESENTDEV + KESCANNFSAI + KESCANCUPFIS + KESCANNFDEV + KESMOVENT + KESSALENT + KESOUT)                                              -- entradas
        +      (KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI)),
-       0 -- custo da aquisição da mercadoria
+       0 -- custo da aquisiï¿½ï¿½o da mercadoria
   from TBS125 (nolock)
  where KESDAT between @dataDe and @dataAte
  group by LESCOD,KESPROCOD
@@ -3368,7 +3368,7 @@ insert into TBS124 select 0,'20170501',0,LMELOCEST,0,PROCOD,(select PROUM1 from 
  where LMEROT='SQL' and LMEDESROT='ENTRADA INVENTARIO' and LMEACA='E' and LMEDATHOR='20170507' and LMEUSU='DESENV' and LMEMOD='NENHUM'
 
 
--- comparações
+-- comparaï¿½ï¿½es
 
 select * from TBS125 (nolock) where KESDAT between '20170401' and '20170630' and LESCOD=1 and KESPROCOD='1640054' order by KESDAT
 
@@ -3676,7 +3676,7 @@ select *,
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='PP' and mes=1 and produto=codigo),0) as 'Papelyna',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='CD' and mes=1 and produto=codigo),0) as 'Tanby CD',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TM' and mes=1 and produto=codigo),0) as 'Tanby matriz',
-       isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TT' and mes=1 and produto=codigo),0) as 'Tanby Taubaté',
+       isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TT' and mes=1 and produto=codigo),0) as 'Tanby Taubatï¿½',
        'fevereiro',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='BA' and mes=2 and produto=codigo),0) as 'Best Arts',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='BB' and mes=2 and produto=codigo),0) as 'Best Bag',
@@ -3684,15 +3684,15 @@ select *,
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='PP' and mes=2 and produto=codigo),0) as 'Papelyna',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='CD' and mes=2 and produto=codigo),0) as 'Tanby CD',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TM' and mes=2 and produto=codigo),0) as 'Tanby matriz',
-       isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TT' and mes=2 and produto=codigo),0) as 'Tanby Taubaté',
-       'março',
+       isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TT' and mes=2 and produto=codigo),0) as 'Tanby Taubatï¿½',
+       'marï¿½o',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='BA' and mes=3 and produto=codigo),0) as 'Best Arts',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='BB' and mes=3 and produto=codigo),0) as 'Best Bag',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='MI' and mes=3 and produto=codigo),0) as 'Misaspel',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='PP' and mes=3 and produto=codigo),0) as 'Papelyna',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='CD' and mes=3 and produto=codigo),0) as 'Tanby CD',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TM' and mes=3 and produto=codigo),0) as 'Tanby matriz',
-       isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TT' and mes=3 and produto=codigo),0) as 'Tanby Taubaté',
+       isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TT' and mes=3 and produto=codigo),0) as 'Tanby Taubatï¿½',
        'abril',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='BA' and mes=4 and produto=codigo),0) as 'Best Arts',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='BB' and mes=4 and produto=codigo),0) as 'Best Bag',
@@ -3700,7 +3700,7 @@ select *,
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='PP' and mes=4 and produto=codigo),0) as 'Papelyna',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='CD' and mes=4 and produto=codigo),0) as 'Tanby CD',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TM' and mes=4 and produto=codigo),0) as 'Tanby matriz',
-       isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TT' and mes=4 and produto=codigo),0) as 'Tanby Taubaté',
+       isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TT' and mes=4 and produto=codigo),0) as 'Tanby Taubatï¿½',
        'maio',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='BA' and mes=5 and produto=codigo),0) as 'Best Arts',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='BB' and mes=5 and produto=codigo),0) as 'Best Bag',
@@ -3708,7 +3708,7 @@ select *,
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='PP' and mes=5 and produto=codigo),0) as 'Papelyna',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='CD' and mes=5 and produto=codigo),0) as 'Tanby CD',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TM' and mes=5 and produto=codigo),0) as 'Tanby matriz',
-       isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TT' and mes=5 and produto=codigo),0) as 'Tanby Taubaté',
+       isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TT' and mes=5 and produto=codigo),0) as 'Tanby Taubatï¿½',
        'junho',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='BA' and mes=6 and produto=codigo),0) as 'Best Arts',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='BB' and mes=6 and produto=codigo),0) as 'Best Bag',
@@ -3716,7 +3716,7 @@ select *,
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='PP' and mes=6 and produto=codigo),0) as 'Papelyna',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='CD' and mes=6 and produto=codigo),0) as 'Tanby CD',
        isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TM' and mes=6 and produto=codigo),0) as 'Tanby matriz',
-       isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TT' and mes=6 and produto=codigo),0) as 'Tanby Taubaté'
+       isnull((select custo from CUSTOAQUISICAO (nolock) where empresa='TT' and mes=6 and produto=codigo),0) as 'Tanby Taubatï¿½'
   from #produtos
 
 
@@ -3811,7 +3811,7 @@ select *,
 
 declare @ultimoDiaMes as date
 
--- último dia do mês
+-- ï¿½ltimo dia do mï¿½s
 set @ultimoDiaMes = convert(date,DATEADD(ms, -3, DATEADD(mm, DATEDIFF(mm, 0, @dataSaldoBase) + 1, 0)))
 
 declare @data date
@@ -3934,7 +3934,7 @@ while @estoque <= @reg
 select top 1 * from TBS124 (nolock)
 select top 1 * from TBS125 (nolock)
 
--- listagem para análises dos saldos iniciais e movimentações
+-- listagem para anï¿½lises dos saldos iniciais e movimentaï¿½ï¿½es
 
 select LESCOD estoque,
        KESPROCOD proudto,
@@ -3945,7 +3945,7 @@ select LESCOD estoque,
                 order by SINDAT desc),0) saldoInicial,
 
        sum(KESNFENT + KESENTDEV + KESCANNFSAI + KESCANCUPFIS + KESCANNFDEV + KESMOVENT + KESSALENT + KESOUT) entradas,   -- entradas
-       sum(KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI) saidas,                                         -- saídas
+       sum(KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI) saidas,                                         -- saï¿½das
 
        --isnull((select max(SINQTD) from TBS124 (nolock) where SINPROCOD=KESPROCOD and TBS124.LESCOD=TBS125.LESCOD and year(SINDAT) <= year(KESDAT) and month(SINDAT) <= month(KESDAT)),0)
        isnull((select top 1 SINQTD from TBS124 (nolock)
@@ -3953,10 +3953,10 @@ select LESCOD estoque,
                 order by SINDAT desc),0)
        + 
        sum(  (KESNFENT + KESENTDEV + KESCANNFSAI + KESCANCUPFIS + KESCANNFDEV + KESMOVENT + KESSALENT + KESOUT)                                              -- entradas
-            -(KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI)) saldoFinalCalculado,                                                                                  -- saídas
+            -(KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI)) saldoFinalCalculado,                                                                                  -- saï¿½das
        --sum(KESNFENT + KESENTDEV + KESCANNFSAI + KESCANCUPFIS + KESCANNFDEV + KESMOVENT + KESSALENT + KESOUT)                                              -- entradas
        ---
-       --sum(KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI) saldoFinalCalculado,                                                                                  -- saídas
+       --sum(KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI) saldoFinalCalculado,                                                                                  -- saï¿½das
 
        isnull((select top 1 SINQTD from TBS124 (nolock)
                 where SINPROCOD=KESPROCOD and TBS124.LESCOD=TBS125.LESCOD and year(SINDAT) >= year(KESDAT) and year(SINDAT) + month(SINDAT) > year(KESDAT) + month(KESDAT) -- convert(char(2),SINDAT,110) > convert(char(2),KESDAT,110) --  month(SINDAT) > month(KESDAT)
@@ -3974,7 +3974,7 @@ select KESDAT,KESNFENT,KESENTDEV,KESCANNFSAI,KESCANCUPFIS,KESCANNFDEV,KESMOVENT,
   from TBS125 (nolock) where year(KESDAT)=2017 and month(KESDAT)=3 and KESPROCOD='1640054' and LESCOD=1
 
 
--- tabela para correção dos saldos
+-- tabela para correï¿½ï¿½o dos saldos
 
 drop table #ajuste
 
@@ -3992,7 +3992,7 @@ select LESCOD estoque,
                 order by SINDAT desc),0)
        + 
        sum(  (KESNFENT + KESENTDEV + KESCANNFSAI + KESCANCUPFIS + KESCANNFDEV + KESMOVENT + KESSALENT + KESOUT)                                              -- entradas
-            -(KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI)) saldoFinalCalculado,                                                                                  -- saídas
+            -(KESNFSAI + KESCUPFIS + KESNFDEVSAI + KESMOVSAI + KESSALSAI)) saldoFinalCalculado,                                                                                  -- saï¿½das
 
        isnull((select top 1 SINQTD from TBS124 (nolock)
                 where SINPROCOD=KESPROCOD and TBS124.LESCOD=TBS125.LESCOD and year(SINDAT) >= year(KESDAT) and month(SINDAT) > month(KESDAT)
@@ -4019,7 +4019,7 @@ select ano,
 
 
 
--- ajustes das movimentações
+-- ajustes das movimentaï¿½ï¿½es
 
 drop table #mov
 
@@ -4043,7 +4043,7 @@ select year(KESDAT) ano,
  where year(KESDAT)=@ano and month(KESDAT)=@mes
  group by KESEMPCOD,year(KESDAT),month(KESDAT),LESEMPCOD,LESCOD,KESPROEMP,KESPROCOD)
 
--- temporária criada devido a problema de perfomance no SQL (lentidão no sistema)
+-- temporï¿½ria criada devido a problema de perfomance no SQL (lentidï¿½o no sistema)
 select * into #mov from tab 
 
 
@@ -4076,7 +4076,7 @@ select *,
 
 select * from #ajuste
 
--- lança a quantidade em outros para ajuste dos saldos dos produtos
+-- lanï¿½a a quantidade em outros para ajuste dos saldos dos produtos
 
 update TBS125 set KESOUT=qtde from #ajuste where KESDAT=data and LESCOD=estoque and KESPROCOD=produto
 
@@ -4114,7 +4114,7 @@ select count(*) from #ajuste
 
 select * from #ajuste
 
--- lança a diferença do saldo no campo KESOUT (outras)
+-- lanï¿½a a diferenï¿½a do saldo no campo KESOUT (outras)
 
 select count(*) from TBS125 (nolock) where KESOUT <> 0
 
@@ -4128,7 +4128,7 @@ select SINDAT from TBS124 (nolock) group by SINDAT order by SINDAT
 
 -- contabilizar
 
--- inventários:
+-- inventï¿½rios:
 
 select top 1 * from TBS051 (nolock) where LMEROT='SQL' and LMEUSU='DESENV' and LMELOCEST=1 and LMEDESROT Like('%INVENTARIO%') order by LMEDATHOR desc
 
@@ -4186,7 +4186,7 @@ select 0,             -- empresa da tabela de saldos iniciais
        0,             -- empresa do local de estoque
        #saldo.LMELOCEST,        -- local de estoque
        0,             -- empresa do produto
-       #saldo.PROCOD,     -- código do produto
+       #saldo.PROCOD,     -- cï¿½digo do produto
        (select PROUM1 from TBS010 (nolock) where TBS010.PROCOD=#saldo.PROCOD collate database_default),    -- menor unidade de medida
        (select PROUM1QTD from TBS010 (nolock) where TBS010.PROCOD=#saldo.PROCOD collate database_default), -- quantidade da embalagem da menor unidade de medida
        (select top 1 LMEQTDSAL from TBS051 (nolock)
@@ -4226,16 +4226,16 @@ select distinct ano, mes from CUSTOAQUISICAO (nolock) order by ano desc,mes desc
 
 drop table CUSTOAQUISICAO
 
--- grava custo médio mensal de aquisição
+-- grava custo mï¿½dio mensal de aquisiï¿½ï¿½o
 exec SP_CustoMedioAquisicao '20180401','20180430'
 
--- cria links para retornar custo médio das empresas
+-- cria links para retornar custo mï¿½dio das empresas
 exec SP_CriaLinkServidores
 
--- mescla os custos médios das empresas
+-- mescla os custos mï¿½dios das empresas
 exec SP_MesclaCustoMedioAquisicao '20180401','20180430','N'
 
--- grava o custo da aquisição em saldos iniciais
+-- grava o custo da aquisiï¿½ï¿½o em saldos iniciais
 exec SP_GravaCustoAquisicao '20180401', '20180501'
 
 
@@ -4584,10 +4584,10 @@ create procedure [dbo].[SP_GravaSaldoInicial] @datai date, @dataf date as
 
       while @datas < @dataf
          begin
-            -- último dia do mês processado
+            -- ï¿½ltimo dia do mï¿½s processado
             set @datas=DATEADD(ms, -3, DATEADD(mm, DATEDIFF(mm, 0, @datai) + 1, 0))
 
-            -- última data do saldo diário gravado no mês processado
+            -- ï¿½ltima data do saldo diï¿½rio gravado no mï¿½s processado
             set @datas=(select top 1 ESTDATSAL
                           from SALDODIARIO with (nolock)
                          where ESTDATSAL <= @datas
@@ -4644,7 +4644,7 @@ set @datas='17530101'
 while @datas < @dataf
    begin
 --      set @datas=dateadd(ms, -3, dateadd(mm, datediff(mm, 0, @datai) + 1, 0))
-      -- último dia do mês processado
+      -- ï¿½ltimo dia do mï¿½s processado
       set @datas=DATEADD(ms, -3, DATEADD(mm, DATEDIFF(mm, 0, @datai) + 1, 0))
       --print @datas
 
@@ -4657,7 +4657,7 @@ while @datas < @dataf
                          and ESTDATSAL between @datai and @datas)
       */
 
-      -- última data do saldo diário gravado no mês processado
+      -- ï¿½ltima data do saldo diï¿½rio gravado no mï¿½s processado
       set @datas=(select top 1 ESTDATSAL
                     from SALDODIARIO with (nolock)
                    where --b.ESTLOC=a.ESTLOC
@@ -4764,11 +4764,11 @@ declare @data date
 
 set @data=getdate() -- '20190202'
 
-select DateAdd(mm, DateDiff(mm,0,@data), 0) as [Primeiro dia do mês da data]
-select dateadd(ms, -3, dateadd(mm, datediff(mm, 0, @data) + 1, 0)) as [Último dia do mês da data]
+select DateAdd(mm, DateDiff(mm,0,@data), 0) as [Primeiro dia do mï¿½s da data]
+select dateadd(ms, -3, dateadd(mm, datediff(mm, 0, @data) + 1, 0)) as [ï¿½ltimo dia do mï¿½s da data]
 
-select DateAdd(mm, DateDiff(mm,0,@data) - 1, 0) as [Primeiro dia do mês anterior]
-select DateAdd(mm, DateDiff(mm,0,@data) + 1, 0) as [Primeiro dia do mês posterior]
+select DateAdd(mm, DateDiff(mm,0,@data) - 1, 0) as [Primeiro dia do mï¿½s anterior]
+select DateAdd(mm, DateDiff(mm,0,@data) + 1, 0) as [Primeiro dia do mï¿½s posterior]
 
 select top 1 * from SALDODIARIO with (nolock)
 select min(ESTDATSAL), max(ESTDATSAL) from SALDODIARIO with (nolock)
@@ -5232,3 +5232,8 @@ union
 select sum(E9),'E9' from INV1901 with (nolock) where E9 > 0
 
 select * from INV1901 with (nolock) order by E1 desc
+
+select top (1000) *
+  from SALDOINICIAL with (nolock)
+
+

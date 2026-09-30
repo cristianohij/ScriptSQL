@@ -411,7 +411,7 @@ select max(ANOMES)
 -- data final deve ser o mes anterior ao mes que se deseja gravar o saldo inicial
 begin tran
 --exec dbo.SP_GravaSaldoInicial '20200901', '20210201'
-exec dbo.SP_GravaSaldoInicial '20250901', '20250901'
+exec dbo.SP_GravaSaldoInicial '20251001', '20260201'
 commit tran
 rollback tran
 

@@ -66,7 +66,7 @@ if object_id('tempdb.dbo.#fornecedoresGrupo') is not null
 create table #fornecedoresGrupo (codigo int)
 
 insert into #fornecedoresGrupo
-exec sp_ClientesGrupo
+exec usp_FornecedoresGrupo 2
 
 select *
   from #fornecedoresGrupo with (nolock)
@@ -107,6 +107,14 @@ select c.NFETIP
                                   and c.NFECOD not in(select codigo from #fornecedoresGrupo with (nolock))
                          )
 
+select *
+  from #procest
+ where cast(NFECESTXML as int) = 0
+
+delete #procest
+ --where NFECESTXML = '0'
+ where cast(NFECESTXML as int) = 0
+
 select PROCOD
        ,count(*)
   from #cest_nf_entrada
@@ -141,7 +149,7 @@ select p.PROCOD
  inner join #procest c
     on c.PROCOD=p.PROCOD
  where p.PROCEST = ''
-       and p.PROCLAFIS != ''
+       and p.PROCLAFIS <> ''
  order by p.PROCOD
 
 select PROCOD
@@ -156,7 +164,7 @@ update p
  inner join #procest c 
     on c.PROCOD = p.PROCOD
  where p.PROCEST = ''
-       and p.PROCLAFIS != ''
+       and p.PROCLAFIS <> ''
 
 -- cadastros de produtos com CEST diferentes da última NF de entrada
 
@@ -2038,3 +2046,87 @@ update p
 
 rollback tran
 commit tran
+
+-- conta produtos com st e cest vazio
+
+select count(*)
+  from TBS010 p with (nolock)
+ where p.PROSTBB = '60'
+       and p.PROCEST = ''
+
+-- cest com tamanho inválido
+
+select PROCOD
+       ,PRODES
+	     ,PROCLAFIS
+	     ,PROCEST
+  from TBS010 with (nolock)
+ where PROCEST <> ''
+       and Len(PROCEST) <> 7
+
+-- cest preenchido, ncm vazio
+
+select PROCOD
+       ,PRODES
+	   ,PROCLAFIS
+	   ,PROCEST
+  from TBS010 with (nolock)
+ where PROCEST <> ''
+       and PROCLAFIS = ''
+
+
+-- empresas do grupo cadastradas como fornecedores
+
+if object_id('tempdb.dbo.#fornecedoresGrupo') is not null
+    begin
+    	drop table #fornecedoresGrupo
+    end
+
+create table #fornecedoresGrupo (codigo int)
+
+insert into #fornecedoresGrupo
+exec usp_FornecedoresGrupo 2
+
+select *
+  from #fornecedoresGrupo with (nolock)
+
+-- cest das notas fiscais de fornecedores
+
+if object_id('tempdb.dbo.#procest') is not null
+    begin
+    	drop table #procest
+    end
+
+select c.NFETIP
+       ,c.SERCOD
+       ,c.NFECOD
+       ,c.NFENUM
+       ,c.NFEDATEFE
+       ,i.PROCOD
+       ,i.NFECESTXML
+  into #procest
+  from TBS059 c with (nolock)
+ inner join TBS0591 i with (nolock)
+    on c.NFETIP=i.NFETIP and c.SERCOD=i.SERCOD and c.NFECOD=i.NFECOD and c.NFENUM=i.NFENUM --and c.NFECAN != 'S' and c.NFEDATEFE != '17530101'
+ where c.NFEDATEFE <> '17530101'
+       and c.NFECAN = 'N'
+       and c.NFETIP = 'N'
+       and c.NFECOD not in(select codigo from #fornecedoresGrupo with (nolock))
+       and i.NFECESTXML <> ''
+       and cast(NFECESTXML as int) > 0
+       and c.NFEDATEFE = (
+                           select max(NFEDATEFE)
+                             from TBS059 c1 with (nolock)
+                            inner join TBS0591 i1 with (nolock)
+                               on c1.NFETIP=i1.NFETIP and c1.SERCOD=i1.SERCOD and c1.NFECOD=i1.NFECOD and c1.NFENUM=i1.NFENUM --and c1.NFECAN != 'S' and c1.NFEDATEFE != '17530101'
+                            where c1.NFEDATEFE != '17530101'
+                                  and c1.NFECAN = 'N'
+                                  and c1.NFETIP='N'
+                                  and i1.PROCOD = i.PROCOD
+                                  and i1.NFECESTXML != ''
+                                  and c.NFECOD not in(select codigo from #fornecedoresGrupo with (nolock))
+                         )
+
+
+
+

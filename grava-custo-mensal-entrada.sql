@@ -346,7 +346,7 @@ exec SP_CustoMensal '202104'
 
 declare @datai date, @dataf date, @comando varchar(50)
 
-select @datai='20250901', @dataf='20250901'
+select @datai='20250901', @dataf='20260201'
 
 while @datai <= @dataf
    begin

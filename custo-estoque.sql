@@ -75,6 +75,12 @@ select sum(E1 * CUSTO) as custo_total
 	     and (E1 > 0)
        and CUSTO > 0
 
+select sum(E1 * CUSTO) as custo_total
+  from SALDOINICIAL with (nolock)
+ where ANOMES = '202512'
+	     and (E1 > 0)
+       and CUSTO > 0
+
 -- estoque 2
 
 select sum(E2 * CUSTO) as custo_total
@@ -88,7 +94,7 @@ select sum(E2 * CUSTO) as custo_total
 
 select sum(E2*CUSTO) as custo_total
   from SALDOINICIAL with (nolock)
- where ANOMES='202303'
+ where ANOMES='202512'
 	     and (E2 > 0)
        and CUSTO > 0
 
@@ -128,7 +134,7 @@ select sum(QTDE*CUSTO) as custo_total
          select case when E1 > 0 then E1 else 0 end + case when E2 > 0 then E2 else 0 end as QTDE
 	              ,CUSTO as CUSTO
            from SALDOINICIAL with (nolock)
-          where ANOMES='202312'
+          where ANOMES='202512'
 	              and (E1 > 0 or E2 > 0)
                 and CUSTO > 0
        ) tab

@@ -311,7 +311,7 @@ begin
 end
 go
 
-exec SP_RecalculoCusto '20250801', '20250901';
+exec SP_RecalculoCusto '20250901', '20260201';
 
 select *
   from SALDOINICIAL with (nolock)

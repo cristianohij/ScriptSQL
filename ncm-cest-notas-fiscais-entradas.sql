@@ -1044,6 +1044,8 @@ select i.PROCOD
        ,isnull(i.NFENCMXML,'') as NFENCMXML
        ,isnull(i.NFECESTXML,'') as NFECESTXML
        ,c.NFEDATEFE
+       ,c.NFEESTORI
+       ,i.NFECSTXML
   from TBS059 c with (nolock)
  inner join TBS0591 i with (nolock)
     on c.NFETIP=i.NFETIP and c.SERCOD=i.SERCOD and c.NFECOD=i.NFECOD and c.NFENUM=i.NFENUM --and c.NFECAN != 'S' and c.NFEDATEFE != '17530101'
@@ -1072,6 +1074,8 @@ select i.PROCOD
        ,isnull(i.NFENCMXML,'')
        ,isnull(i.NFECESTXML,'')
        ,c.NFEDATEFE
+       ,c.NFEESTORI
+       ,i.NFECSTXML       
   from bb.SIBD2.dbo.TBS059 c with (nolock)
  inner join bb.SIBD2.dbo.TBS0591 i with (nolock)
     on c.NFETIP=i.NFETIP and c.SERCOD=i.SERCOD and c.NFECOD=i.NFECOD and c.NFENUM=i.NFENUM --and c.NFECAN != 'S' and c.NFEDATEFE != '17530101'
@@ -1100,6 +1104,8 @@ select i.PROCOD
        ,isnull(i.NFENCMXML,'')
        ,isnull(i.NFECESTXML,'')
        ,c.NFEDATEFE
+       ,c.NFEESTORI
+       ,i.NFECSTXML       
   from mi.SIBD3.dbo.TBS059 c with (nolock)
  inner join mi.SIBD3.dbo.TBS0591 i with (nolock)
     on c.NFETIP=i.NFETIP and c.SERCOD=i.SERCOD and c.NFECOD=i.NFECOD and c.NFENUM=i.NFENUM --and c.NFECAN != 'S' and c.NFEDATEFE != '17530101'
@@ -1128,6 +1134,8 @@ select i.PROCOD
        ,isnull(i.NFENCMXML,'')
        ,isnull(i.NFECESTXML,'')
        ,c.NFEDATEFE
+       ,c.NFEESTORI
+       ,i.NFECSTXML       
   from pp.SIBD.dbo.TBS059 c with (nolock)
  inner join pp.SIBD.dbo.TBS0591 i with (nolock)
     on c.NFETIP=i.NFETIP and c.SERCOD=i.SERCOD and c.NFECOD=i.NFECOD and c.NFENUM=i.NFENUM --and c.NFECAN != 'S' and c.NFEDATEFE != '17530101'
@@ -1156,6 +1164,8 @@ select i.PROCOD collate database_default
        ,isnull(i.NFENCMXML,'') collate database_default
        ,isnull(i.NFECESTXML,'') collate database_default
        ,c.NFEDATEFE
+       ,c.NFEESTORI collate database_default
+       ,i.NFECSTXML collate database_default
   from cd.SIBD.dbo.TBS059 c with (nolock)
  inner join cd.SIBD.dbo.TBS0591 i with (nolock)
     on c.NFETIP=i.NFETIP and c.SERCOD=i.SERCOD and c.NFECOD=i.NFECOD and c.NFENUM=i.NFENUM --and c.NFECAN != 'S' and c.NFEDATEFE != '17530101'
@@ -1184,6 +1194,8 @@ select i.PROCOD
        ,isnull(i.NFENCMXML,'')
        ,isnull(i.NFECESTXML,'')
        ,c.NFEDATEFE
+       ,c.NFEESTORI
+       ,i.NFECSTXML       
   from tt.SIBD.dbo.TBS059 c with (nolock)
  inner join tt.SIBD.dbo.TBS0591 i with (nolock)
     on c.NFETIP=i.NFETIP and c.SERCOD=i.SERCOD and c.NFECOD=i.NFECOD and c.NFENUM=i.NFENUM --and c.NFECAN != 'S' and c.NFEDATEFE != '17530101'
@@ -1215,7 +1227,8 @@ Rankeado AS (
     FROM Base
 )
 SELECT *
-INTO #ncm_cest_entrada
+--NTO #ncm_cest_entrada
+into ULTIMA_ENTRADA_GRUPO_ATE_30042026
 FROM Rankeado
 WHERE rn = 1;
 
@@ -1609,7 +1622,7 @@ CREATE TABLE #ultima_venda (
 INSERT INTO #ultima_venda
 EXEC dbo.sp_UltimaVendaPorProduto 
     @DataInicial = '2020-01-01',
-    @DataFinal   = '2026-03-31',
+    @DataFinal   = '2026-04-15',
     @CodigoProduto = null;
 
 select *
@@ -2604,7 +2617,9 @@ select p.PROCOD
   from TBS010 p with (nolock)
  where Len(rtrim(p.PROCLAFIS)) = 8
        and p.PROSTBB = '60'
-       and not exists (select 1 from #ncm_cest_econet where Left(ncm,4) = Left(p.PROCLAFIS,4) collate database_default)
+       and not exists (select 'ne' from #ncm_cest_econet where Left(ncm,4) = Left(p.PROCLAFIS,4) collate database_default)
+       and not exists (select 'ne' from #ncm_cest_econet where ncm = p.PROCLAFIS collate database_default)
+ order by p.PROCLAFIS
 
 select p.PROCOD
        ,p.PRODES
@@ -2631,16 +2646,6 @@ select p.PROCOD
  where Len(rtrim(p.PROCLAFIS)) = 8
 
 -- atuallização das empresas
-
--- NCM
-
-update destino
-   set destino.PROCLAFIS = origem.PROCLAFIS
-  from bb.SIBD2.dbo.TBS010 destino
-  join SIBD.dbo.TBS010 origem
-    on origem.PROEMPCOD = destino.PROEMPCOD
-       and origem.PROCOD = destino.PROCOD
- where destino.PROCLAFIS <> origem.PROCLAFIS
 
 -- backup
 
@@ -2681,3 +2686,283 @@ select * -- 98.214
 -- tanby taubaté
 select * -- 98.163
   from TBS010_020426_WP with (nolock)
+
+-- NCM
+
+-- best bag [x], misaspel [x], papelyna [x], tanby cd [x], tanby taubaté [x], winpack [x]
+
+update destino
+   set destino.PROCLAFIS = origem.PROCLAFIS
+  from wp.SIBD4.dbo.TBS010 destino
+  join TBS010 origem
+    on origem.PROEMPCOD = destino.PROEMPCOD
+       and origem.PROCOD = destino.PROCOD collate database_default
+ where destino.PROCLAFIS <> origem.PROCLAFIS collate database_default
+
+-- CST tabeLa B
+
+-- best bag [], misaspel [], papelyna [], tanby cd [], tanby taubaté [], winpack []
+
+update destino
+   set destino.PROSTBB = origem.PROSTBB collate database_default
+  from bb.SIBD2.dbo.TBS010 destino
+  join TBS010 origem
+    on origem.PROEMPCOD = destino.PROEMPCOD
+       and origem.PROCOD = destino.PROCOD collate database_default
+ where destino.PROSTBB <> origem.PROSTBB collate database_default
+
+-- tributação GZ
+
+-- best bag [x], misaspel [x], papelyna [x], tanby cd [x], tanby taubaté [x], winpack [x]
+
+update destino
+   set destino.TGZCOD = origem.TGZCOD
+  from wp.SIBD4.dbo.TBS010 destino
+  join TBS010 origem
+    on origem.PROEMPCOD = destino.PROEMPCOD
+       and origem.PROCOD = destino.PROCOD collate database_default
+ where destino.TGZCOD <> origem.TGZCOD
+
+-- CEST
+
+-- best bag [x], misaspel [x], papelyna [x], tanby cd [x], tanby taubaté [x], winpack [x]
+
+update destino
+   set destino.PROCEST = origem.PROCEST collate database_default
+  from wp.SIBD4.dbo.TBS010 destino
+  join TBS010 origem
+    on origem.PROEMPCOD = destino.PROEMPCOD
+       and origem.PROCOD = destino.PROCOD collate database_default
+ where destino.PROCEST <> origem.PROCEST collate database_default
+
+-- redução da BC do ICMS
+
+-- best bag [x], misaspel [x], papelyna [x], tanby cd [x], tanby taubaté [x], winpack [x]
+
+update destino
+   set destino.PROREDBASICMS = origem.PROREDBASICMS
+  from wp.SIBD4.dbo.TBS010 destino
+  join TBS010 origem
+    on origem.PROEMPCOD = destino.PROEMPCOD
+       and origem.PROCOD = destino.PROCOD collate database_default
+ where destino.PROREDBASICMS <> origem.PROREDBASICMS
+
+-- alíquota do ICMS interno
+
+-- best bag [x], misaspel [x], papelyna [x], tanby cd [x], tanby taubaté [x], winpack [x]
+
+update destino
+   set destino.PROICMSINT = origem.PROICMSINT
+  from wp.SIBD4.dbo.TBS010 destino
+  join TBS010 origem
+    on origem.PROEMPCOD = destino.PROEMPCOD
+       and origem.PROCOD = destino.PROCOD collate database_default
+ where destino.PROICMSINT <> origem.PROICMSINT
+
+-- redução da alíquota do IBS/CBS
+
+-- best bag [x], misaspel [x], papelyna [x], tanby cd [x], tanby taubaté [x], winpack [x]
+
+update destino
+   set destino.PROANEIBSCBS = origem.PROANEIBSCBS
+  from wp.SIBD4.dbo.TBS010 destino
+  join TBS010 origem
+    on origem.PROEMPCOD = destino.PROEMPCOD
+       and origem.PROCOD = destino.PROCOD collate database_default
+ where destino.PROANEIBSCBS <> origem.PROANEIBSCBS
+
+-- produtos com reduções da base de cálculo do ICMS
+
+select p.PROCOD
+       ,p.PRODES
+       ,p.PROSTBB
+       ,p.PROCLAFIS
+       ,p.PROCEST
+       ,p.PROREDBASICMS
+  from TBS010 p with (nolock)
+ where p.PROREDBASICMS > 0
+
+begin tran
+update TBS010
+   set PROREDBASICMS = 0
+ where PROREDBASICMS > 0
+       and PROSTBB <> '20'
+
+rollback tran
+commit tran
+
+select p.PROCLAFIS
+       ,count(*)
+  from TBS010 p with (nolock)
+ where p.PROREDBASICMS > 0
+ group by p.PROCLAFIS
+ order by p.PROCLAFIS
+
+select '65069593000198'
+       ,p.PROCLAFIS
+       ,rtrim(p.PRODES)
+       ,''
+       ,rtrim(p.PROCOD)
+  from TBS010 p with (nolock)
+ where p.PROCOD in ('0472517',
+'10680109',
+'12280005',
+'14960060',
+'14960061',
+'14960062',
+'28350024',
+'4210527',
+'4370813',
+'4520603',
+'4520676',
+'4520680',
+'6310298',
+'7880924',
+'8400017',
+'9131949',
+'9980093',
+'9980096',
+'9980113',
+'9980598',
+'9980823',
+'9980841',
+'9980845',
+'9980880',
+'9982462',
+'9982483',
+'9982611',
+'11114582',
+'11114583',
+'11114591',
+'3251002',
+'3251005',
+'3251008',
+'5350255',
+'5350263',
+'9986813',
+'9987167',
+'2881609',
+'2881610',
+'2881612',
+'20020093',
+'11110006',
+'11110008',
+'11110010',
+'7050002',
+'0140139')
+
+
+-- produtos com ST do estado de SP na nota fiscal e com CST no cadastro diferente de ST
+
+select distinct 
+       p.PROCOD as codigo
+       ,p.PRODES
+       ,p.PROCLAFIS as ncm_cadastro
+       ,nc.NFENCMXML as ncm_nota_fiscal
+       ,nc.NFEDATEFE as ultima_compra
+       ,nc.NFEESTORI as uf_origem
+       ,nc.NFECSTXML as cst_nf
+       ,p.PROSTBB as cst_cadastro
+       ,(select v.[data] from #ultima_venda v with (nolock) where v.codigoProduto = p.PROCOD collate database_default) as ultima_venda
+       --,(select pro.PRODES from TBS010 pro with (nolock) where pro.PROCOD = p.PROCOD)
+  from TBS010 p with (nolock)
+  Left join #ncm_cest_entrada nc 
+         on nc.PROCOD = p.PROCOD
+ where nc.NFENCMXML <> p.PROCLAFIS
+       and nc.NFEESTORI = 'SP'
+       and right(rtrim(nc.NFECSTXML),2) = '60'
+       and p.PROSTBB <> '60'
+ order by p.PROCLAFIS
+
+-- dúvida
+-- NCM 22071090 álcool etílico para limpeza tem ST, mas e o álcool em gel?
+
+-- parei na NCM 38089419
+
+-- produtos para analise plataforma sosreforma
+
+select '65069593000198'
+       ,p.PROCLAFIS
+       ,p.PRODES
+       ,''
+       ,p.PROCOD
+  from TBS010 p with (nolock)
+ where p.PROREDBASICMS > 0
+ order by p.PRODES
+
+-- produto com ST
+
+select *
+  from (
+         select '65069593000198' as cnpj
+                ,p.PROCLAFIS
+                ,p.PRODES
+                ,'' as gtin
+                ,p.PROCOD
+           from TBS010 p with (nolock)
+          where p.PROSTBB = '60'
+       )  as tab
+ where (select v.[data] from #ultima_venda v with (nolock) where v.[data] >= '20230101' and v.codigoProduto = tab.PROCOD collate database_default) is not null
+ order by tab.PRODES
+
+-- CST de entrada 60 e cadastro do produto diferente de 60
+
+select *
+  from (
+         select distinct 
+                '65069593000198' as cnpj
+                ,p.PROCLAFIS
+                ,p.PRODES
+                ,'' as gtin
+                ,p.PROCOD
+           from TBS010 p with (nolock)
+           Left join #ncm_cest_entrada nc 
+                  on nc.PROCOD = p.PROCOD
+          where nc.NFENCMXML <> p.PROCLAFIS
+                and nc.NFEESTORI = 'SP'
+                and right(rtrim(nc.NFECSTXML),2) = '60'
+                and p.PROSTBB <> '60'
+       ) as tab
+ where (select v.[data] from #ultima_venda v with (nolock) where v.codigoProduto = tab.PROCOD collate database_default) is not null
+ order by tab.PRODES
+
+select p.PROCOD
+       ,p.PRODES
+       ,p.PROCLAFIS
+       ,p.PROCEST
+       ,p.PROSTBB
+  from TBS010 p with (nolock)
+ where p.PROSTBB not in ('10','30','60','70')
+       and p.PROCEST <> ''
+
+begin tran
+update TBS010
+   set PROCEST = ''
+ where PROSTBB not in ('10','30','60','70')
+       and PROCEST <> ''
+
+rollback tran
+commit tran
+
+select p.PROCOD
+       ,p.PRODES
+       ,p.PROCLAFIS
+       ,p.PROCEST
+       ,p.PROSTBB
+       ,p.PROSTATUS
+  from TBS010 p with (nolock)
+ where p.PROSTBB in ('10','30','60','70')
+       and p.PROCEST = ''
+       and p.PROCLAFIS not in ('22029900','32064990','39173229','39191090','39229000','39259000','42021210','42021220','42029200','73239300','73239900','82119390','82055100','85271300','42021900','82119210','84433111','82119400','96084000')
+ order by p.PRODES --p.PROCLAFIS
+
+select p.PROCLAFIS
+       ,count(*)
+  from TBS010 p with (nolock)
+ where p.PROSTBB in ('10','30','60','70')
+       and p.PROCEST = ''
+       and p.PROCLAFIS not in ('22029900','32064990','39173229','39191090','39229000','39259000','42021210','42021220','42029200','73239300','73239900','82119390','82055100','85271300','42021900','82119210','84433111','82119400','96084000')
+ group by p.PROCLAFIS
+
+
+
