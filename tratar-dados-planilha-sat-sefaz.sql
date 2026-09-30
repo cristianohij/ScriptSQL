@@ -18,7 +18,7 @@ select *
   --from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 12.0;Database=C:\integros\temp\RPA - Cupom de Movimento_Julho_2022_65069593000279.xlsx', 'select * from [Planilha1$]');
   --from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 12.0;Database=D:\Documents\GRM\xml\sat\planilha_sefaz\RPA - Cupom de Movimento_Julho_2022_65069593000198.xlsx', 'select * from [Planilha1$]');
   --from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 12.0;Database=c:\integros\temp\CSOSN - Cupom de Movimento_Dezembro_2024_33605802000184.xlsx', 'select * from [CDU113_SN_CFe_SAT$]');
-  from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 12.0;Database=C:\integros\temp\CST - Cupom de Movimento_Maio_2025_65069593000279.xlsx', 'select * from [Planilha2$]');
+  from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 12.0;Database=C:\integros\temp\CST - Cupom de Movimento_Novembro_2025_05118717000156.xlsx', 'select * from [Planilha1$]');
 go
 
 --select * from #relatorio
@@ -32,7 +32,7 @@ if object_id('TempDB.dbo.#dados') is not null
 go
 
 create table #dados
-([data] date, eliminarF2 char(1), equipamento varchar(20), eliminarF4 char(1), eliminar3 varchar(40), eliminarF6 char(1), eliminar4 varchar(40), eliminarF8 char(1), eliminarF9 char(1), cancelado smallint, valor decimal(12,2), eliminarF12 char(1), eliminarF13 char(1)
+([data] date, eliminarF2 char(1), equipamento varchar(20), eliminarF4 char(1), eliminar3 varchar(40), eliminarF6 char(1), eliminar4 varchar(40), eliminarF8 varchar(100), eliminarF9 char(1), cancelado smallint, valor decimal(12,2), eliminarF12 char(1), eliminarF13 char(1)
 ,cfop smallint, eliminarF15 char(1), eliminar7 float, eliminar8 varchar(40), eliminar9 float, eliminarF19 char(1), eliminar10 float, eliminar11 float, lin smallint);
 go
 
@@ -130,6 +130,8 @@ go
 
 delete #dados
  where cfop is null
+
+-- select * from #dados
 
 -- tabela de equipamentos sat
 
@@ -294,6 +296,38 @@ select '000767396-51'
        ,'BB'
 
 union 
+select '001157053-92'
+       ,1
+       ,'BB'
+
+union 
+select '001157144-64'
+       ,2
+       ,'BB'
+
+union 
+select '001157059-88'
+       ,3
+       ,'BB'
+
+union 
+select '001207224-96'
+       ,4
+       ,'BB'
+
+union 
+select '001157143-83'
+       ,5
+       ,'BB'
+
+union 
+select '001208583-98'
+       ,6
+       ,'BB'
+
+-- hobby home
+
+union 
 select '000698356-16'
        ,7
        ,'HH'
@@ -348,19 +382,132 @@ select *
 
 select *
   from movcaixa m
- where data between '20250501' and '20250531'
+ where data between '20251001' and '20251031'
        and cancelado=''
        and status='03'
-       and caixa=4;
+       and caixa=5;
 
 select cupom
        ,sum(valortot)
   from movcaixa m
- where data between '20250501' and '20250531'
+ where data between '20251001' and '20251031'
        and cancelado=''
        and status='03'
-       and caixa=4
+       and caixa=5
  group by cupom
 
+select data
+       ,sum(valortot)
+  from movcaixa m
+ where data between '20251001' and '20251031'
+       and cancelado=''
+       and status='03'
+       and caixa=5
+ group by data
+ order by data
 
+-- rodar em mysql
+
+-- busca cupons faltantes 
+
+select data
+       ,sum(valortot)
+  from logcx
+ where data between '20250901' and '20250930'
+       and caixa = 2
+       and cancelado = ''
+       and status = '03'
+ group by data;
+
+select cupom
+       ,sum(valortot)
+  from logcx
+ where data between '20250901' and '20250930'
+       and caixa = 3
+       and cancelado = ''
+       and status = '03'
+ group by cupom
+ having sum(valortot) = 1388.9;
+
+select cupom
+       ,data
+       ,sum(valortot)
+  from logcx
+ where data between '20250901' and '20250930'
+       and caixa = 2
+       and cancelado = 'S'
+       and status = '03'
+ group by data;
+
+
+select data
+       ,sum(valortot)
+  from logcx
+ where data between '20251101' and '20251130'
+       and caixa = 5
+       and cancelado = ''
+       and status = '03'
+ group by data;
+
+select cupom
+       ,sum(valortot)
+  from logcx
+ where data between '20251001' and '20251031'
+        and caixa = 5
+       and cancelado = ''
+       and status = '03'
+ group by cupom
+ having sum(valortot) = 148.5;
+
+select cupom
+       ,sum(valortot)
+  from movcaixa
+ where data between '20251101' and '20251130'
+        and caixa = 5
+       and cancelado = ''
+       and status = '03'
+ group by cupom
+ having sum(valortot) = 105.88;
+
+select cupom
+       ,data
+       ,sum(valortot)
+  from logcx
+ where data between '20250901' and '20250930'
+       and caixa = 2
+       and cancelado = 'S'
+       and status = '03'
+ group by data;
+
+select sum(valortot)
+  from logcx
+ where data between '20250901' and '20250930'
+       and cancelado = ''
+       and status = '03'
+       and nfce_modelo = 65
+ group by data;
+
+select sum(valortot)
+  from logcx
+ where data between '20250901' and '20250930'
+       and status = '04'
+       and nfce_modelo = 65
+ group by data;
+
+select nfce_modelo
+  from logcx limit 1;
+
+select *
+  from movcaixa
+ where data between '20251001' and '20251031'
+       and cupom = 230381
+       and status = '03';
+
+select caixa
+       ,sum(valortot)
+  from movcaixa
+ where data between '20251101' and '20251130'
+       and cancelado = ''
+       and status = '03'
+ group by caixa;
 
