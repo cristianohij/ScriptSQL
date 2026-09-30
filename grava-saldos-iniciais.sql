@@ -81,6 +81,315 @@ create procedure [dbo].[SP_GravaSaldoInicial] @datai date, @dataf date as
          end
    end
 
+-- otimizado com chatGPT
+
+IF EXISTS (SELECT 1 FROM sys.objects WHERE name='SP_GravaSaldoInicial' AND type='P')
+    DROP PROCEDURE [dbo].[SP_GravaSaldoInicial];
+GO
+
+CREATE PROCEDURE [dbo].[SP_GravaSaldoInicial]
+    @datai DATE,   -- data inicial (primeiro mês a processar)
+    @dataf DATE    -- data final   (último mês a processar)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    ;WITH UltimosSaldos AS
+    (
+        SELECT
+            SD.PROCOD AS codigo,
+            SD.ESTLOC AS estoque,
+            SD.ESTDATSAL AS data_saldo,
+            SD.ESTQTDATU AS quantidade,
+            ROW_NUMBER() OVER (
+                PARTITION BY SD.PROCOD, SD.ESTLOC, DATEADD(MONTH, DATEDIFF(MONTH,0,SD.ESTDATSAL),0)
+                ORDER BY SD.ESTDATSAL DESC
+            ) AS rn
+        FROM SALDODIARIO SD WITH (NOLOCK)
+        WHERE SD.ESTDATSAL >= DATEADD(MONTH, DATEDIFF(MONTH,0,@datai),0)  -- do 1º dia do mês inicial
+          AND SD.ESTDATSAL <  DATEADD(DAY,1,EOMONTH(@dataf))              -- até o último dia do mês final
+    ),
+    SaldosMesAnterior AS
+    (
+        SELECT 
+            DATEADD(DAY,1,EOMONTH(u.data_saldo)) AS data_inicial_mes, -- primeiro dia do mês seguinte
+            CONVERT(CHAR(6), DATEADD(DAY,1,EOMONTH(u.data_saldo)),112) AS anomes,
+            u.codigo,
+            u.estoque,
+            u.quantidade
+        FROM UltimosSaldos u
+        WHERE u.rn = 1   -- pega só o último registro de cada mês/produto/estoque
+    ),
+    SaldoParaInserir AS
+    (
+        SELECT
+            s.data_inicial_mes AS [data],
+            s.anomes,
+            s.codigo,
+            t.PROUM1 AS unidade,
+            t.PROUM1QTD AS embalagem,
+            0 AS qentrada,
+            0 AS ventrada,
+            0 AS custo,
+            s.estoque,
+            s.quantidade
+        FROM SaldosMesAnterior s
+        JOIN TBS010 t WITH (NOLOCK) ON t.PROEMPCOD = 0 AND t.PROCOD = s.codigo collate database_default
+        LEFT JOIN SALDOINICIAL si WITH (NOLOCK) 
+               ON si.DATA = s.data_inicial_mes 
+              AND si.CODIGO = s.codigo
+        WHERE si.DATA IS NULL  -- só insere se ainda não existir
+    )
+    INSERT INTO SALDOINICIAL 
+        ([DATA], ANOMES, CODIGO, UNI, QEMBALAGEM, QTDENTRADA, VALENTRADA, CUSTO,
+         E1, E2, E3, E4, E5, E6, E7, E8, E9, EMPRESA)
+    SELECT
+        [data],
+        anomes,
+        codigo,
+        unidade,
+        embalagem,
+        qentrada,
+        ventrada,
+        custo,
+        COALESCE([1],0),
+        COALESCE([2],0),
+        COALESCE([3],0),
+        COALESCE([4],0),
+        COALESCE([5],0),
+        COALESCE([6],0),
+        COALESCE([7],0),
+        COALESCE([8],0),
+        COALESCE([9],0),
+        '' AS EMPRESA  -- ajuste aqui se precisar vincular empresa
+    FROM
+    (
+        SELECT [data], anomes, estoque, codigo, quantidade, unidade, embalagem, qentrada, ventrada, custo
+        FROM SaldoParaInserir
+    ) s
+    PIVOT
+    (
+        SUM(quantidade) FOR estoque IN ([1],[2],[3],[4],[5],[6],[7],[8],[9])
+    ) pvt;
+
+END
+GO
+
+-- fim otimização do chatGPT
+
+
+-- nova otimização feita pelo chatGPT
+
+begin tran
+update SALDODIARIO
+   set ESTDATSAL = '17530101'
+ where ESTDATSAL is null
+
+rollback tran
+commit tran
+
+begin tran
+update SALDODIARIO
+   set ESTLOC = 0
+ where ESTLOC is null
+
+rollback tran
+commit tran
+
+begin tran
+update SALDODIARIO
+   set PROCOD = ''
+ where PROCOD is null
+
+rollback tran
+commit tran
+
+begin tran
+update SALDODIARIO
+   set PRODES = ''
+ where PRODES is null
+
+rollback tran
+commit tran
+
+begin tran
+update SALDODIARIO
+   set PROSTATUS = ''
+ where PROSTATUS is null
+
+rollback tran
+commit tran
+
+begin tran
+update SALDODIARIO
+   set ESTDATALT = '17530101'
+ where ESTDATALT is null
+
+rollback tran
+commit tran
+
+begin tran
+update SALDODIARIO
+   set ESTQTDATU = 0 
+ where ESTQTDATU is null
+
+rollback tran
+commit tran
+
+begin tran
+update SALDODIARIO
+   set ESTQTDATU = 0 
+ where ESTQTDATU is null
+
+rollback tran
+commit tran
+
+begin tran
+update SALDODIARIO
+   set ESTQTDRES = 0 
+ where ESTQTDRES is null
+
+rollback tran
+commit tran
+
+begin tran
+update SALDODIARIO
+   set ESTQTDPEN = 0 
+ where ESTQTDPEN is null
+
+rollback tran
+commit tran
+
+begin tran
+update SALDODIARIO
+   set ESTQTDCMP = 0 
+ where ESTQTDCMP is null
+
+rollback tran
+commit tran
+
+IF EXISTS (SELECT 1 FROM sys.objects WHERE name='SP_GravaSaldoInicial' AND type='P')
+    DROP PROCEDURE [dbo].[SP_GravaSaldoInicial];
+GO
+
+CREATE PROCEDURE [dbo].[SP_GravaSaldoInicial]
+    @datai DATE,   -- data inicial (primeiro mês a processar)
+    @dataf DATE    -- data final   (último mês a processar)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    ;WITH UltimosSaldos AS
+    (
+        SELECT
+            SD.PROCOD AS codigo,
+            SD.ESTLOC AS estoque,
+            SD.ESTDATSAL AS data_saldo,
+            SD.ESTQTDATU AS quantidade,
+            ROW_NUMBER() OVER (
+                PARTITION BY SD.PROCOD, SD.ESTLOC, DATEADD(MONTH, DATEDIFF(MONTH,0,SD.ESTDATSAL),0)
+                ORDER BY SD.ESTDATSAL DESC
+            ) AS rn
+        FROM SALDODIARIO SD WITH (NOLOCK)
+        WHERE SD.ESTDATSAL >= DATEADD(MONTH, DATEDIFF(MONTH,0,@datai),-1)  -- 1 mês antes da data inicial
+          AND SD.ESTDATSAL <  DATEADD(DAY,1,EOMONTH(@dataf))               -- até o último dia do mês final
+    ),
+    -- Últimos saldos por mês
+    SaldosMesAnterior AS
+    (
+        SELECT 
+            DATEADD(DAY,1,EOMONTH(u.data_saldo)) AS data_inicial_mes, -- 1º dia do mês seguinte
+            CONVERT(CHAR(6), DATEADD(DAY,1,EOMONTH(u.data_saldo)),112) AS anomes,
+            u.codigo,
+            u.estoque,
+            u.quantidade
+        FROM UltimosSaldos u
+        WHERE u.rn = 1
+    ),
+    -- Tratamento para o mês inicial (@datai)
+    SaldoInicial AS
+    (
+        SELECT 
+            @datai AS data_inicial_mes,
+            CONVERT(CHAR(6),@datai,112) AS anomes,
+            t.PROCOD AS codigo,
+            ISNULL(MAX(us.estoque),1) AS estoque,
+            ISNULL(MAX(us.quantidade),0) AS quantidade
+        FROM TBS010 t WITH (NOLOCK)
+        LEFT JOIN (
+            SELECT u.codigo, u.estoque, u.quantidade
+            FROM UltimosSaldos u
+            WHERE u.rn = 1
+              AND u.data_saldo < @datai
+        ) us ON us.codigo = t.PROCOD COLLATE database_default
+        GROUP BY t.PROCOD
+    ),
+    -- União do saldo inicial com os demais meses
+    SaldoParaInserir AS
+    (
+        SELECT
+            s.data_inicial_mes AS data_ins,
+            s.anomes,
+            s.codigo,
+            t.PROUM1 AS unidade,
+            t.PROUM1QTD AS embalagem,
+            0 AS qentrada,
+            0 AS ventrada,
+            0 AS custo,
+            s.estoque,
+            s.quantidade
+        FROM (
+            SELECT * FROM SaldosMesAnterior
+            UNION ALL
+            SELECT * FROM SaldoInicial
+        ) s
+        JOIN TBS010 t WITH (NOLOCK) 
+             ON t.PROEMPCOD = 0 
+            AND t.PROCOD = s.codigo COLLATE database_default
+        LEFT JOIN dbo.SALDOINICIAL si WITH (nolock)
+               ON si.[DATA] = s.data_inicial_mes 
+              AND si.CODIGO = s.codigo
+        WHERE si.[DATA] IS NULL
+    )
+    INSERT INTO dbo.SALDOINICIAL 
+        ([DATA], ANOMES, CODIGO, UNI, QEMBALAGEM, QTDENTRADA, VALENTRADA, CUSTO,
+         E1, E2, E3, E4, E5, E6, E7, E8, E9, EMPRESA)
+    SELECT
+        data_ins,
+        anomes,
+        codigo,
+        unidade,
+        embalagem,
+        qentrada,
+        ventrada,
+        custo,
+        COALESCE([1],0),
+        COALESCE([2],0),
+        COALESCE([3],0),
+        COALESCE([4],0),
+        COALESCE([5],0),
+        COALESCE([6],0),
+        COALESCE([7],0),
+        COALESCE([8],0),
+        COALESCE([9],0),
+        '' AS EMPRESA
+    FROM
+    (
+        SELECT data_ins, anomes, estoque, codigo, quantidade, unidade, embalagem, qentrada, ventrada, custo
+        FROM SaldoParaInserir
+    ) s
+    PIVOT
+    (
+        SUM(quantidade) FOR estoque IN ([1],[2],[3],[4],[5],[6],[7],[8],[9])
+    ) pvt;
+
+END
+GO
+
+exec sp_help 'SALDOINICIAL'
+
+-- fim da nova otimização
+
 drop table SALDOINICIAL_BKP
 
 select *
@@ -102,7 +411,7 @@ select max(ANOMES)
 -- data final deve ser o mes anterior ao mes que se deseja gravar o saldo inicial
 begin tran
 --exec dbo.SP_GravaSaldoInicial '20200901', '20210201'
-exec dbo.SP_GravaSaldoInicial '20220601', '20250201'
+exec dbo.SP_GravaSaldoInicial '20250901', '20250901'
 commit tran
 rollback tran
 

@@ -75,8 +75,8 @@ exec sp_droplinkedsrvlogin 'bb',NULL,'si'
 EXEC sp_droplinkedsrvlogin 'bb', 'integros'
 
 -- configurar SQL Server para RPC
-exec sp_serveroption @server='cd', @optname='RPC', @optvalue='TRUE'
-exec sp_serveroption @server='cd', @optname='rpc out', @optvalue='TRUE'
+exec sp_serveroption @server='mi', @optname='RPC', @optvalue='TRUE'
+exec sp_serveroption @server='mi', @optname='rpc out', @optvalue='TRUE'
 
 
 
@@ -125,3 +125,42 @@ exec sp_configure 'Ad Hoc Distributed Queries',1
 go
 reconfigure with override
 go
+
+-- driver
+
+EXEC master.dbo.sp_enum_oledb_providers;
+
+-- remover link remoto
+
+exec sp_dropserver 'mi';
+
+-- elimina um login remoto
+
+EXEC sp_droplinkedsrvlogin 'mi', 'integros';
+
+-- criar link remoto e login remoto
+
+EXEC master.dbo.sp_addlinkedserver
+    @server     = N'mi2',
+    @srvproduct = N'Misaspel',
+    @provider   = N'SQLNCLI11',
+    @datasrc    = N'192.168.0.7';
+
+EXEC master.dbo.sp_addlinkedsrvlogin
+    @rmtsrvname = N'mi2',
+    @useself    = 'false',
+    @rmtuser    = N'integros',
+    @rmtpassword= N'int3gro5@15387';
+
+-- rodar transação distribuída
+
+EXEC master.dbo.sp_serveroption 
+    @server = N'mi2', 
+    @optname = N'rpc out', 
+    @optvalue = N'true';
+
+
+
+
+
+

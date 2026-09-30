@@ -2747,3 +2747,241 @@ select *
  order by [DATA] desc
 
 
+-- otimização chatGPT
+
+IF EXISTS(SELECT name FROM sysobjects WHERE name='SP_BuscaCustoMedio' AND type='P')
+    DROP PROCEDURE [dbo].[SP_BuscaCustoMedio];
+GO
+
+CREATE PROCEDURE [dbo].[SP_BuscaCustoMedio] 
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- garante que a tabela temporária não exista
+    IF OBJECT_ID('tempdb..#PRECOS') IS NOT NULL
+        DROP TABLE #PRECOS;
+
+    CREATE TABLE #PRECOS
+    (
+        empresa     CHAR(2) COLLATE DATABASE_DEFAULT,
+        periodo     CHAR(6) COLLATE DATABASE_DEFAULT,
+        codigo      VARCHAR(15) COLLATE DATABASE_DEFAULT,
+        custo       DECIMAL(12,6),
+        qentrada    DECIMAL(12,4),
+        ventrada    DECIMAL(12,6),
+        unidade     VARCHAR(10) COLLATE DATABASE_DEFAULT,
+        embalagem   DECIMAL(10,4)
+    );
+
+    -- lista de servidores e empresas
+    DECLARE @servers TABLE (empresa CHAR(2), serverName SYSNAME);
+    INSERT INTO @servers VALUES
+        ('BB','bb.SIBD2'), 
+        ('MI','mi.SIBD3'), 
+        ('PY','py.SIBD'),
+        ('TC','cd.SIBD'), 
+        ('TM','nd.SIBD'), 
+        ('TT','tt.SIBD');
+
+    -- monta SQL dinâmico concatenando todos os servidores
+    DECLARE @sql NVARCHAR(MAX) = N'';
+
+    SELECT @sql = @sql + '
+        INSERT INTO #PRECOS (empresa, periodo, codigo, custo, qentrada, ventrada, unidade, embalagem)
+        SELECT 
+            ''' + empresa + ''' COLLATE DATABASE_DEFAULT, 
+            ANOMES COLLATE DATABASE_DEFAULT, 
+            CODIGO COLLATE DATABASE_DEFAULT, 
+            CUSTO, 
+            QTDENTRADA, 
+            VALENTRADA, 
+            UNI COLLATE DATABASE_DEFAULT, 
+            QEMBALAGEM
+        FROM ' + serverName + '.dbo.SALDOINICIAL with (nolock)
+        WHERE CODIGO COLLATE DATABASE_DEFAULT IN 
+              (SELECT CODIGO COLLATE DATABASE_DEFAULT 
+               FROM SALDOINICIAL with (nolock)
+               WHERE QTDENTRADA = 0)
+          AND QTDENTRADA > 0
+          AND CUSTO > 0
+		  AND EMPRESA='';'
+    FROM @servers;
+
+    -- executa o SQL dinâmico (vai popular #PRECOS)
+    EXEC sp_executesql @sql;
+
+    -- insere apenas registros que não existem na tabela SALDOINICIAL
+    INSERT INTO SALDOINICIAL (DATA, ANOMES, CODIGO, UNI, QEMBALAGEM, QTDENTRADA, VALENTRADA, CUSTO, EMPRESA)
+    SELECT 
+        periodo + '01', 
+        periodo, 
+        codigo, 
+        unidade, 
+        embalagem, 
+        qentrada, 
+        ventrada, 
+        custo, 
+        empresa
+    FROM #PRECOS p
+    WHERE NOT EXISTS(
+        SELECT 1 
+        FROM SALDOINICIAL s
+        WHERE s.ANOMES COLLATE DATABASE_DEFAULT = p.periodo COLLATE DATABASE_DEFAULT
+          AND s.CODIGO COLLATE DATABASE_DEFAULT = p.codigo COLLATE DATABASE_DEFAULT
+    );
+END;
+GO
+
+
+
+IF EXISTS(SELECT name FROM sysobjects WHERE name='SP_BuscaCustoMedio' AND type='P')
+    DROP PROCEDURE [dbo].[SP_BuscaCustoMedio];
+GO
+
+CREATE PROCEDURE [dbo].[SP_BuscaCustoMedio] 
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- garante que a tabela temporária não exista
+    IF OBJECT_ID('tempdb..#PRECOS') IS NOT NULL
+        DROP TABLE #PRECOS;
+
+    CREATE TABLE #PRECOS
+    (
+        empresa     CHAR(2) COLLATE DATABASE_DEFAULT,
+        periodo     CHAR(6) COLLATE DATABASE_DEFAULT,
+        --periodo     DATE,
+        codigo      VARCHAR(15) COLLATE DATABASE_DEFAULT,
+        custo       DECIMAL(12,6),
+        qentrada    DECIMAL(12,4),
+        ventrada    DECIMAL(12,6),
+        unidade     VARCHAR(10) COLLATE DATABASE_DEFAULT,
+        embalagem   DECIMAL(10,4)
+    );
+
+    -- lista de servidores e empresas
+    DECLARE @servers TABLE (empresa CHAR(2), serverName SYSNAME, serverIP varchar(15), serverDB varchar(10));
+    INSERT INTO @servers VALUES
+        ('BB', 'bb.SIBD2', '192.168.0.3'  , 'SIBD2'), 
+        ('MI', 'mi.SIBD3', '192.168.0.7'  , 'SIBD3'), 
+        ('PY', 'py.SIBD' , '192.168.0.7'  , 'SIBD'),
+        ('TC', 'cd.SIBD' , '192.168.10.7' , 'SIBD'), 
+        ('TM', 'nd.SIBD' , '192.168.1.205', 'SIBD'), 
+        ('TT', 'tt.SIBD' , '192.168.3.205', 'SIBD');
+
+	
+	declare @serverIP varchar(15) = CONVERT(VARCHAR(15), CONNECTIONPROPERTY('local_net_address'));
+	declare @dbName varchar(10) = convert(varchar(10), DB_NAME());
+--select @serverIP
+--select @dbName
+--select * from @servers
+	delete @servers
+ 	 where serverIP = @serverIP
+       	   and serverDB = @dbName
+--select * from @servers
+
+    -- monta SQL dinâmico concatenando todos os servidores
+    DECLARE @sql NVARCHAR(MAX) = N'';
+
+    SELECT @sql = @sql + '
+        INSERT INTO #PRECOS (empresa, periodo, codigo, custo, qentrada, ventrada, unidade, embalagem)
+        SELECT 
+            ''' + empresa + ''' COLLATE DATABASE_DEFAULT, 
+            ANOMES COLLATE DATABASE_DEFAULT, 
+            --[DATA], 
+            CODIGO COLLATE DATABASE_DEFAULT, 
+            CUSTO, 
+            QTDENTRADA, 
+            VALENTRADA, 
+            UNI COLLATE DATABASE_DEFAULT, 
+            QEMBALAGEM
+        FROM ' + serverName + '.dbo.SALDOINICIAL s1 with (nolock)
+        WHERE CODIGO COLLATE DATABASE_DEFAULT IN 
+              --(SELECT CODIGO COLLATE DATABASE_DEFAULT 
+               --FROM SALDOINICIAL 
+               --WHERE QTDENTRADA = 0
+			   --group by CODIGO)
+              (SELECT CODIGO COLLATE DATABASE_DEFAULT 
+               FROM SALDOINICIAL s2 with (nolock)
+               WHERE QTDENTRADA = 0 and s2.[DATA] = s1.[DATA]
+			   group by CODIGO)
+
+          AND QTDENTRADA > 0
+          AND CUSTO > 0
+		  AND EMPRESA='''';'
+    FROM @servers;
+
+    -- executa o SQL dinâmico (vai popular #PRECOS)
+    EXEC sp_executesql @sql;
+
+	--select * from #PRECOS where CODIGO = '0051063'
+
+    -- insere apenas registros que não existem na tabela SALDOINICIAL
+    INSERT INTO SALDOINICIAL (DATA, ANOMES, CODIGO, UNI, QEMBALAGEM, QTDENTRADA, VALENTRADA, CUSTO, EMPRESA)
+    SELECT 
+        CAST(periodo + '01' AS DATE),  -- DATA = primeiro dia do mês
+        periodo, 
+        codigo, 
+        unidade, 
+        embalagem, 
+        qentrada, 
+        ventrada, 
+        custo, 
+        empresa
+    FROM #PRECOS p
+    WHERE NOT EXISTS(
+        SELECT 1 
+        FROM SALDOINICIAL s
+        WHERE s.DATA    = CAST(p.periodo + '01' AS DATE)
+          AND s.EMPRESA = p.empresa
+          AND s.CODIGO  = p.codigo
+    );
+END;
+GO
+
+
+
+
+
+exec SP_BuscaCustoMedio
+
+exec sp_help 'SALDOINICIAL'
+
+
+-- Pegar o IP do servidor local
+
+SELECT CONNECTIONPROPERTY('local_net_address') AS ServerIP;
+
+-- Isso retorna o IP usado pela conexão atual.
+
+-- Pegar o hostname e IP
+
+SELECT 
+    SERVERPROPERTY('MachineName')   AS HostName,
+    CONNECTIONPROPERTY('local_net_address') AS IP;
+
+-- Se houver múltiplas interfaces (vários IPs)
+
+SELECT DISTINCT local_net_address
+FROM sys.dm_exec_connections
+WHERE session_id = @@SPID;
+
+-- Função DB_NAME()
+
+SELECT DB_NAME() AS NomeBancoAtual;
+
+--Função DB_NAME(DB_ID())
+
+SELECT DB_NAME(DB_ID()) AS NomeBancoAtual;
+
+
+-- (DB_ID() retorna o ID do banco conectado, e DB_NAME() transforma em nome)
+
+-- Propriedade do servidor
+
+SELECT DB_NAME() AS NomeBancoAtual,
+       SERVERPROPERTY('MachineName') AS NomeServidor,
+       SERVERPROPERTY('InstanceName') AS Instancia,
+       SERVERPROPERTY('ServerName') AS NomeCompleto;

@@ -12,8 +12,8 @@
 
 declare @data_de char(8), @data_ate char(8), @msg varchar(1000), @hit datetime, @hft datetime 
 
-select  @data_de  = '20250701'
-       ,@data_ate = '20250731'
+select  @data_de  = '20251101'
+       ,@data_ate = '20251130'
 
 -- cria lista de conexões dos PDVs
 
@@ -38,8 +38,8 @@ declare @empresa char(2)
 set @empresa='BA'
 
 insert into ##pdv (empresa,pdv,odbc,ativo)
-values (@empresa,1,'MYSQLGZBAPDV1',1),
-       (@empresa,2,'MYSQLGZBAPDV2',1)
+values (@empresa,1,'MYSQLGZBAPDV1',1)
+       --,(@empresa,2,'MYSQLGZBAPDV2',1)
 
 -- se tabela de PDVs estiver preenchida
 
@@ -131,7 +131,7 @@ if (select top(1) 1 from ##pdv where ativo=1) = 1
 					    --if @pdv > 0
 						   --begin
 					          set nocount off
-				              set @msg = 'PDV: ' + Ltrim(str(@pdv)) + convert(NVARCHAR, getdate(), 8)
+				              set @msg = 'PDV: ' + Ltrim(str(@pdv)) + ' ' + convert(NVARCHAR, getdate(), 8)
 		                      raiserror (@msg, 0, 1) with nowait
 						   --end
 					    set @pdv_atual = @pdv

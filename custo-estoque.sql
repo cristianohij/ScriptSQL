@@ -52,20 +52,37 @@ select '2024' as ANO
 
 -- custo total
 
+select max([DATA])
+  from SALDOINICIAL with (nolock)
+
 select *
   from SALDOINICIAL with (nolock)
- where ANOMES='202312'
+ where ANOMES='202510'
 
 select *
   from TBS034 with (nolock)
 
 -- somente estoque
 
-select sum(E9*CUSTO) as custo_total
+declare @anomes char(6)
+set @anomes = '202510'
+
+-- estoque 1
+
+select sum(E1 * CUSTO) as custo_total
   from SALDOINICIAL with (nolock)
- where ANOMES='202412'
-	     and (E9 > 0)
+ where ANOMES = @anomes
+	     and (E1 > 0)
        and CUSTO > 0
+
+-- estoque 2
+
+select sum(E2 * CUSTO) as custo_total
+  from SALDOINICIAL with (nolock)
+ where ANOMES = @anomes
+	     and (E2 > 0)
+       and CUSTO > 0
+
 
 -- somente loja
 

@@ -18,9 +18,10 @@ select count(*) from TBS092_BKP (nolock)
 
 -- tabela antiga
 
-select * 
+select cast(ex as char(2)), isnull(Ltrim(str(convert(int,ex))),''),* 
   --into #ncm_antiga
-  from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 12.0;Database=C:\integros\temp\TabelaIBPTaxSP25.2.B.xlsx', 'select * from [TabelaIBPTaxSP25.2.B$]')
+  from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 12.0;Database=C:\integros\temp\TabelaIBPTaxSP26.2.A.xlsx', 'select * from [TabelaIBPTaxSP26.2.A$]')
+ where codigo = '02109100'
 
 select tipo
        ,codigo
@@ -45,7 +46,7 @@ select *
 
 select * 
   into #ncm
-  from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 12.0;Database=C:\integros\temp\TabelaIBPTaxSP25.2.B.xlsx', 'select * from [TabelaIBPTaxSP25.2.B$]')
+  from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 12.0;Database=C:\integros\temp\TabelaIBPTaxSP26.2.A.xlsx', 'select * from [TabelaIBPTaxSP26.2.A$]')
 
 select ex
        ,codigo
@@ -62,7 +63,7 @@ select *
 select PROCOD,PROCLAFIS,PRODES,PROSTATUS from TBS010 (nolock)
  where PROCLAFIS<>'' and PROSTATUS='A' and
        not exists(select * 
-                         from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 12.0;Database=C:\integros\temp\TabelaIBPTaxSP25.2.B.xlsx', 'select * from [TabelaIBPTaxSP25.2.B$]')
+                         from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 12.0;Database=C:\integros\temp\TabelaIBPTaxSP26.2.A.xlsx', 'select * from [TabelaIBPTaxSP26.2.A$]')
                    where codigo=PROCLAFIS collate database_default)
 
 select PROCLAFIS
@@ -70,7 +71,7 @@ select PROCLAFIS
   from TBS010 (nolock)
  where PROCLAFIS<>'' and
        not exists(select * 
-                         from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 12.0;Database=C:\integros\temp\TabelaIBPTaxSP25.2.B.xlsx', 'select * from [TabelaIBPTaxSP25.2.B$]')
+                         from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 12.0;Database=C:\integros\temp\TabelaIBPTaxSP26.2.A.xlsx', 'select * from [TabelaIBPTaxSP26.2.A$]')
                    where codigo=PROCLAFIS collate database_default)
 	   and PROSTATUS='A'
  group by PROCLAFIS
@@ -78,7 +79,7 @@ select PROCLAFIS
 
 select * from TBS092 (nolock)
  where not exists(select * 
-                    from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 12.0;Database=C:\integros\temp\TabelaIBPTaxSP25.2.B.xlsx', 'select * from [TabelaIBPTaxSP25.2.B$]')
+                    from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 12.0;Database=C:\integros\temp\TabelaIBPTaxSP26.2.A.xlsx', 'select * from [TabelaIBPTaxSP26.2.A$]')
                    where codigo=NCMCOD collate database_default)
 
 select PROCLAFIS,PROIPI from TBS010 (nolock) where PROCOD='1640054'
@@ -135,7 +136,7 @@ insert into TBS092 (
 		  versao,
           vigenciafim,
           vigenciainicio
-     from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 12.0;Database=C:\integros\temp\TabelaIBPTaxSP25.2.B.xlsx', 'select * from [TabelaIBPTaxSP25.2.B$]')
+     from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 12.0;Database=C:\integros\temp\TabelaIBPTaxSP26.2.A.xlsx', 'select * from [TabelaIBPTaxSP26.2.A$]')
     where tipo=0
 
 commit tran
@@ -143,6 +144,7 @@ commit tran
 update TBS092 set NCMDES=upper(NCMDES)
 
 select top 1 * from TBS092 (nolock)
+select * from TBS092 (nolock)
 
 --update TBS092 set NCMALIPIS=0,NCMALICOF=0,NCMIVA=0,NCMALIIPI=0
 
@@ -159,7 +161,7 @@ select codigo,
           subString(versao,1,10),
           vigenciafim,
           vigenciainicio
-     from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 8.0;Database=C:\integros\temp\TabelaIBPTaxSP25.2.B.xlsx', 'select * from [TabelaIBPTaxSP25.2.B$]')
+     from openrowset('Microsoft.ACE.OLEDB.12.0', 'Excel 8.0;Database=C:\integros\temp\TabelaIBPTaxSP26.2.A.xlsx', 'select * from [TabelaIBPTaxSP26.2.A$]')
     where tipo=0
 
 select NCMCOD from TBS0921 (nolock) where not exists(select '' from TBS092 (nolock) where TBS092.NCMCOD=TBS0921.NCMCOD)

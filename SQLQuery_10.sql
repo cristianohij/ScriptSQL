@@ -101,11 +101,46 @@ select c.NFETIP
                                on c1.NFETIP=i1.NFETIP and c1.SERCOD=i1.SERCOD and c1.NFECOD=i1.NFECOD and c1.NFENUM=i1.NFENUM --and c1.NFECAN != 'S' and c1.NFEDATEFE != '17530101'
                             where c1.NFEDATEFE != '17530101'
                                   and c1.NFECAN = 'N'
-                                  and c1.NFETIP='N'
+                                  and c1.NFETIP = 'N'
                                   and i1.PROCOD = i.PROCOD
                                   and i1.NFECESTXML != ''
+                                  AND RIGHT(i1.NFECFOP, 3) IN ('102','403','121','202','411')
                                   and c.NFECOD not in(select codigo from #fornecedoresGrupo with (nolock))
                          )
+
+-- best arts
+
+select c.NFETIP
+       ,c.SERCOD
+       ,c.NFECOD
+       ,c.NFENUM
+       ,c.NFEDATEFE
+       ,i.PROCOD
+       ,i.NFECESTXML
+  into #procest
+  from TBS059 c with (nolock)
+ inner join TBS0591 i with (nolock)
+    on c.NFETIP=i.NFETIP and c.SERCOD=i.SERCOD and c.NFECOD=i.NFECOD and c.NFENUM=i.NFENUM --and c.NFECAN != 'S' and c.NFEDATEFE != '17530101'
+ where c.NFEDATEFE != '17530101'
+       and c.NFECAN = 'N'
+       and c.NFETIP='N'
+       and i.NFECESTXML != ''
+       and c.NFEDATEFE = (
+                           select max(NFEDATEFE)
+                             from TBS059 c1 with (nolock)
+                            inner join TBS0591 i1 with (nolock)
+                               on c1.NFETIP=i1.NFETIP and c1.SERCOD=i1.SERCOD and c1.NFECOD=i1.NFECOD and c1.NFENUM=i1.NFENUM --and c1.NFECAN != 'S' and c1.NFEDATEFE != '17530101'
+                            where c1.NFEDATEFE != '17530101'
+                                  and c1.NFECAN = 'N'
+                                  and c1.NFETIP = 'N'
+                                  and i1.PROCOD = i.PROCOD
+                                  and i1.NFECESTXML != ''
+                                  AND RIGHT(i1.NFECFOP, 3) IN ('102','403','121','202','411')
+                         )
+
+select *
+  from #procest
+
 
 select PROCOD
        ,count(*)
@@ -141,7 +176,7 @@ select p.PROCOD
  inner join #procest c
     on c.PROCOD=p.PROCOD
  where p.PROCEST = ''
-       and p.PROCLAFIS != ''
+       and p.PROCLAFIS <> ''
  order by p.PROCOD
 
 select PROCOD
@@ -150,13 +185,17 @@ select PROCOD
   from TBS010 with (nolock)
  where PROCEST != ''
 
+begin tran
 update p
    set p.PROCEST = c.NFECESTXML
   from TBS010 p with (nolock)
  inner join #procest c 
     on c.PROCOD = p.PROCOD
  where p.PROCEST = ''
-       and p.PROCLAFIS != ''
+       and p.PROCLAFIS <> ''
+
+rollback tran
+commit tran
 
 -- cadastros de produtos com CEST diferentes da última NF de entrada
 
@@ -1147,11 +1186,15 @@ select *
 
 select *
   from TBS154 with (nolock)
- where CESTMVACOD = '2802502'
+ where CESTMVACOD = '2103100'
 
 select *
   from TBS1541 with (nolock)
- where CESTMVANCM = '82141000'
+ where CESTMVACOD = '1900500'
+
+select *
+  from TBS1541 with (nolock)
+ where CESTMVANCM = '84716053'
 
 -- NCM das notas fiscais de fornecedores
 
@@ -1184,6 +1227,39 @@ select c.NFETIP
                                   and c.NFECOD not in(select codigo from #fornecedoresGrupo with (nolock))
                          )
 
+-- best arts
+
+select c.NFETIP
+       ,c.SERCOD
+       ,c.NFECOD
+       ,c.NFENUM
+       ,c.NFEDATEFE
+       ,i.PROCOD
+       ,i.NFENCMXML
+  into #proncm
+  from TBS059 c with (nolock)
+ inner join TBS0591 i with (nolock)
+    on c.NFETIP=i.NFETIP and c.SERCOD=i.SERCOD and c.NFECOD=i.NFECOD and c.NFENUM=i.NFENUM --and c.NFECAN != 'S' and c.NFEDATEFE != '17530101'
+ where c.NFEDATEFE != '17530101'
+       and c.NFECAN = 'N'
+       and c.NFETIP = 'N'
+       and i.NFENCMXML != ''
+       and c.NFEDATEFE = (
+                           select max(NFEDATEFE)
+                             from TBS059 c1 with (nolock)
+                            inner join TBS0591 i1 with (nolock)
+                               on c1.NFETIP=i1.NFETIP and c1.SERCOD=i1.SERCOD and c1.NFECOD=i1.NFECOD and c1.NFENUM=i1.NFENUM --and c1.NFECAN != 'S' and c1.NFEDATEFE != '17530101'
+                            where c1.NFEDATEFE != '17530101'
+                                  and c1.NFECAN = 'N'
+                                  and c1.NFETIP='N'
+                                  and i1.PROCOD = i.PROCOD
+                                  and i1.NFENCMXML != ''
+                                  AND RIGHT(i1.NFECFOP, 3) IN ('102','403','121','202','411')
+                         )
+
+select *
+  from #proncm
+
 select p.PROCOD
        ,p.PRODES
        ,p.PROCLAFIS
@@ -1210,6 +1286,29 @@ update p
 rollback tran
 commit tran
 
+-- ncms diferentes entre cadastro do produto e nota fiscal de entrada
+
+select p.PROCOD
+       ,p.PRODES
+       ,p.PROCLAFIS
+       ,p.PROCEST
+       ,n.NFENCMXML
+  from TBS010 p with (nolock)
+ inner join #proncm n
+    on n.PROCOD=p.PROCOD
+ where p.PROCLAFIS <> n.NFENCMXML
+ order by p.PROCOD
+
+begin tran
+update p
+   set p.PROCLAFIS = n.NFENCMXML
+  from TBS010 p with (nolock)
+ inner join #proncm n
+    on n.PROCOD = p.PROCOD
+ where p.PROCLAFIS <> n.NFENCMXML
+
+rollback tran
+commit tran
 
 select NFENCMXML
        ,NFECESTXML
@@ -1965,7 +2064,7 @@ select c.NFETIP
                                on c1.NFETIP=i1.NFETIP and c1.SERCOD=i1.SERCOD and c1.NFECOD=i1.NFECOD and c1.NFENUM=i1.NFENUM --and c1.NFECAN != 'S' and c1.NFEDATEFE != '17530101'
                             where c1.NFEDATEFE != '17530101'
                                   and c1.NFECAN = 'N'
-                                  and c1.NFETIP='N'
+                                  and c1.NFETIP = 'N'
                                   and i1.PROCOD = i.PROCOD
                                   and i1.NFENCMXML != ''
                                   and c.NFECOD not in(select codigo from #grupo with (nolock))

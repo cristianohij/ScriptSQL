@@ -43,7 +43,7 @@ select convert(char(6),ITIDATEMI,112) as 'data'
        ,count(*) as qtde_no_mes
        ,count(*)/22 as media_por_dia
   from TBS109 with (nolock)
- where ITIDATEMI between '20250101' and '20250228'
+ where ITIDATEMI between '20230101' and '20250915'
  group by convert(char(6),ITIDATEMI,112)
  order by convert(char(6),ITIDATEMI,112)
 
@@ -81,7 +81,7 @@ select convert(char(6),ITIDATEMI,112) as periodo
        ,(select CARCODNOM from TBS108 car with (nolock) where car.CARPLA=iti.ITICARPLA)
        ,count(*) as 'contador'
   from TBS109 iti with (nolock)
- where ITIDATEMI between '20250101' and '20250228'
+ where ITIDATEMI between '20230101' and '20250915'
  group by convert(char(6),ITIDATEMI,112)
           ,ITICARPLA
  order by convert(char(6),ITIDATEMI,112)
@@ -114,7 +114,7 @@ select periodo
        --,format(sum(ITITOTDOC), 'C', 'pt-BR') as valor_total
        ,sum(ITITOTDOC) as valor_total
   from #itinerario
- where periodo between '202501' and '202502'
+ where periodo between '202301' and '202509'
  group by periodo, ITICARPLA, nome_carro
  order by periodo desc, nome_carro
 

@@ -1,8 +1,8 @@
--- versão antiga
+-- versï¿½o antiga
 -- EXEC master.dbo.xp_cmdshell 'bcp "select right(replicate(''0'',20) + Ltrim(rtrim(T10.PROCOD)),20) + right(replicate(''0'',20) + Ltrim(rtrim(T10.PROCOD)),20)+ replace(Left(T10.PRODES,40),'''','''') + replace(Left(T10.PRODES,24),'''','''') + ''N'' + T10.PROUM1 + replicate(''0'',4) + replicate(''0'',2) + right(replicate(''0'',9) + Ltrim(str(isnull((select round(preco1,3) from ##precos where codigo=T10.PROCOD),0)*1000,9,0)),9) + replicate(''0'',9) + replicate(''0'',12) + ''A'' + T10.PROPESAVEL + ''N'' + ''N'' + replicate('' '',6) + right(''00'' + Ltrim(str(isnull(T10.TGZCOD,0),2)),2) + '' '' + right(replicate(''0'',7) + Ltrim(str(round(T10.PROUM1QTD,3)*1000,7,0)),7) + ''N'' + replicate(''0'',4) + ''N'' + replicate('' '',80) + replicate(''0'',9) + iif(PROPESAVEL=''S'',''N'',''S'') + replicate('' '',40) + T10.PROSTBA+T10.PROSTBB + ''A'' + replicate(''0'',4) + replicate('' '',81) + replicate(''0'',4) + right(replicate(''0'',7) + Ltrim( str(round(T10.PROUM2QTD,3)*1000,7,0)),7) + iif(PROPESAVEL=''S'',''N'',''S'') + replicate(''0'',4) + Left(Ltrim(iif(Len(T10.PROCLAFIS)=8,T10.PROCLAFIS,'''')) + replicate('' '',2),10) + replicate(''0'',12) + replicate('' '',4) + replicate(''0'',9) + replicate(''0'',7) + ''N'' + replicate(''0'',4) + replicate(''0'',12) + replicate(''0'',12) + replicate(''0'',6) + replicate(''0'',6) + replicate(''0'',6) + replicate(''0'',8) + replicate('' '',1) + replicate(''0'',20) + replicate(''0'',3) + replicate(''0'',9) + replicate('' '',90) + replicate(''0'',2)  + replicate(''0'',6) + replicate('' '',1) + replicate('' '',1) + ''0'' + replicate(''0'',2) + replicate(''0'',2) + replicate(''0'',2) + replicate(''0'',2) + ''N'' + replicate(''0'',3) + ''T'' + ''A'' + replicate(''0'',9) + replicate(''0'',3) + isnull((select iif(T10.PROSTBA in (''0'', ''3'', ''4'', ''5''), right(replicate(''0'',4) + Ltrim(rtrim(replace(convert(char(9),round(NCMALINAC*100,0)),''.00'',''''))),4), right(replicate(''0'',4) + Ltrim(rtrim(replace(convert(char(9),round(NCMALIIMP*100,0)),''.00'',''''))),4)) from SIBD.dbo.TBS092 with (nolock) where NCMCOD=T10.PROCLAFIS and NCMEX=''''),''000'') + (select iif(EMPCRT=1,T10.PROSTBA+T10.PROCSN, replicate('' '',4)) from SIBD.dbo.TBS023 with (nolock) where EMPCOD = 1) + ''N'' + replicate(''0'',4) + isnull((select NCMCHV from SIBD.dbo.TBS092 with (nolock) where NCMCOD=T10.PROCLAFIS and NCMEX=''''),replicate('' '',10)) + Ltrim(iif((select EMPCRT from SIBD.dbo.TBS023 with (nolock) where EMPCOD=1)=''1'',''49'', isnull((select cstpis from SIBD.dbo.PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate('' '',2)))) + iif((select EMPCRT from SIBD.dbo.TBS023 with (nolock) where EMPCOD=1)=''1'',replicate(''0'',9), right(replicate(''0'',9) + Ltrim( str(isnull((select round(aliqpis,2)*100 from SIBD.dbo.PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate(''0'',9)),9)),9)) + Ltrim(iif((select EMPCRT from SIBD.dbo.TBS023 with (nolock) where EMPCOD=1)=''1'',''49'', isnull((select cstcofins from SIBD.dbo.PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate('' '',2)))) + iif((select EMPCRT from SIBD.dbo.TBS023 with (nolock) where EMPCOD=1)=''1'',replicate(''0'',9), right(replicate(''0'',9) + Ltrim( str(isnull((select round(aliqcofins,2)*100 from SIBD.dbo.PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate(''0'',9)),9)),9)) + iif(Len(T10.PROCEST)=7,T10.PROCEST, replicate('' '',7)) + replicate(''0'',9) + replicate(''0'',9) + right(replicate(''0'',9) + Ltrim(str(isnull((select round(custo,3) from ##precos where codigo=T10.PROCOD),0)*1000,9,0)),9) as texto from SIBD.dbo.TBS010 T10 with (nolock) where (select round(custo,3) from ##precos where codigo=T10.PROCOD) > 0 order by PROCOD" queryout "c:\integros\teste\estoque.txt" -c -t; -T';
 
 
--- versão atual
+-- versï¿½o atual
 
 -- functions utilizadas
 
@@ -13,7 +13,7 @@
 
 -- CARGA GERAL DOS PRODUTOS
 
--- remove/recria a tabela temporária de preços
+-- remove/recria a tabela temporï¿½ria de preï¿½os
 
 if object_id('##precos') is not null
    drop table ##precos
@@ -22,7 +22,7 @@ go
 declare @q int
 declare @SQLemail varchar(max), @msg varchar(max), @mailto varchar(max), @empresa varchar(60), @trabalho varchar(max), @titulo varchar(max)
 
-set @titulo='Falha no Trabalho de Integração GZ'
+set @titulo='Falha no Trabalho de Integraï¿½ï¿½o GZ'
 set @mailto='cristiano@integros.com.br'
 set @empresa=(select '<p>Emprensa: ' + rtrim(EMPNOMFAN) from TBS023 with (nolock) where (EMPNOM Like('TANBY%') and EMPCOD=1) or (EMPNOM Like('BEST BAG%') and EMPCOD=2))
 set @trabalho='<p>Nome do trabalho: Carga Geral de Produtos Para Sistema GZ'
@@ -36,7 +36,7 @@ if @q=0
    begin
 	  set @msg=@trabalho
 	            + (select '<p>Executado em: ' + convert(varchar(max),getdate()))
-				+ '<p>Mensagem: Não foi carregada a tabela ##precos'
+				+ '<p>Mensagem: Nï¿½o foi carregada a tabela ##precos'
 				+ @empresa
 
       set @SQLemail='execute msdb.dbo.sp_send_dbmail
@@ -48,118 +48,118 @@ if @q=0
 
       exec(@sqlEmail)
 
-      print 'Não foi carregada a tabela ##precos'
+      print 'Nï¿½o foi carregada a tabela ##precos'
 
-      -- força um erro para parar o processo
+      -- forï¿½a um erro para parar o processo
       select * from parada_forcada
    end
 
-print 'Quantidade de produtos com preços: ' + Ltrim(str(@q,9,0))
+print 'Quantidade de produtos com preï¿½os: ' + Ltrim(str(@q,9,0))
 
--- gera o arquivo temporário para exportação dos produtos
+-- gera o arquivo temporï¿½rio para exportaï¿½ï¿½o dos produtos
 
--- remove/recria a tabela temporária de produtos
+-- remove/recria a tabela temporï¿½ria de produtos
 
 if object_id('##produtos') is not null
    drop table ##produtos
 
 -- lista de produtos exportados
 
-select right(replicate('0',20) + Ltrim(rtrim(T10.PROCOD)),20)		-- 01 Código Interno do Produto (PLU)
-       + right(replicate('0',20) + Ltrim(rtrim(T10.PROCOD)),20)		-- 02 Código de Barras - Observação 1
-	   -- 03 Descrição Completa
+select right(replicate('0',20) + Ltrim(rtrim(T10.PROCOD)),20)		-- 01 Cï¿½digo Interno do Produto (PLU)
+       + right(replicate('0',20) + Ltrim(rtrim(T10.PROCOD)),20)		-- 02 Cï¿½digo de Barras - Observaï¿½ï¿½o 1
+	   -- 03 Descriï¿½ï¿½o Completa
        --+ replace(Left(replace(T10.PRODES collate sql_latin1_general_cp1251_ci_as,'''',''),40),'''','')
 	   + replace(Left(replace(iif(T10.PRODESPDV='',T10.PRODES,T10.PRODESPDV) collate sql_latin1_general_cp1251_ci_as,'''',''),40),'''','')
-	   -- 04 Descrição Resumida para o PDV
+	   -- 04 Descriï¿½ï¿½o Resumida para o PDV
        --+ replace(Left(replace(T10.PRODES collate sql_latin1_general_cp1251_ci_as,'''',''),24),'''','')
 	   + replace(Left(replace(iif(T10.PRODESPDVRED='',T10.PRODES,T10.PRODESPDVRED) collate sql_latin1_general_cp1251_ci_as,'''',''),24),'''','')
-       + 'N'														-- 05 Fórmula - Observação 2
-       + T10.PROUM1													-- 06 Unidade de Referência - Observação 3
-	   + replicate('0',4)											-- 07 Armação / Localização
-	   + replicate('0',2)											-- 08 Setor ( Balança ) - Produto Pesado
+       + 'N'														-- 05 Fï¿½rmula - Observaï¿½ï¿½o 2
+       + T10.PROUM1													-- 06 Unidade de Referï¿½ncia - Observaï¿½ï¿½o 3
+	   + replicate('0',4)											-- 07 Armaï¿½ï¿½o / Localizaï¿½ï¿½o
+	   + replicate('0',2)											-- 08 Setor ( Balanï¿½a ) - Produto Pesado
 	   
-	   -- 09 Preço de Venda Padrão
+	   -- 09 Preï¿½o de Venda Padrï¿½o
 	   + right(replicate('0',9) + Ltrim(str(isnull((select round(preco1,3) from ##precos where codigo=T10.PROCOD),0)*1000,9,0)),9)
 
-	   + replicate('0',9)											-- 10 Preço de Venda Promocional - Observação 4
+	   + replicate('0',9)											-- 10 Preï¿½o de Venda Promocional - Observaï¿½ï¿½o 4
 	   + replicate('0',12)											-- 11 Saldo em Estoque (Quantidade)
-       + 'A'														-- 12 Desconto Padrão - Observação 5
-       --+ T10.PROPESAVEL												-- 13 Quantidade Variável / Produto Pesado ? - S,N,E Observação 27
-	   + iif(T10.PROUM1 in('KG','MT'),'S','N')						-- 13 Quantidade Variável / Produto Pesado ? - S,N,E Observação 27
-       + 'N'														-- 14 Altera Preço de Venda no PDV ? - S,N,T Observação 6
-       + 'N'														-- 15 Bloqueia Multiplicador ? - Observação 7
-	   + replicate(' ',6)											-- 16 Promoção: Leve X Pague Y - Observação 8
-       + right('00' + Ltrim(str(isnull(T10.TGZCOD,0),2)),2)			-- 17 Código da Tributação
-	   + ' '														-- 18 Reservado - Espaço em Branco
+       + 'A'														-- 12 Desconto Padrï¿½o - Observaï¿½ï¿½o 5
+       --+ T10.PROPESAVEL												-- 13 Quantidade Variï¿½vel / Produto Pesado ? - S,N,E Observaï¿½ï¿½o 27
+	   + iif(T10.PROUM1 in('KG','MT'),'S','N')						-- 13 Quantidade Variï¿½vel / Produto Pesado ? - S,N,E Observaï¿½ï¿½o 27
+       + 'N'														-- 14 Altera Preï¿½o de Venda no PDV ? - S,N,T Observaï¿½ï¿½o 6
+       + 'N'														-- 15 Bloqueia Multiplicador ? - Observaï¿½ï¿½o 7
+	   + replicate(' ',6)											-- 16 Promoï¿½ï¿½o: Leve X Pague Y - Observaï¿½ï¿½o 8
+       + right('00' + Ltrim(str(isnull(T10.TGZCOD,0),2)),2)			-- 17 Cï¿½digo da Tributaï¿½ï¿½o
+	   + ' '														-- 18 Reservado - Espaï¿½o em Branco
        
-	   -- 19 Quantidade por Embalagem - Observação 10
+	   -- 19 Quantidade por Embalagem - Observaï¿½ï¿½o 10
 	   + right(replicate('0',7) + Ltrim(str(round(T10.PROUM1QTD,3)*1000,7,0)),7)
 
-       + 'N'														-- 20 Vende Somente Embalagem Fechada ? - Observação 11
-	   + replicate('0',4)											-- 21 Desconto por Embalagem Fechada - Observação 12
-	   + 'N'														-- 22 Pede Descrição Complementar ? - S,N,P,T Obs. 13
-	   + replicate(' ',80)											-- 23 Reservado - Espaço em Branco
-	   + replicate('0',9)											-- 24 Preço de Venda Atacado
-       --+ iif(PROPESAVEL='S','N','S')								-- 25 Bloqueia Venda Fracionada ? - Observação 14
-	   + iif(T10.PROUM1 in('KG','MT'),'N','S')						-- 25 Bloqueia Venda Fracionada ? - Observação 14
+       + 'N'														-- 20 Vende Somente Embalagem Fechada ? - Observaï¿½ï¿½o 11
+	   + replicate('0',4)											-- 21 Desconto por Embalagem Fechada - Observaï¿½ï¿½o 12
+	   + 'N'														-- 22 Pede Descriï¿½ï¿½o Complementar ? - S,N,P,T Obs. 13
+	   + replicate(' ',80)											-- 23 Reservado - Espaï¿½o em Branco
+	   + replicate('0',9)											-- 24 Preï¿½o de Venda Atacado
+       --+ iif(PROPESAVEL='S','N','S')								-- 25 Bloqueia Venda Fracionada ? - Observaï¿½ï¿½o 14
+	   + iif(T10.PROUM1 in('KG','MT'),'N','S')						-- 25 Bloqueia Venda Fracionada ? - Observaï¿½ï¿½o 14
 	   + replicate(' ',40)											-- 26 Referencia
-       + T10.PROSTBA+T10.PROSTBB									-- 27 Situação Tributária - Tabela 2
+       + T10.PROSTBA+T10.PROSTBB									-- 27 Situaï¿½ï¿½o Tributï¿½ria - Tabela 2
        + 'A'														-- 28 Estado do Produto - A - Ativo / I - Inativo
-	   + replicate('0',4)											-- 29 Código do Vasilhame - Observação 15
-	   + replicate(' ',81)											-- 30 Reservado - Espaço em Branco
-	   + replicate('0',4)											-- 31 Percentual Desconto Máximo Permitido - Observação 16
+	   + replicate('0',4)											-- 29 Cï¿½digo do Vasilhame - Observaï¿½ï¿½o 15
+	   + replicate(' ',81)											-- 30 Reservado - Espaï¿½o em Branco
+	   + replicate('0',4)											-- 31 Percentual Desconto Mï¿½ximo Permitido - Observaï¿½ï¿½o 16
 	   
 	   --+ str(round(T10.PROUM2QTD,3),7,3)
-       + right(replicate('0',7) + Ltrim( str(round(T10.PROUM2QTD,3)*1000,7,0)),7)		-- 32 Quantidade por Embalagem (Atacado) - Observação 10
+       + right(replicate('0',7) + Ltrim( str(round(T10.PROUM2QTD,3)*1000,7,0)),7)		-- 32 Quantidade por Embalagem (Atacado) - Observaï¿½ï¿½o 10
        
-	   --+ iif(PROPESAVEL='S','N','S')													-- 33 Vende Só Embal. Fechada ? (Atacado) - Observação 11
-	   + iif(T10.PROUM1 in('KG','MT'),'N','S')											-- 33 Vende Só Embal. Fechada ? (Atacado) - Observação 11
-	   + replicate('0',4)																-- 34 Desconto por Embal. Fechada(Atacado) - Observação 12
+	   --+ iif(PROPESAVEL='S','N','S')													-- 33 Vende Sï¿½ Embal. Fechada ? (Atacado) - Observaï¿½ï¿½o 11
+	   + iif(T10.PROUM1 in('KG','MT'),'N','S')											-- 33 Vende Sï¿½ Embal. Fechada ? (Atacado) - Observaï¿½ï¿½o 11
+	   + replicate('0',4)																-- 34 Desconto por Embal. Fechada(Atacado) - Observaï¿½ï¿½o 12
        
-	   -- 35 Classificação Fiscal
+	   -- 35 Classificaï¿½ï¿½o Fiscal
 	   + iif(Len(Ltrim(T10.PROCLAFIS))=8,rtrim(T10.PROCLAFIS)+'  ', replicate(' ',10))
 
-	   + replicate('0',12)																-- 36 Quantidade Pendente - Venda Balcão
-	   + replicate(' ',4)																-- 37 Validade da Quantidade Pendente - Venda Balcão
-	   + replicate('0',9)																-- 38 Preço de Venda Especial
-	   + replicate('0',7)																-- 39 Quantidade por Embalagem (Especial) - Observação 10
-	   + 'N'																			-- 40 Vende Só Embal. Fechada ? (Especial) - Observação 11
-	   + replicate('0',4)																-- 41 Desconto por Embalagem Fechada (Especial) - Observação 12
-	   + replicate('0',12)																-- 42 Quantidade Mínima para Preço Atacado - Observação 17
-	   + replicate('0',12)																-- 43 Quantidade Mínima para Preço Especial - Observação 17
+	   + replicate('0',12)																-- 36 Quantidade Pendente - Venda Balcï¿½o
+	   + replicate(' ',4)																-- 37 Validade da Quantidade Pendente - Venda Balcï¿½o
+	   + replicate('0',9)																-- 38 Preï¿½o de Venda Especial
+	   + replicate('0',7)																-- 39 Quantidade por Embalagem (Especial) - Observaï¿½ï¿½o 10
+	   + 'N'																			-- 40 Vende Sï¿½ Embal. Fechada ? (Especial) - Observaï¿½ï¿½o 11
+	   + replicate('0',4)																-- 41 Desconto por Embalagem Fechada (Especial) - Observaï¿½ï¿½o 12
+	   + replicate('0',12)																-- 42 Quantidade Mï¿½nima para Preï¿½o Atacado - Observaï¿½ï¿½o 17
+	   + replicate('0',12)																-- 43 Quantidade Mï¿½nima para Preï¿½o Especial - Observaï¿½ï¿½o 17
 	   + replicate('0',6)																-- 44 Grupo
 	   + replicate('0',6)																-- 45 Departamento
 	   --+ replicate('0',6)																-- 46 Marca
 	   + right('000000' + Ltrim(str(isnull(T10.MARCOD,0),4)),6)							-- 46 Marca
-	   + replicate('0',8)																-- 47 Pontos Clube Fidelidade - Observação 18
-	   + replicate(' ',1)																-- 48 Base de Cálculo Clube Fidelidade - Observação 19
-	   + replicate('0',20)																-- 49 Código Interno do Produto Associado - Observação 20
-	   + replicate('0',3)																-- 50 Grupo de Finalizadores - Observação 21
-	   + replicate('0',9)																-- 51 Desconto Finalizadores Específicos - Observação 22
-	   + replicate(' ',90)																-- 52 Finalizadores para Desconto - Observação 23
-	   + replicate('0',2)																-- 53 1º Micro-Terminal de Impressão - Observação 24
-	   + replicate('0',6)																-- 54 Quantidade Máxima de Item por Compra
-	   + replicate(' ',1)																-- 55 Cupom Vinculado - Observação 25
-	   + replicate(' ',1)																-- 56 Bloqueador de Venda - Observação 26
-	   + '0'																			-- 57 Tipo do Produto - 0 - Produto / 1 Serviço
-	   + replicate('0',2)																-- 58 2º Micro-Terminal de Impressão - Observação 24
-	   + replicate('0',2)																-- 59 3º Micro-Terminal de Impressão - Observação 24
-	   + replicate('0',2)																-- 60 4º Micro-Terminal de Impressão - Observação 24
-	   + replicate('0',2)																-- 61 5º Micro-Terminal de Impressão - Observação 24
-	   + 'N'																			-- 62 Solicita Senha para Liberação de Venda - S - Sim / N - Não
-	   + replicate('0',3)																-- 63 Grupo de Balcão - Observação 28
-	   + 'T'																			-- 64 Indicador de Produção Própria ou de Terceiro
+	   + replicate('0',8)																-- 47 Pontos Clube Fidelidade - Observaï¿½ï¿½o 18
+	   + replicate(' ',1)																-- 48 Base de Cï¿½lculo Clube Fidelidade - Observaï¿½ï¿½o 19
+	   + replicate('0',20)																-- 49 Cï¿½digo Interno do Produto Associado - Observaï¿½ï¿½o 20
+	   + replicate('0',3)																-- 50 Grupo de Finalizadores - Observaï¿½ï¿½o 21
+	   + replicate('0',9)																-- 51 Desconto Finalizadores Especï¿½ficos - Observaï¿½ï¿½o 22
+	   + replicate(' ',90)																-- 52 Finalizadores para Desconto - Observaï¿½ï¿½o 23
+	   + replicate('0',2)																-- 53 1ï¿½ Micro-Terminal de Impressï¿½o - Observaï¿½ï¿½o 24
+	   + replicate('0',6)																-- 54 Quantidade Mï¿½xima de Item por Compra
+	   + replicate(' ',1)																-- 55 Cupom Vinculado - Observaï¿½ï¿½o 25
+	   + replicate(' ',1)																-- 56 Bloqueador de Venda - Observaï¿½ï¿½o 26
+	   + '0'																			-- 57 Tipo do Produto - 0 - Produto / 1 Serviï¿½o
+	   + replicate('0',2)																-- 58 2ï¿½ Micro-Terminal de Impressï¿½o - Observaï¿½ï¿½o 24
+	   + replicate('0',2)																-- 59 3ï¿½ Micro-Terminal de Impressï¿½o - Observaï¿½ï¿½o 24
+	   + replicate('0',2)																-- 60 4ï¿½ Micro-Terminal de Impressï¿½o - Observaï¿½ï¿½o 24
+	   + replicate('0',2)																-- 61 5ï¿½ Micro-Terminal de Impressï¿½o - Observaï¿½ï¿½o 24
+	   + 'N'																			-- 62 Solicita Senha para Liberaï¿½ï¿½o de Venda - S - Sim / N - Nï¿½o
+	   + replicate('0',3)																-- 63 Grupo de Balcï¿½o - Observaï¿½ï¿½o 28
+	   + 'T'																			-- 64 Indicador de Produï¿½ï¿½o Prï¿½pria ou de Terceiro
 	   + 'A'																			-- 65 Indicador de Arredondamento ou Truncamento - A - Arredondamento T - Truncamento
-	   + replicate('0',9)																-- 66 Preço Máximo de Venda ao Consumidor
-	   + replicate('0',3)																-- 67 Tipo do Produto - Observação 29
+	   + replicate('0',9)																-- 66 Preï¿½o Mï¿½ximo de Venda ao Consumidor
+	   + replicate('0',3)																-- 67 Tipo do Produto - Observaï¿½ï¿½o 29
 
-	   -- 68 Carga Tributária Federal - Observação 30
+	   -- 68 Carga Tributï¿½ria Federal - Observaï¿½ï¿½o 30
 	   + isnull((select iif(T10.PROSTBA in ('0', '3', '4', '5'), right(replicate('0',4) + Ltrim(rtrim(replace(convert(char(9),round(NCMALINAC*100,0)),'.00',''))),4), right(replicate('0',4) + Ltrim(rtrim(replace(convert(char(9),round(NCMALIIMP*100,0)),'.00',''))),4)) from TBS092 with (nolock) where NCMCOD=T10.PROCLAFIS and NCMEX=''),'0000')
 
 	   + (select iif(EMPCRT=1,T10.PROSTBA+T10.PROCSN, replicate(' ',4)) from TBS023 with (nolock) where EMPCOD = 1)	-- 69 CSOSN
 
-	   + 'N'														-- 70 Entregável - S - Sim / N - Não - Observação 31
-	   + replicate('0',4)											-- 71 Carga Tributária Estadual - Observação 30
+	   + 'N'														-- 70 Entregï¿½vel - S - Sim / N - Nï¿½o - Observaï¿½ï¿½o 31
+	   + replicate('0',4)											-- 71 Carga Tributï¿½ria Estadual - Observaï¿½ï¿½o 30
 
 	   -- 72 Chave Tabela IBPT
 	   + isnull((select NCMCHV from TBS092 with (nolock) where NCMCOD=T10.PROCLAFIS and NCMEX=''),replicate(' ',10))
@@ -167,21 +167,21 @@ select right(replicate('0',20) + Ltrim(rtrim(T10.PROCOD)),20)		-- 01 Código Inte
 	   -- 73 CST do PIS
 	   + Ltrim(isnull((select cstpis from PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate(' ',2)))
 
-       -- 74 Alíquota do PIS
+       -- 74 Alï¿½quota do PIS
 	   + right(replicate('0',9) + Ltrim( str(isnull((select round(aliqpis,2)*100 from PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate('0',9)),9)),9)
 
 	   -- 75 CST do COFINS
 	   + Ltrim(isnull((select cstcofins from PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate(' ',2)))
 
-       -- 76 Alíquota do COFINS
+       -- 76 Alï¿½quota do COFINS
 	   + right(replicate('0',9) + Ltrim( str(isnull((select round(aliqcofins,2)*100 from PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate('0',9)),9)),9)
 
-	   + iif(Len(Ltrim(T10.PROCEST))=7,T10.PROCEST, replicate(' ',7))						-- 77 CEST - Código Especificador da Substituição Tributária - Observação 32
+	   + iif(Len(Ltrim(T10.PROCEST))=7,T10.PROCEST, replicate(' ',7))						-- 77 CEST - Cï¿½digo Especificador da Substituiï¿½ï¿½o Tributï¿½ria - Observaï¿½ï¿½o 32
 
-	   + replicate('0',9)															-- 78 Valor Unitário PIS - SAIDA
-	   + replicate('0',9)															-- 79 Valor Unitário COFINS - SAIDA
+	   + replicate('0',9)															-- 78 Valor Unitï¿½rio PIS - SAIDA
+	   + replicate('0',9)															-- 79 Valor Unitï¿½rio COFINS - SAIDA
 
-       -- 80 Preço de Custo
+       -- 80 Preï¿½o de Custo
 	   + right(replicate('0',9) + Ltrim(str(isnull((select round(custo,3) from ##precos where codigo=T10.PROCOD),0)*1000,9,0)),9) as texto
 
    into ##produtos
@@ -223,7 +223,7 @@ if (select q from ##q2)=0
 
       print 'Falha ao carregar a tabela ##produtos'
       
-	  -- FORÇA UM ERRO PARA PARAR O PROCESSAMENTO
+	  -- FORï¿½A UM ERRO PARA PARAR O PROCESSAMENTO
       select * from parada_forcada
    end
 
@@ -232,15 +232,15 @@ exec master.dbo.xp_cmdshell 'bcp "select texto from ##produtos" queryout "c:\int
 go
 
 
--- daqui pra baixo perde a referência das variáveis criadas
+-- daqui pra baixo perde a referï¿½ncia das variï¿½veis criadas
 
 
--- valida a quantidade de proudtos exportados, diferença deve ser menor do que 1%
+-- valida a quantidade de proudtos exportados, diferenï¿½a deve ser menor do que 1%
 
 declare @q1 float, @q2 float
 declare @SQLemail varchar(max), @msg varchar(max), @mailto varchar(max), @empresa varchar(60), @trabalho varchar(max), @titulo varchar(max)
 
-set @titulo='Falha no Trabalho de Integração GZ'
+set @titulo='Falha no Trabalho de Integraï¿½ï¿½o GZ'
 set @mailto='cristiano@integros.com.br'
 set @empresa=(select '<p>Emprensa: ' + rtrim(EMPNOMFAN) from TBS023 with (nolock) where (EMPNOM Like('TANBY%') and EMPCOD=1) or (EMPNOM Like('BEST BAG%') and EMPCOD=2))
 set @trabalho='<p>Nome do trabalho: Carga Geral de Produtos Para Sistema GZ'
@@ -262,7 +262,7 @@ if ((1-@q1/@q2) * 100) >= 1
    begin
    	  set @msg=@trabalho
 	            + (select '<p>Executado em: ' + convert(varchar(max),getdate()))
-				+ '<p>Mensagem: Falha na exportação dos Produtos. Arquivo c:\integros\expgz\est.txt deletado.'
+				+ '<p>Mensagem: Falha na exportaï¿½ï¿½o dos Produtos. Arquivo c:\integros\expgz\est.txt deletado.'
 				+ @empresa
 
       set @SQLemail='execute msdb.dbo.sp_send_dbmail
@@ -274,10 +274,10 @@ if ((1-@q1/@q2) * 100) >= 1
 
       exec(@sqlEmail)
 
-      print 'Falha na exportação dos Produtos. Arquivo c:\integros\expgz\est.txt deletado.'
+      print 'Falha na exportaï¿½ï¿½o dos Produtos. Arquivo c:\integros\expgz\est.txt deletado.'
       exec xp_cmdshell 'del c:\integros\expgz\est.txt'
 
-      -- FORÇA UM ERRO PARA PARAR O PROCESSAMENTO
+      -- FORï¿½A UM ERRO PARA PARAR O PROCESSAMENTO
       select * from parada_forcada
    end
 go
@@ -287,9 +287,9 @@ go
 
 
 
--- códigos de barras
+-- cï¿½digos de barras
 
--- remove/recria a tabela temporária de preços
+-- remove/recria a tabela temporï¿½ria de preï¿½os
 
 if object_id('tempdb.dbo.##barras') is not null
    drop table tempdb.dbo.##barras
@@ -302,16 +302,16 @@ go
 declare @q int
 declare @SQLemail varchar(max), @msg varchar(max), @mailto varchar(max), @empresa varchar(60), @trabalho varchar(max), @titulo varchar(max)
 
-set @titulo='Falha no Trabalho de Integração GZ'
+set @titulo='Falha no Trabalho de Integraï¿½ï¿½o GZ'
 set @mailto='cristiano@integros.com.br'
 set @empresa=(select '<p>Emprensa: ' + rtrim(EMPNOMFAN) from TBS023 with (nolock) where (EMPNOM Like('TANBY%') and EMPCOD=1) or (EMPNOM Like('BEST BAG%') and EMPCOD=2))
 set @trabalho='<p>Nome do trabalho: Carga Geral de Produtos Para Sistema GZ'
 
-select right(replicate('0',20) + Ltrim(rtrim(codigo)),20)							-- 01 Código do Produto Principal (PLU)
-       + right(replicate('0',20) + Ltrim(rtrim(barras)),20)							-- 02 Código de Barras do Produto
-	   + replicate(' ',40)															-- 03 Observação
-	   + right(replicate('0',9) + Ltrim(str(round(embalagem,3)*1000,9,0)),9)		-- 04 Múltiplos - Observação 1
-	   + right(replicate('0',9) + Ltrim(str(round(preco,3)*1000,9,0)),9) as texto	-- 05 Preço de Venda - Observação 2
+select right(replicate('0',20) + Ltrim(rtrim(codigo)),20)							-- 01 Cï¿½digo do Produto Principal (PLU)
+       + right(replicate('0',20) + Ltrim(rtrim(barras)),20)							-- 02 Cï¿½digo de Barras do Produto
+	   + replicate(' ',40)															-- 03 Observaï¿½ï¿½o
+	   + right(replicate('0',9) + Ltrim(str(round(embalagem,3)*1000,9,0)),9)		-- 04 Mï¿½ltiplos - Observaï¿½ï¿½o 1
+	   + right(replicate('0',9) + Ltrim(str(round(preco,3)*1000,9,0)),9) as texto	-- 05 Preï¿½o de Venda - Observaï¿½ï¿½o 2
   into ##barras
   from dbo.TabelaCodigosBarrasGZ(0)
  
@@ -336,24 +336,24 @@ if (select q from ##q2)=0
 
       print 'Falha ao carregar a tabela ##barras'
       
-	  -- FORÇA UM ERRO PARA PARAR O PROCESSAMENTO
+	  -- FORï¿½A UM ERRO PARA PARAR O PROCESSAMENTO
       select * from parada_forcada
    end
 
--- gera o arquivo texto dos códigos de barras
+-- gera o arquivo texto dos cï¿½digos de barras
 exec master.dbo.xp_cmdshell 'bcp "select texto from ##barras order by texto" queryout "c:\integros\expgz\bar.txt" -c -T';
 go
 
 
--- daqui pra baixo perde a referência das variáveis criadas
+-- daqui pra baixo perde a referï¿½ncia das variï¿½veis criadas
 
 
--- valida a quantidade de códigos de barras exportados, diferença deve ser menor do que 1%
+-- valida a quantidade de cï¿½digos de barras exportados, diferenï¿½a deve ser menor do que 1%
 
 declare @q1 float, @q2 float
 declare @SQLemail varchar(max), @msg varchar(max), @mailto varchar(max), @empresa varchar(60), @trabalho varchar(max), @titulo varchar(max)
 
-set @titulo='Falha no Trabalho de Integração GZ'
+set @titulo='Falha no Trabalho de Integraï¿½ï¿½o GZ'
 set @mailto='cristiano@integros.com.br'
 set @empresa=(select '<p>Emprensa: ' + rtrim(EMPNOMFAN) from TBS023 with (nolock) where (EMPNOM Like('TANBY%') and EMPCOD=1) or (EMPNOM Like('BEST BAG%') and EMPCOD=2))
 set @trabalho='<p>Nome do trabalho: Carga Geral de Produtos Para Sistema GZ'
@@ -368,7 +368,7 @@ select @q1=count(*)
 
 set @q2=(select q from ##q2)
 
-print 'Quantidade de códigos de barras exportados: ' + Ltrim(str(@q1,9,0))
+print 'Quantidade de cï¿½digos de barras exportados: ' + Ltrim(str(@q1,9,0))
 print 'Quantidade de produtos no cadastro (TBS0103): ' + Ltrim(str(@q2,9,0))
 
 if ((1-@q1/@q2) * 100) >= 1
@@ -376,7 +376,7 @@ if ((1-@q1/@q2) * 100) >= 1
    begin
 	  set @msg=@trabalho
 	            + (select '<p>Executado em: ' + convert(varchar(max),getdate()))
-				+ '<p>Mensagem: Falha na exportação dos Códigos de Barras. Arquivo c:\integros\expgz\bar.txt deletado'
+				+ '<p>Mensagem: Falha na exportaï¿½ï¿½o dos Cï¿½digos de Barras. Arquivo c:\integros\expgz\bar.txt deletado'
 				+ @empresa
 
       set @SQLemail='execute msdb.dbo.sp_send_dbmail
@@ -388,11 +388,11 @@ if ((1-@q1/@q2) * 100) >= 1
 
       exec(@sqlEmail)
 
-      print 'Falha na exportação dos Códigos de Barras.'
+      print 'Falha na exportaï¿½ï¿½o dos Cï¿½digos de Barras.'
 
       exec xp_cmdshell 'del c:\integros\expgz\bar.txt'
 
-      -- FORÇA UM ERRO PARA PARAR O PROCESSAMENTO
+      -- FORï¿½A UM ERRO PARA PARAR O PROCESSAMENTO
       select * from parada_forcada
    end
 go
@@ -470,7 +470,7 @@ print 'Arquivos ESTOQUE.TXT e BARRAREL.TXT movidos com sucesso para a pasta \\19
 go
 
 
--- tanby taubaté
+-- tanby taubatï¿½
 
 -- /opt/gz/importa
 
@@ -487,7 +487,7 @@ go
 
 declare @SQLemail varchar(max), @@msg varchar(max)
 	
-set @@msg='<p>Nome do trabalho: Exporta produtos para integração com Sistema GZ'  + (select '<p>Executado em: ' + convert(varchar(max),getdate())) + '<p>Mensagem: Não foi carregada a tabela ##precos'
+set @@msg='<p>Nome do trabalho: Exporta produtos para integraï¿½ï¿½o com Sistema GZ'  + (select '<p>Executado em: ' + convert(varchar(max),getdate())) + '<p>Mensagem: Nï¿½o foi carregada a tabela ##precos'
 
 set @SQLemail = 'execute msdb.dbo.sp_send_dbmail
 						@profile_name = ''Email'',
@@ -508,7 +508,7 @@ set @SQLemail = 'execute msdb.dbo.sp_send_dbmail
 
 -- CARGA PARCIAL DOS PRODUTOS
 
--- remove/recria a tabela temporária de preços
+-- remove/recria a tabela temporï¿½ria de preï¿½os
 
 if object_id('##precos') is not null
    drop table ##precos
@@ -517,7 +517,7 @@ go
 declare @q int
 declare @SQLemail varchar(max), @msg varchar(max), @mailto varchar(max), @empresa varchar(60), @trabalho varchar(max), @titulo varchar(max)
 
-set @titulo='Falha no Trabalho de Integração GZ'
+set @titulo='Falha no Trabalho de Integraï¿½ï¿½o GZ'
 set @mailto='cristiano@integros.com.br'
 set @empresa=(select '<p>Emprensa: ' + rtrim(EMPNOMFAN) from TBS023 with (nolock) where (EMPNOM Like('TANBY%') and EMPCOD=1) or (EMPNOM Like('BEST BAG%') and EMPCOD=2))
 set @trabalho='<p>Nome do trabalho: Carga Parcial de Produtos Para Sistema GZ'
@@ -530,7 +530,7 @@ if @q=0
    begin
 	  set @msg=@trabalho
 	            + (select '<p>Executado em: ' + convert(varchar(max),getdate()))
-				+ '<p>Mensagem: Não foi carregada a tabela ##precos'
+				+ '<p>Mensagem: Nï¿½o foi carregada a tabela ##precos'
 				+ @empresa
 
       set @SQLemail='execute msdb.dbo.sp_send_dbmail
@@ -542,109 +542,109 @@ if @q=0
 
       exec(@sqlEmail)
 
-      print 'Não foi carregada a tabela ##precos'
+      print 'Nï¿½o foi carregada a tabela ##precos'
 
-      -- força um erro para parar o processo
+      -- forï¿½a um erro para parar o processo
       select * from parada_forcada
    end
 
-print 'Quantidade de produtos com preços: ' + Ltrim(str(@q,9,0))
+print 'Quantidade de produtos com preï¿½os: ' + Ltrim(str(@q,9,0))
 
 -- lista de produtos exportados
 
-select right(replicate('0',20) + Ltrim(rtrim(T10.PROCOD)),20)		-- 01 Código Interno do Produto (PLU)
-       + right(replicate('0',20) + Ltrim(rtrim(T10.PROCOD)),20)		-- 02 Código de Barras - Observação 1
-	   -- 03 Descrição Completa
+select right(replicate('0',20) + Ltrim(rtrim(T10.PROCOD)),20)		-- 01 Cï¿½digo Interno do Produto (PLU)
+       + right(replicate('0',20) + Ltrim(rtrim(T10.PROCOD)),20)		-- 02 Cï¿½digo de Barras - Observaï¿½ï¿½o 1
+	   -- 03 Descriï¿½ï¿½o Completa
 	   + replace(Left(replace(iif(T10.PRODESPDV='',T10.PRODES,T10.PRODESPDV) collate sql_latin1_general_cp1251_ci_as,'''',''),40),'''','')
-	   -- 04 Descrição Resumida para o PDV
+	   -- 04 Descriï¿½ï¿½o Resumida para o PDV
 	   + replace(Left(replace(iif(T10.PRODESPDVRED='',T10.PRODES,T10.PRODESPDVRED) collate sql_latin1_general_cp1251_ci_as,'''',''),24),'''','')
-       + 'N'														-- 05 Fórmula - Observação 2
-       + T10.PROUM1													-- 06 Unidade de Referência - Observação 3
-	   + replicate('0',4)											-- 07 Armação / Localização
-	   + replicate('0',2)											-- 08 Setor ( Balança ) - Produto Pesado
+       + 'N'														-- 05 Fï¿½rmula - Observaï¿½ï¿½o 2
+       + T10.PROUM1													-- 06 Unidade de Referï¿½ncia - Observaï¿½ï¿½o 3
+	   + replicate('0',4)											-- 07 Armaï¿½ï¿½o / Localizaï¿½ï¿½o
+	   + replicate('0',2)											-- 08 Setor ( Balanï¿½a ) - Produto Pesado
 	   
-	   -- 09 Preço de Venda Padrão
+	   -- 09 Preï¿½o de Venda Padrï¿½o
 	   + right(replicate('0',9) + Ltrim(str(isnull((select round(preco1,3) from ##precos where codigo=T10.PROCOD),0)*1000,9,0)),9)
 
-	   + replicate('0',9)											-- 10 Preço de Venda Promocional - Observação 4
+	   + replicate('0',9)											-- 10 Preï¿½o de Venda Promocional - Observaï¿½ï¿½o 4
 	   + replicate('0',12)											-- 11 Saldo em Estoque (Quantidade)
-       + 'A'														-- 12 Desconto Padrão - Observação 5
-       --+ T10.PROPESAVEL												-- 13 Quantidade Variável / Produto Pesado ? - S,N,E Observação 27
-	   + iif(T10.PROUM1 in('KG','MT'),'S','N')						-- 13 Quantidade Variável / Produto Pesado ? - S,N,E Observação 27
-       + 'N'														-- 14 Altera Preço de Venda no PDV ? - S,N,T Observação 6
-       + 'N'														-- 15 Bloqueia Multiplicador ? - Observação 7
-	   + replicate(' ',6)											-- 16 Promoção: Leve X Pague Y - Observação 8
-       + right('00' + Ltrim(str(isnull(T10.TGZCOD,0),2)),2)			-- 17 Código da Tributação
-	   + ' '														-- 18 Reservado - Espaço em Branco
+       + 'A'														-- 12 Desconto Padrï¿½o - Observaï¿½ï¿½o 5
+       --+ T10.PROPESAVEL												-- 13 Quantidade Variï¿½vel / Produto Pesado ? - S,N,E Observaï¿½ï¿½o 27
+	   + iif(T10.PROUM1 in('KG','MT'),'S','N')						-- 13 Quantidade Variï¿½vel / Produto Pesado ? - S,N,E Observaï¿½ï¿½o 27
+       + 'N'														-- 14 Altera Preï¿½o de Venda no PDV ? - S,N,T Observaï¿½ï¿½o 6
+       + 'N'														-- 15 Bloqueia Multiplicador ? - Observaï¿½ï¿½o 7
+	   + replicate(' ',6)											-- 16 Promoï¿½ï¿½o: Leve X Pague Y - Observaï¿½ï¿½o 8
+       + right('00' + Ltrim(str(isnull(T10.TGZCOD,0),2)),2)			-- 17 Cï¿½digo da Tributaï¿½ï¿½o
+	   + ' '														-- 18 Reservado - Espaï¿½o em Branco
        
-	   -- 19 Quantidade por Embalagem - Observação 10
+	   -- 19 Quantidade por Embalagem - Observaï¿½ï¿½o 10
 	   + right(replicate('0',7) + Ltrim(str(round(T10.PROUM1QTD,3)*1000,7,0)),7)
 
-       + 'N'														-- 20 Vende Somente Embalagem Fechada ? - Observação 11
-	   + replicate('0',4)											-- 21 Desconto por Embalagem Fechada - Observação 12
-	   + 'N'														-- 22 Pede Descrição Complementar ? - S,N,P,T Obs. 13
-	   + replicate(' ',80)											-- 23 Reservado - Espaço em Branco
-	   + replicate('0',9)											-- 24 Preço de Venda Atacado
-       --+ iif(PROPESAVEL='S','N','S')								-- 25 Bloqueia Venda Fracionada ? - Observação 14
-	   + iif(T10.PROUM1 in('KG','MT'),'N','S')						-- 25 Bloqueia Venda Fracionada ? - Observação 14
+       + 'N'														-- 20 Vende Somente Embalagem Fechada ? - Observaï¿½ï¿½o 11
+	   + replicate('0',4)											-- 21 Desconto por Embalagem Fechada - Observaï¿½ï¿½o 12
+	   + 'N'														-- 22 Pede Descriï¿½ï¿½o Complementar ? - S,N,P,T Obs. 13
+	   + replicate(' ',80)											-- 23 Reservado - Espaï¿½o em Branco
+	   + replicate('0',9)											-- 24 Preï¿½o de Venda Atacado
+       --+ iif(PROPESAVEL='S','N','S')								-- 25 Bloqueia Venda Fracionada ? - Observaï¿½ï¿½o 14
+	   + iif(T10.PROUM1 in('KG','MT'),'N','S')						-- 25 Bloqueia Venda Fracionada ? - Observaï¿½ï¿½o 14
 	   + replicate(' ',40)											-- 26 Referencia
-       + T10.PROSTBA+T10.PROSTBB									-- 27 Situação Tributária - Tabela 2
+       + T10.PROSTBA+T10.PROSTBB									-- 27 Situaï¿½ï¿½o Tributï¿½ria - Tabela 2
        + 'A'														-- 28 Estado do Produto - A - Ativo / I - Inativo
-	   + replicate('0',4)											-- 29 Código do Vasilhame - Observação 15
-	   + replicate(' ',81)											-- 30 Reservado - Espaço em Branco
-	   + replicate('0',4)											-- 31 Percentual Desconto Máximo Permitido - Observação 16
+	   + replicate('0',4)											-- 29 Cï¿½digo do Vasilhame - Observaï¿½ï¿½o 15
+	   + replicate(' ',81)											-- 30 Reservado - Espaï¿½o em Branco
+	   + replicate('0',4)											-- 31 Percentual Desconto Mï¿½ximo Permitido - Observaï¿½ï¿½o 16
 	   
 	   --+ str(round(T10.PROUM2QTD,3),7,3)
-       + right(replicate('0',7) + Ltrim( str(round(T10.PROUM2QTD,3)*1000,7,0)),7)		-- 32 Quantidade por Embalagem (Atacado) - Observação 10
+       + right(replicate('0',7) + Ltrim( str(round(T10.PROUM2QTD,3)*1000,7,0)),7)		-- 32 Quantidade por Embalagem (Atacado) - Observaï¿½ï¿½o 10
        
-	   --+ iif(PROPESAVEL='S','N','S')													-- 33 Vende Só Embal. Fechada ? (Atacado) - Observação 11
-	   + iif(T10.PROUM1 in('KG','MT'),'N','S')											-- 33 Vende Só Embal. Fechada ? (Atacado) - Observação 11
-	   + replicate('0',4)																-- 34 Desconto por Embal. Fechada(Atacado) - Observação 12
+	   --+ iif(PROPESAVEL='S','N','S')													-- 33 Vende Sï¿½ Embal. Fechada ? (Atacado) - Observaï¿½ï¿½o 11
+	   + iif(T10.PROUM1 in('KG','MT'),'N','S')											-- 33 Vende Sï¿½ Embal. Fechada ? (Atacado) - Observaï¿½ï¿½o 11
+	   + replicate('0',4)																-- 34 Desconto por Embal. Fechada(Atacado) - Observaï¿½ï¿½o 12
        
-	   -- 35 Classificação Fiscal
+	   -- 35 Classificaï¿½ï¿½o Fiscal
 	   + iif(Len(Ltrim(T10.PROCLAFIS))=8,rtrim(T10.PROCLAFIS)+'  ', replicate(' ',10))
 
-	   + replicate('0',12)																-- 36 Quantidade Pendente - Venda Balcão
-	   + replicate(' ',4)																-- 37 Validade da Quantidade Pendente - Venda Balcão
-	   + replicate('0',9)																-- 38 Preço de Venda Especial
-	   + replicate('0',7)																-- 39 Quantidade por Embalagem (Especial) - Observação 10
-	   + 'N'																			-- 40 Vende Só Embal. Fechada ? (Especial) - Observação 11
-	   + replicate('0',4)																-- 41 Desconto por Embalagem Fechada (Especial) - Observação 12
-	   + replicate('0',12)																-- 42 Quantidade Mínima para Preço Atacado - Observação 17
-	   + replicate('0',12)																-- 43 Quantidade Mínima para Preço Especial - Observação 17
+	   + replicate('0',12)																-- 36 Quantidade Pendente - Venda Balcï¿½o
+	   + replicate(' ',4)																-- 37 Validade da Quantidade Pendente - Venda Balcï¿½o
+	   + replicate('0',9)																-- 38 Preï¿½o de Venda Especial
+	   + replicate('0',7)																-- 39 Quantidade por Embalagem (Especial) - Observaï¿½ï¿½o 10
+	   + 'N'																			-- 40 Vende Sï¿½ Embal. Fechada ? (Especial) - Observaï¿½ï¿½o 11
+	   + replicate('0',4)																-- 41 Desconto por Embalagem Fechada (Especial) - Observaï¿½ï¿½o 12
+	   + replicate('0',12)																-- 42 Quantidade Mï¿½nima para Preï¿½o Atacado - Observaï¿½ï¿½o 17
+	   + replicate('0',12)																-- 43 Quantidade Mï¿½nima para Preï¿½o Especial - Observaï¿½ï¿½o 17
 	   + replicate('0',6)																-- 44 Grupo
 	   + replicate('0',6)																-- 45 Departamento
 	   --+ replicate('0',6)																-- 46 Marca
 	   + right('000000' + Ltrim(str(isnull(T10.MARCOD,0),4)),6)							-- 46 Marca
-	   + replicate('0',8)																-- 47 Pontos Clube Fidelidade - Observação 18
-	   + replicate(' ',1)																-- 48 Base de Cálculo Clube Fidelidade - Observação 19
-	   + replicate('0',20)																-- 49 Código Interno do Produto Associado - Observação 20
-	   + replicate('0',3)																-- 50 Grupo de Finalizadores - Observação 21
-	   + replicate('0',9)																-- 51 Desconto Finalizadores Específicos - Observação 22
-	   + replicate(' ',90)																-- 52 Finalizadores para Desconto - Observação 23
-	   + replicate('0',2)																-- 53 1º Micro-Terminal de Impressão - Observação 24
-	   + replicate('0',6)																-- 54 Quantidade Máxima de Item por Compra
-	   + replicate(' ',1)																-- 55 Cupom Vinculado - Observação 25
-	   + replicate(' ',1)																-- 56 Bloqueador de Venda - Observação 26
-	   + '0'																			-- 57 Tipo do Produto - 0 - Produto / 1 Serviço
-	   + replicate('0',2)																-- 58 2º Micro-Terminal de Impressão - Observação 24
-	   + replicate('0',2)																-- 59 3º Micro-Terminal de Impressão - Observação 24
-	   + replicate('0',2)																-- 60 4º Micro-Terminal de Impressão - Observação 24
-	   + replicate('0',2)																-- 61 5º Micro-Terminal de Impressão - Observação 24
-	   + 'N'																			-- 62 Solicita Senha para Liberação de Venda - S - Sim / N - Não
-	   + replicate('0',3)																-- 63 Grupo de Balcão - Observação 28
-	   + 'T'																			-- 64 Indicador de Produção Própria ou de Terceiro
+	   + replicate('0',8)																-- 47 Pontos Clube Fidelidade - Observaï¿½ï¿½o 18
+	   + replicate(' ',1)																-- 48 Base de Cï¿½lculo Clube Fidelidade - Observaï¿½ï¿½o 19
+	   + replicate('0',20)																-- 49 Cï¿½digo Interno do Produto Associado - Observaï¿½ï¿½o 20
+	   + replicate('0',3)																-- 50 Grupo de Finalizadores - Observaï¿½ï¿½o 21
+	   + replicate('0',9)																-- 51 Desconto Finalizadores Especï¿½ficos - Observaï¿½ï¿½o 22
+	   + replicate(' ',90)																-- 52 Finalizadores para Desconto - Observaï¿½ï¿½o 23
+	   + replicate('0',2)																-- 53 1ï¿½ Micro-Terminal de Impressï¿½o - Observaï¿½ï¿½o 24
+	   + replicate('0',6)																-- 54 Quantidade Mï¿½xima de Item por Compra
+	   + replicate(' ',1)																-- 55 Cupom Vinculado - Observaï¿½ï¿½o 25
+	   + replicate(' ',1)																-- 56 Bloqueador de Venda - Observaï¿½ï¿½o 26
+	   + '0'																			-- 57 Tipo do Produto - 0 - Produto / 1 Serviï¿½o
+	   + replicate('0',2)																-- 58 2ï¿½ Micro-Terminal de Impressï¿½o - Observaï¿½ï¿½o 24
+	   + replicate('0',2)																-- 59 3ï¿½ Micro-Terminal de Impressï¿½o - Observaï¿½ï¿½o 24
+	   + replicate('0',2)																-- 60 4ï¿½ Micro-Terminal de Impressï¿½o - Observaï¿½ï¿½o 24
+	   + replicate('0',2)																-- 61 5ï¿½ Micro-Terminal de Impressï¿½o - Observaï¿½ï¿½o 24
+	   + 'N'																			-- 62 Solicita Senha para Liberaï¿½ï¿½o de Venda - S - Sim / N - Nï¿½o
+	   + replicate('0',3)																-- 63 Grupo de Balcï¿½o - Observaï¿½ï¿½o 28
+	   + 'T'																			-- 64 Indicador de Produï¿½ï¿½o Prï¿½pria ou de Terceiro
 	   + 'A'																			-- 65 Indicador de Arredondamento ou Truncamento - A - Arredondamento T - Truncamento
-	   + replicate('0',9)																-- 66 Preço Máximo de Venda ao Consumidor
-	   + replicate('0',3)																-- 67 Tipo do Produto - Observação 29
+	   + replicate('0',9)																-- 66 Preï¿½o Mï¿½ximo de Venda ao Consumidor
+	   + replicate('0',3)																-- 67 Tipo do Produto - Observaï¿½ï¿½o 29
 
-	   -- 68 Carga Tributária Federal - Observação 30
+	   -- 68 Carga Tributï¿½ria Federal - Observaï¿½ï¿½o 30
 	   + isnull((select iif(T10.PROSTBA in ('0', '3', '4', '5'), right(replicate('0',4) + Ltrim(rtrim(replace(convert(char(9),round(NCMALINAC*100,0)),'.00',''))),4), right(replicate('0',4) + Ltrim(rtrim(replace(convert(char(9),round(NCMALIIMP*100,0)),'.00',''))),4)) from TBS092 with (nolock) where NCMCOD=T10.PROCLAFIS and NCMEX=''),'0000')
 
 	   + (select iif(EMPCRT=1,T10.PROSTBA+T10.PROCSN, replicate(' ',4)) from TBS023 with (nolock) where EMPCOD = 1)	-- 69 CSOSN
 
-	   + 'N'														-- 70 Entregável - S - Sim / N - Não - Observação 31
-	   + replicate('0',4)											-- 71 Carga Tributária Estadual - Observação 30
+	   + 'N'														-- 70 Entregï¿½vel - S - Sim / N - Nï¿½o - Observaï¿½ï¿½o 31
+	   + replicate('0',4)											-- 71 Carga Tributï¿½ria Estadual - Observaï¿½ï¿½o 30
 
 	   -- 72 Chave Tabela IBPT
 	   + isnull((select NCMCHV from TBS092 with (nolock) where NCMCOD=T10.PROCLAFIS and NCMEX=''),replicate(' ',10))
@@ -652,21 +652,21 @@ select right(replicate('0',20) + Ltrim(rtrim(T10.PROCOD)),20)		-- 01 Código Inte
 	   -- 73 CST do PIS
 	   + Ltrim(isnull((select cstpis from PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate(' ',2)))
 
-       -- 74 Alíquota do PIS
+       -- 74 Alï¿½quota do PIS
 	   + right(replicate('0',9) + Ltrim( str(isnull((select round(aliqpis,2)*100 from PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate('0',9)),9)),9)
 
 	   -- 75 CST do COFINS
 	   + Ltrim(isnull((select cstcofins from PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate(' ',2)))
 
-       -- 76 Alíquota do COFINS
+       -- 76 Alï¿½quota do COFINS
 	   + right(replicate('0',9) + Ltrim( str(isnull((select round(aliqcofins,2)*100 from PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate('0',9)),9)),9)
 
-	   + iif(Len(Ltrim(T10.PROCEST))=7,T10.PROCEST, replicate(' ',7))						-- 77 CEST - Código Especificador da Substituição Tributária - Observação 32
+	   + iif(Len(Ltrim(T10.PROCEST))=7,T10.PROCEST, replicate(' ',7))						-- 77 CEST - Cï¿½digo Especificador da Substituiï¿½ï¿½o Tributï¿½ria - Observaï¿½ï¿½o 32
 
-	   + replicate('0',9)															-- 78 Valor Unitário PIS - SAIDA
-	   + replicate('0',9)															-- 79 Valor Unitário COFINS - SAIDA
+	   + replicate('0',9)															-- 78 Valor Unitï¿½rio PIS - SAIDA
+	   + replicate('0',9)															-- 79 Valor Unitï¿½rio COFINS - SAIDA
 
-       -- 80 Preço de Custo
+       -- 80 Preï¿½o de Custo
 	   + right(replicate('0',9) + Ltrim(str(isnull((select round(custo,3) from ##precos where codigo=T10.PROCOD),0)*1000,9,0)),9) as texto
 
    into ##produtos
@@ -699,7 +699,7 @@ if (select q from ##q2)=0
    begin
 	  set @msg=@trabalho
 	            + (select '<p>Executado em: ' + convert(varchar(max),getdate()))
-				+ '<p>Mensagem: Não foram encontrados Produtos incluídos/alterados para serem exportados'
+				+ '<p>Mensagem: Nï¿½o foram encontrados Produtos incluï¿½dos/alterados para serem exportados'
 				+ @empresa
 
       set @SQLemail='execute msdb.dbo.sp_send_dbmail
@@ -711,9 +711,9 @@ if (select q from ##q2)=0
 
       exec(@sqlEmail)
 
-      print 'Não foram encontrados Produtos incluídos/alterados para serem exportados'
+      print 'Nï¿½o foram encontrados Produtos incluï¿½dos/alterados para serem exportados'
       
-	  -- FORÇA UM ERRO PARA PARAR O PROCESSAMENTO
+	  -- FORï¿½A UM ERRO PARA PARAR O PROCESSAMENTO
       select * from parada_forcada
    end
 
@@ -722,15 +722,15 @@ exec master.dbo.xp_cmdshell 'bcp "select texto from ##produtos" queryout "c:\int
 go
 
 
--- daqui pra baixo perde a referência das variáveis criadas
+-- daqui pra baixo perde a referï¿½ncia das variï¿½veis criadas
 
 
--- valida a quantidade de proudtos exportados, diferença deve ser menor do que 1%
+-- valida a quantidade de proudtos exportados, diferenï¿½a deve ser menor do que 1%
 
 declare @q1 float, @q2 float
 declare @SQLemail varchar(max), @msg varchar(max), @mailto varchar(max), @empresa varchar(60), @trabalho varchar(max), @titulo varchar(max)
 
-set @titulo='Falha no Trabalho de Integração GZ'
+set @titulo='Falha no Trabalho de Integraï¿½ï¿½o GZ'
 set @mailto='cristiano@integros.com.br'
 set @empresa=(select '<p>Emprensa: ' + rtrim(EMPNOMFAN) from TBS023 with (nolock) where (EMPNOM Like('TANBY%') and EMPCOD=1) or (EMPNOM Like('BEST BAG%') and EMPCOD=2))
 set @trabalho='<p>Nome do trabalho: Carga Geral de Produtos Para Sistema GZ'
@@ -757,7 +757,7 @@ if ((1-@q1/@q2) * 100) >= 1
    begin
    	  set @msg=@trabalho
 	            + (select '<p>Executado em: ' + convert(varchar(max),getdate()))
-				+ '<p>Mensagem: Falha na exportação dos Produtos. Arquivo c:\integros\expgz\estp.txt deletado.'
+				+ '<p>Mensagem: Falha na exportaï¿½ï¿½o dos Produtos. Arquivo c:\integros\expgz\estp.txt deletado.'
 				+ @empresa
 
       set @SQLemail='execute msdb.dbo.sp_send_dbmail
@@ -769,18 +769,18 @@ if ((1-@q1/@q2) * 100) >= 1
 
       exec(@sqlEmail)
 
-      print 'Falha na exportação dos Produtos. Arquivo c:\integros\expgz\estp.txt deletado.'
+      print 'Falha na exportaï¿½ï¿½o dos Produtos. Arquivo c:\integros\expgz\estp.txt deletado.'
       exec xp_cmdshell 'del c:\integros\expgz\estp.txt'
 
-      -- FORÇA UM ERRO PARA PARAR O PROCESSAMENTO
+      -- FORï¿½A UM ERRO PARA PARAR O PROCESSAMENTO
       select * from parada_forcada
    end
 go
 
 
--- códigos de barras
+-- cï¿½digos de barras
 
--- remove/recria a tabela temporária de preços
+-- remove/recria a tabela temporï¿½ria de preï¿½os
 
 if object_id('##precos') is not null
    drop table ##precos
@@ -789,7 +789,7 @@ go
 declare @q int
 declare @SQLemail varchar(max), @msg varchar(max), @mailto varchar(max), @empresa varchar(60), @trabalho varchar(max), @titulo varchar(max)
 
-set @titulo='Falha no Trabalho de Integração GZ'
+set @titulo='Falha no Trabalho de Integraï¿½ï¿½o GZ'
 set @mailto='cristiano@integros.com.br'
 set @empresa=(select '<p>Emprensa: ' + rtrim(EMPNOMFAN) from TBS023 with (nolock) where (EMPNOM Like('TANBY%') and EMPCOD=1) or (EMPNOM Like('BEST BAG%') and EMPCOD=2))
 set @trabalho='<p>Nome do trabalho: Carga Parcial de Produtos Para Sistema GZ'
@@ -803,7 +803,7 @@ if @q=0
    begin
 	  set @msg=@trabalho
 	            + (select '<p>Executado em: ' + convert(varchar(max),getdate()))
-				+ '<p>Mensagem: Não foi carregada a tabela ##precos'
+				+ '<p>Mensagem: Nï¿½o foi carregada a tabela ##precos'
 				+ @empresa
 
       set @SQLemail='execute msdb.dbo.sp_send_dbmail
@@ -815,26 +815,26 @@ if @q=0
 
       exec(@sqlEmail)
 
-      print 'Não foi carregada a tabela ##precos'
+      print 'Nï¿½o foi carregada a tabela ##precos'
 
-      -- força um erro para parar o processo
+      -- forï¿½a um erro para parar o processo
       select * from parada_forcada
    end
 
-print 'Quantidade de produtos com preços: ' + Ltrim(str(@q,9,0))
+print 'Quantidade de produtos com preï¿½os: ' + Ltrim(str(@q,9,0))
 
--- remove/recria a tabela temporária de preços
+-- remove/recria a tabela temporï¿½ria de preï¿½os
 
 if object_id('##produtos') is not null
    drop table ##produtos
 go
--- devido ao "go" acima, perde referência de variáveis
+-- devido ao "go" acima, perde referï¿½ncia de variï¿½veis
 
 
 declare @q int
 declare @SQLemail varchar(max), @msg varchar(max), @mailto varchar(max), @empresa varchar(60), @trabalho varchar(max), @titulo varchar(max)
 
-set @titulo='Falha no Trabalho de Integração GZ'
+set @titulo='Falha no Trabalho de Integraï¿½ï¿½o GZ'
 set @mailto='cristiano@integros.com.br'
 set @empresa=(select '<p>Emprensa: ' + rtrim(EMPNOMFAN) from TBS023 with (nolock) where (EMPNOM Like('TANBY%') and EMPCOD=1) or (EMPNOM Like('BEST BAG%') and EMPCOD=2))
 set @trabalho='<p>Nome do trabalho: Carga Parcial de Produtos Para Sistema GZ'
@@ -845,24 +845,24 @@ select T10.PROCOD
   from TBS010 T10 with (nolock)
  where T10.PROEMPCOD=0
 	   and T10.TGZCOD > 0
-	   and (select round(custo,3) from ##precos where codigo=T10.PROCOD) > 0
+	   and (select round(custo,3) from dbo.vw_PrecoLojaGeral where codigo=T10.PROCOD) > 0
 	   and (
 	          T10.PRODATCAD >= convert(date,getdate())
 			  or T10.PRODATALT >= convert(date,getdate())
-			  or (select atualizado from ##precos where codigo=T10.PROCOD) >= convert(date,getdate())
+			  or (select atualizado from dbo.vw_PrecoLojaGeral where codigo=T10.PROCOD) >= convert(date,getdate())
            )
  order by PROCOD
 
 set @q=@@ROWCOUNT
 
-print 'Quantidade de produtos incluídos/alterados: ' + Ltrim(str(@q,9,0))
+print 'Quantidade de produtos incluï¿½dos/alterados: ' + Ltrim(str(@q,9,0))
 
 if @q=0
 --if @q <= 100000
    begin
 	  set @msg=@trabalho
 	            + (select '<p>Executado em: ' + convert(varchar(max),getdate()))
-				+ '<p>Mensagem: Não foram encontrados Produtos incluídos/alterados para serem exportados'
+				+ '<p>Mensagem: Nï¿½o foram encontrados Produtos incluï¿½dos/alterados para serem exportados'
 				+ @empresa
 
       set @SQLemail='execute msdb.dbo.sp_send_dbmail
@@ -874,13 +874,13 @@ if @q=0
 
       exec(@sqlEmail)
 
-      print 'Não foram encontrados Produtos incluídos/alterados para serem exportados'
+      print 'Nï¿½o foram encontrados Produtos incluï¿½dos/alterados para serem exportados'
 
-	  -- FORÇA UM ERRO PARA PARAR O PROCESSAMENTO
+	  -- FORï¿½A UM ERRO PARA PARAR O PROCESSAMENTO
       select * from parada_forcada
    end
 
--- remove/recria a tabela temporária de códigos de barras
+-- remove/recria a tabela temporï¿½ria de cï¿½digos de barras
 
 if object_id('tempdb.dbo.##barras') is not null
    drop table tempdb.dbo.##barras
@@ -893,16 +893,16 @@ go
 --declare @q int
 declare @SQLemail varchar(max), @msg varchar(max), @mailto varchar(max), @empresa varchar(60), @trabalho varchar(max), @titulo varchar(max)
 
-set @titulo='Falha no Trabalho de Integração GZ'
+set @titulo='Falha no Trabalho de Integraï¿½ï¿½o GZ'
 set @mailto='cristiano@integros.com.br'
 set @empresa=(select '<p>Emprensa: ' + rtrim(EMPNOMFAN) from TBS023 with (nolock) where (EMPNOM Like('TANBY%') and EMPCOD=1) or (EMPNOM Like('BEST BAG%') and EMPCOD=2))
 set @trabalho='<p>Nome do trabalho: Carga Parcial de Produtos Para Sistema GZ'
 
-select right(replicate('0',20) + Ltrim(rtrim(codigo)),20)							-- 01 Código do Produto Principal (PLU)
-       + right(replicate('0',20) + Ltrim(rtrim(barras)),20)							-- 02 Código de Barras do Produto
-	   + replicate(' ',40)															-- 03 Observação
-	   + right(replicate('0',9) + Ltrim(str(round(embalagem,3)*1000,9,0)),9)		-- 04 Múltiplos - Observação 1
-	   + right(replicate('0',9) + Ltrim(str(round(preco,3)*1000,9,0)),9) as texto	-- 05 Preço de Venda - Observação 2
+select right(replicate('0',20) + Ltrim(rtrim(codigo)),20)							-- 01 Cï¿½digo do Produto Principal (PLU)
+       + right(replicate('0',20) + Ltrim(rtrim(barras)),20)							-- 02 Cï¿½digo de Barras do Produto
+	   + replicate(' ',40)															-- 03 Observaï¿½ï¿½o
+	   + right(replicate('0',9) + Ltrim(str(round(embalagem,3)*1000,9,0)),9)		-- 04 Mï¿½ltiplos - Observaï¿½ï¿½o 1
+	   + right(replicate('0',9) + Ltrim(str(round(preco,3)*1000,9,0)),9) as texto	-- 05 Preï¿½o de Venda - Observaï¿½ï¿½o 2
   into ##barras
   from dbo.TabelaCodigosBarrasGZ(0) b
   inner join ##produtos p on p.PROCOD=b.codigo
@@ -928,24 +928,24 @@ if (select q from ##q2)=0
 
       print 'Falha ao carregar a tabela ##barras'
       
-	  -- FORÇA UM ERRO PARA PARAR O PROCESSAMENTO
+	  -- FORï¿½A UM ERRO PARA PARAR O PROCESSAMENTO
       select * from parada_forcada
    end
 
--- gera o arquivo texto dos códigos de barras
+-- gera o arquivo texto dos cï¿½digos de barras
 exec master.dbo.xp_cmdshell 'bcp "select texto from ##barras order by texto" queryout "c:\integros\expgz\barp.txt" -c -T';
 go
 
 
--- daqui pra baixo perde a referência das variáveis criadas
+-- daqui pra baixo perde a referï¿½ncia das variï¿½veis criadas
 
 
--- valida a quantidade de códigos de barras exportados, diferença deve ser menor do que 1%
+-- valida a quantidade de cï¿½digos de barras exportados, diferenï¿½a deve ser menor do que 1%
 
 declare @q1 float, @q2 float
 declare @SQLemail varchar(max), @msg varchar(max), @mailto varchar(max), @empresa varchar(60), @trabalho varchar(max), @titulo varchar(max)
 
-set @titulo='Falha no Trabalho de Integração GZ'
+set @titulo='Falha no Trabalho de Integraï¿½ï¿½o GZ'
 set @mailto='cristiano@integros.com.br'
 set @empresa=(select '<p>Emprensa: ' + rtrim(EMPNOMFAN) from TBS023 with (nolock) where (EMPNOM Like('TANBY%') and EMPCOD=1) or (EMPNOM Like('BEST BAG%') and EMPCOD=2))
 set @trabalho='<p>Nome do trabalho: Carga Geral de Produtos Para Sistema GZ'
@@ -960,7 +960,7 @@ select @q1=count(*)
 
 set @q2=(select q from ##q2)
 
-print 'Quantidade de códigos de barras exportados: ' + Ltrim(str(@q1,9,0))
+print 'Quantidade de cï¿½digos de barras exportados: ' + Ltrim(str(@q1,9,0))
 print 'Quantidade de produtos no cadastro (TBS0103): ' + Ltrim(str(@q2,9,0))
 
 if ((1-@q1/@q2) * 100) >= 1
@@ -968,7 +968,7 @@ if ((1-@q1/@q2) * 100) >= 1
    begin
 	  set @msg=@trabalho
 	            + (select '<p>Executado em: ' + convert(varchar(max),getdate()))
-				+ '<p>Mensagem: Falha na exportação dos Códigos de Barras. Arquivo c:\integros\expgz\barp.txt deletado'
+				+ '<p>Mensagem: Falha na exportaï¿½ï¿½o dos Cï¿½digos de Barras. Arquivo c:\integros\expgz\barp.txt deletado'
 				+ @empresa
 
       set @SQLemail='execute msdb.dbo.sp_send_dbmail
@@ -980,11 +980,11 @@ if ((1-@q1/@q2) * 100) >= 1
 
       exec(@sqlEmail)
 
-      print 'Falha na exportação dos Códigos de Barras. Arquivo c:\integros\expgz\barp.txt deletado'
+      print 'Falha na exportaï¿½ï¿½o dos Cï¿½digos de Barras. Arquivo c:\integros\expgz\barp.txt deletado'
 
       exec xp_cmdshell 'del c:\integros\expgz\barp.txt'
 
-      -- FORÇA UM ERRO PARA PARAR O PROCESSAMENTO
+      -- FORï¿½A UM ERRO PARA PARAR O PROCESSAMENTO
       select * from parada_forcada
    end
 go
@@ -1036,3 +1036,666 @@ select *
  where codigo='16310003'
 
 drop table ##barras
+
+
+-- otimizaÃ§Ã£o exportaÃ§Ã£o barrarel
+
+drop table #produtos
+
+select cast(getdate()-1 as date)
+
+-- Define a data de hoje apenas uma vez
+declare @hoje date = convert(date, getdate());
+
+-- Seleciona produtos relevantes
+select pro.PROCOD
+       ,Left(iif(pro.PRODESPDV='', Ltrim(pro.PRODES), Ltrim(pro.PRODESPDV)),40) collate sql_latin1_general_cp1251_ci_as as PRODES
+  into #produtos
+  from TBS010 as pro with (nolock)
+ inner join dbo.vw_PrecoLojaGeral as pre
+         on pre.codigo = pro.PROCOD
+ where pro.TGZCOD > 0
+       and round(pre.custo, 3) > 0
+       and (
+             pro.PRODATCAD = '20251118'
+             or pro.PRODATALT = '20251118'
+             or pre.atualizado = '20251118'
+           )
+ order by pro.PROCOD
+
+-- Gera tabela de barras com formataÃ§Ã£o
+select Ltrim(rtrim(bar.barras)) as codigoBarras			            -- 1. codigoBarras
+       ,Ltrim(rtrim(bar.codigo)) as codigoProduto                     -- 2. codigoProduto
+	   ,pro.PRODES as descricao													-- 3. descricao
+	   ,800 as lojas												-- 4. lojas
+       ,round(bar.preco,3) as preco									-- 5. preco
+	   ,round(bar.embalagem,3) as quantidade							-- 6. quantidade
+--INTO #barras
+  from dbo.vw_TabelaCodigosBarrasGZ as bar
+ inner join #produtos as pro
+         on pro.PROCOD = bar.codigo;
+
+select barras as codigoBarras
+  from #barras
+
+-- cÃ³digo de barras novos
+
+drop table #produtos
+
+select pro.PROCOD
+       ,iif(pro.PRODESPDV='', Ltrim(pro.PRODES), Ltrim(pro.PRODESPDV)) collate sql_latin1_general_cp1251_ci_as as PRODES
+  into #produtos
+  from TBS0103 bar with (nolock)
+ inner join TBS010 as pro with (nolock)
+         on pro.PROCOD = bar.CBPPROCOD
+ inner join dbo.vw_PrecoLojaGeral as pre
+         on pre.codigo = bar.CBPPROCOD
+ where pro.TGZCOD > 0
+       and round(pre.custo, 3) > 0
+	   and bar.CBPDATCAD = '20251118'
+
+-- cÃ³digos de barras ou preÃ§os alterados
+
+select bar.CBPPROCOD
+       ,iif(pro.PRODESPDV='', Ltrim(pro.PRODES), Ltrim(pro.PRODESPDV)) collate sql_latin1_general_cp1251_ci_as as PRODES
+  --into #produtos
+  from TBS0103 bar with (nolock)
+ inner join TBS010 as pro with (nolock)
+         on pro.PROCOD = bar.CBPPROCOD
+ inner join dbo.vw_PrecoLojaGeral as pre
+         on pre.codigo = bar.CBPPROCOD
+ where pro.TGZCOD > 0
+       and round(pre.custo, 3) > 0
+       and (
+             pro.PRODATALT >= '20251117'
+             or pre.atualizado >= '20251117'
+           )
+
+
+-- 02/04/2026
+
+-- Carga Geral de Produtos Para Sistema GZ
+
+-- remove/recria a tabela temporÃ¡ria de preÃ§os
+
+if object_id('tempdb.dbo.###precos') is not null
+begin
+	drop table ##precos
+end
+
+declare @q int
+declare @SQLemail varchar(max), @msg varchar(max), @mailto varchar(max), @empresa varchar(60), @trabalho varchar(max), @titulo varchar(max)
+
+set @titulo='Falha no Trabalho de IntegraÃ§Ã£o GZ'
+set @mailto='cristiano@integros.com.br'
+set @empresa=(select '<p>Emprensa: ' + rtrim(EMPNOMFAN) from TBS023 with (nolock) where (EMPNOM Like('TANBY%') and EMPCOD=1) or (EMPNOM Like('BEST BAG%') and EMPCOD=2))
+set @trabalho='<p>Nome do trabalho: Carga Geral de Produtos Para Sistema GZ'
+
+select * into ##precos from PrecoLojaGeral(0)
+
+set @q=@@ROWCOUNT
+
+if @q=0
+--if @q <= 100000
+   begin
+	  set @msg=@trabalho
+	            + (select '<p>Executado em: ' + convert(varchar(max),getdate()))
+				+ '<p>Mensagem: NÃ£o foi carregada a tabela ##precos'
+				+ @empresa
+
+      set @SQLemail='execute msdb.dbo.sp_send_dbmail
+                        @profile_name = ''Email'',
+						@recipients = ''' + @mailto + ''', 
+						@body_format = ''html'',
+						@subject = ''' + @titulo + ''',
+						@body = ''' + @msg + ''''
+
+      exec(@sqlEmail)
+
+      print 'NÃ£o foi carregada a tabela ##precos'
+
+      -- forÃ§a um erro para parar o processo
+      select * from parada_forcada
+   end
+
+print 'Quantidade de produtos com preÃ§os: ' + Ltrim(str(@q,9,0))
+
+-- gera o arquivo temporÃ¡rio para exportaÃ§Ã£o dos produtos
+
+-- remove/recria a tabela temporÃ¡ria de produtos
+
+if object_id('tempdb.dbo.###produtos') is not null
+begin
+	drop table ##produtos
+end
+
+-- lista de produtos exportados
+
+select right(replicate('0',20) + Ltrim(rtrim(T10.PROCOD)),20)		-- 01 CÃ³digo Interno do Produto (PLU)
+       + right(replicate('0',20) + Ltrim(rtrim(T10.PROCOD)),20)		-- 02 CÃ³digo de Barras - ObservaÃ§Ã£o 1
+	   -- 03 DescriÃ§Ã£o Completa
+       --+ replace(Left(replace(T10.PRODES collate sql_latin1_general_cp1251_ci_as,'''',''),40),'''','')
+	   + replace(Left(replace(iif(T10.PRODESPDV='',T10.PRODES,T10.PRODESPDV) collate sql_latin1_general_cp1251_ci_as,'''',''),40),'''','')
+	   -- 04 DescriÃ§Ã£o Resumida para o PDV
+       --+ replace(Left(replace(T10.PRODES collate sql_latin1_general_cp1251_ci_as,'''',''),24),'''','')
+	   + replace(Left(replace(iif(T10.PRODESPDVRED='',T10.PRODES,T10.PRODESPDVRED) collate sql_latin1_general_cp1251_ci_as,'''',''),24),'''','')
+       + 'N'														-- 05 FÃ³rmula - ObservaÃ§Ã£o 2
+       + T10.PROUM1													-- 06 Unidade de ReferÃªncia - ObservaÃ§Ã£o 3
+	   + replicate('0',4)											-- 07 ArmaÃ§Ã£o / LocalizaÃ§Ã£o
+	   + replicate('0',2)											-- 08 Setor ( BalanÃ§a ) - Produto Pesado
+	   
+	   -- 09 PreÃ§o de Venda PadrÃ£o
+	   + right(replicate('0',9) + Ltrim(str(isnull((select round(preco1,3) from ##precos where codigo=T10.PROCOD),0)*1000,9,0)),9)
+
+	   + replicate('0',9)											-- 10 PreÃ§o de Venda Promocional - ObservaÃ§Ã£o 4
+	   + replicate('0',12)											-- 11 Saldo em Estoque (Quantidade)
+       + 'A'														-- 12 Desconto PadrÃ£o - ObservaÃ§Ã£o 5
+       --+ T10.PROPESAVEL												-- 13 Quantidade VariÃ¡vel / Produto Pesado ? - S,N,E ObservaÃ§Ã£o 27
+	   + iif(T10.PROUM1 in('KG','MT'),'S','N')						-- 13 Quantidade VariÃ¡vel / Produto Pesado ? - S,N,E ObservaÃ§Ã£o 27
+       + 'N'														-- 14 Altera PreÃ§o de Venda no PDV ? - S,N,T ObservaÃ§Ã£o 6
+       + 'N'														-- 15 Bloqueia Multiplicador ? - ObservaÃ§Ã£o 7
+	   + replicate(' ',6)											-- 16 PromoÃ§Ã£o: Leve X Pague Y - ObservaÃ§Ã£o 8
+       + right('00' + Ltrim(str(isnull(T10.TGZCOD,0),2)),2)			-- 17 CÃ³digo da TributaÃ§Ã£o
+	   + ' '														-- 18 Reservado - EspaÃ§o em Branco
+       
+	   -- 19 Quantidade por Embalagem - ObservaÃ§Ã£o 10
+	   + right(replicate('0',7) + Ltrim(str(round(T10.PROUM1QTD,3)*1000,7,0)),7)
+
+       + 'N'														-- 20 Vende Somente Embalagem Fechada ? - ObservaÃ§Ã£o 11
+	   + replicate('0',4)											-- 21 Desconto por Embalagem Fechada - ObservaÃ§Ã£o 12
+	   + 'N'														-- 22 Pede DescriÃ§Ã£o Complementar ? - S,N,P,T Obs. 13
+	   + replicate(' ',80)											-- 23 Reservado - EspaÃ§o em Branco
+	   + replicate('0',9)											-- 24 PreÃ§o de Venda Atacado
+       --+ iif(PROPESAVEL='S','N','S')								-- 25 Bloqueia Venda Fracionada ? - ObservaÃ§Ã£o 14
+	   + iif(T10.PROUM1 in('KG','MT'),'N','S')						-- 25 Bloqueia Venda Fracionada ? - ObservaÃ§Ã£o 14
+	   + replicate(' ',40)											-- 26 Referencia
+       + T10.PROSTBA+T10.PROSTBB									-- 27 SituaÃ§Ã£o TributÃ¡ria - Tabela 2
+       + 'A'														-- 28 Estado do Produto - A - Ativo / I - Inativo
+	   + replicate('0',4)											-- 29 CÃ³digo do Vasilhame - ObservaÃ§Ã£o 15
+	   + replicate(' ',81)											-- 30 Reservado - EspaÃ§o em Branco
+	   + replicate('0',4)											-- 31 Percentual Desconto MÃ¡ximo Permitido - ObservaÃ§Ã£o 16
+	   
+	   --+ str(round(T10.PROUM2QTD,3),7,3)
+       + right(replicate('0',7) + Ltrim( str(round(T10.PROUM2QTD,3)*1000,7,0)),7)		-- 32 Quantidade por Embalagem (Atacado) - ObservaÃ§Ã£o 10
+       
+	   --+ iif(PROPESAVEL='S','N','S')													-- 33 Vende SÃ³ Embal. Fechada ? (Atacado) - ObservaÃ§Ã£o 11
+	   + iif(T10.PROUM1 in('KG','MT'),'N','S')											-- 33 Vende SÃ³ Embal. Fechada ? (Atacado) - ObservaÃ§Ã£o 11
+	   + replicate('0',4)																-- 34 Desconto por Embal. Fechada(Atacado) - ObservaÃ§Ã£o 12
+       
+	   -- 35 ClassificaÃ§Ã£o Fiscal
+	   + iif(Len(Ltrim(T10.PROCLAFIS))=8,rtrim(T10.PROCLAFIS)+'  ', replicate(' ',10))
+
+	   + replicate('0',12)																-- 36 Quantidade Pendente - Venda BalcÃ£o
+	   + replicate(' ',4)																-- 37 Validade da Quantidade Pendente - Venda BalcÃ£o
+	   + replicate('0',9)																-- 38 PreÃ§o de Venda Especial
+	   + replicate('0',7)																-- 39 Quantidade por Embalagem (Especial) - ObservaÃ§Ã£o 10
+	   + 'N'																			-- 40 Vende SÃ³ Embal. Fechada ? (Especial) - ObservaÃ§Ã£o 11
+	   + replicate('0',4)																-- 41 Desconto por Embalagem Fechada (Especial) - ObservaÃ§Ã£o 12
+	   + replicate('0',12)																-- 42 Quantidade MÃ­nima para PreÃ§o Atacado - ObservaÃ§Ã£o 17
+	   + replicate('0',12)																-- 43 Quantidade MÃ­nima para PreÃ§o Especial - ObservaÃ§Ã£o 17
+	   + replicate('0',6)																-- 44 Grupo
+	   + replicate('0',6)																-- 45 Departamento
+                   + right('000000' + Ltrim(str(isnull(T10.MARCOD,0),4)),6)							   					-- 46 Marca
+	   + replicate('0',8)																-- 47 Pontos Clube Fidelidade - ObservaÃ§Ã£o 18
+	   + replicate(' ',1)																-- 48 Base de CÃ¡lculo Clube Fidelidade - ObservaÃ§Ã£o 19
+	   + replicate('0',20)																-- 49 CÃ³digo Interno do Produto Associado - ObservaÃ§Ã£o 20
+	   + replicate('0',3)																-- 50 Grupo de Finalizadores - ObservaÃ§Ã£o 21
+	   + replicate('0',9)																-- 51 Desconto Finalizadores EspecÃ­ficos - ObservaÃ§Ã£o 22
+	   + replicate(' ',90)																-- 52 Finalizadores para Desconto - ObservaÃ§Ã£o 23
+	   + replicate('0',2)																-- 53 1Âº Micro-Terminal de ImpressÃ£o - ObservaÃ§Ã£o 24
+	   + replicate('0',6)																-- 54 Quantidade MÃ¡xima de Item por Compra
+	   + replicate(' ',1)																-- 55 Cupom Vinculado - ObservaÃ§Ã£o 25
+	   + replicate(' ',1)																-- 56 Bloqueador de Venda - ObservaÃ§Ã£o 26
+	   + '0'																			-- 57 Tipo do Produto - 0 - Produto / 1 ServiÃ§o
+	   + replicate('0',2)																-- 58 2Âº Micro-Terminal de ImpressÃ£o - ObservaÃ§Ã£o 24
+	   + replicate('0',2)																-- 59 3Âº Micro-Terminal de ImpressÃ£o - ObservaÃ§Ã£o 24
+	   + replicate('0',2)																-- 60 4Âº Micro-Terminal de ImpressÃ£o - ObservaÃ§Ã£o 24
+	   + replicate('0',2)																-- 61 5Âº Micro-Terminal de ImpressÃ£o - ObservaÃ§Ã£o 24
+	   + 'N'																			-- 62 Solicita Senha para LiberaÃ§Ã£o de Venda - S - Sim / N - NÃ£o
+	   + replicate('0',3)																-- 63 Grupo de BalcÃ£o - ObservaÃ§Ã£o 28
+	   + 'T'																			-- 64 Indicador de ProduÃ§Ã£o PrÃ³pria ou de Terceiro
+	   + 'A'																			-- 65 Indicador de Arredondamento ou Truncamento - A - Arredondamento T - Truncamento
+	   + replicate('0',9)																-- 66 PreÃ§o MÃ¡ximo de Venda ao Consumidor
+	   + replicate('0',3)																-- 67 Tipo do Produto - ObservaÃ§Ã£o 29
+
+	   -- 68 Carga TributÃ¡ria Federal - ObservaÃ§Ã£o 30
+	   + isnull((select iif(T10.PROSTBA in ('0', '3', '4', '5'), right(replicate('0',4) + Ltrim(rtrim(replace(convert(char(9),round(NCMALINAC*100,0)),'.00',''))),4), right(replicate('0',4) + Ltrim(rtrim(replace(convert(char(9),round(NCMALIIMP*100,0)),'.00',''))),4)) from TBS092 with (nolock) where NCMCOD=T10.PROCLAFIS and NCMEX=''),'0000')
+
+	   + (select iif(EMPCRT=1,T10.PROSTBA+T10.PROCSN, replicate(' ',4)) from TBS023 with (nolock) where EMPCOD = 1)	-- 69 CSOSN
+
+	   + 'N'														-- 70 EntregÃ¡vel - S - Sim / N - NÃ£o - ObservaÃ§Ã£o 31
+	   + replicate('0',4)											-- 71 Carga TributÃ¡ria Estadual - ObservaÃ§Ã£o 30
+
+	   -- 72 Chave Tabela IBPT
+	   + isnull((select NCMCHV from TBS092 with (nolock) where NCMCOD=T10.PROCLAFIS and NCMEX=''),replicate(' ',10))
+
+	   -- 73 CST do PIS
+	   + Ltrim(isnull((select cstpis from PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate(' ',2)))
+
+       -- 74 AlÃ­quota do PIS
+	   + right(replicate('0',9) + Ltrim( str(isnull((select round(aliqpis,2)*100 from PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate('0',9)),9)),9)
+
+	   -- 75 CST do COFINS
+	   + Ltrim(isnull((select cstcofins from PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate(' ',2)))
+
+       -- 76 AlÃ­quota do COFINS
+	   + right(replicate('0',9) + Ltrim( str(isnull((select round(aliqcofins,2)*100 from PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate('0',9)),9)),9)
+
+	   + iif(Len(Ltrim(T10.PROCEST))=7,T10.PROCEST, replicate(' ',7))						-- 77 CEST - CÃ³digo Especificador da SubstituiÃ§Ã£o TributÃ¡ria - ObservaÃ§Ã£o 32
+
+	   + replicate('0',9)															-- 78 Valor UnitÃ¡rio PIS - SAIDA
+	   + replicate('0',9)															-- 79 Valor UnitÃ¡rio COFINS - SAIDA
+
+       -- 80 PreÃ§o de Custo
+	   + right(replicate('0',9) + Ltrim(str(isnull((select round(custo,3) from ##precos where codigo=T10.PROCOD),0)*1000,9,0)),9) --as texto
+
+	   + replicate('0',8)															-- 81 Data de InÃ­cio de PromoÃ§Ã£o
+	   + replicate('0',8)															-- 82 Data de Fim da PromoÃ§Ã£o
+	   + replicate('0',5)															-- 83 Percentual de comissÃ£o
+	   + replicate(' ',128)															-- 84 Mensagem complementar do Produto
+	   + replicate('0',3)															-- 85 Loja
+	   + replicate('0',9)															-- 86 CÃ³digo de Produto ANP
+	   + replicate('0',9)															-- 87 AlÃ­quota de FCP
+	   + replicate('0',9)															-- 88 AlÃ­quota de FCP ST
+	   + replicate('0',9)															-- 89 AlÃ­quota de FCP Retido
+	   + replicate('0',20)															-- 90 CÃ³digo GTIN
+	   + replicate('0',8)															-- 91 Data de alteraÃ§Ã£o
+	   + replicate('0',3)															-- 92 Dias de validade
+	   + replicate('0',6)															-- 93 CÃ³digo da informaÃ§Ã£o nutricional
+	   
+	   -- 94 CÃ³digo do BenefÃ­cio Fiscal
+	   + iif(T10.PROSTBB in ('20','30','40','41','50','51','70','90'), 'SEM CBENEF', replicate('',10)) as texto
+
+   into ##produtos
+  from TBS010 T10 with (nolock)
+ where T10.PROEMPCOD=0
+	   and T10.TGZCOD > 0
+	   and (select round(preco1,3) from ##precos where codigo=T10.PROCOD) > 0
+ order by PROCOD
+
+-- elimina registro nulos
+ 
+delete ##produtos
+ where texto is null
+ 
+-- select para o contador de registros abaixo
+
+select count(*)
+  from ##produtos
+
+-- quantidade de produtos exportados
+
+select convert(float,@@rowcount) as q into ##q2
+
+if (select q from ##q2)=0
+   begin
+	  set @msg=@trabalho
+	            + (select '<p>Executado em: ' + convert(varchar(max),getdate()))
+				+ '<p>Mensagem: Falha ao carregar a tabela ##produtos'
+				+ @empresa
+
+      set @SQLemail='execute msdb.dbo.sp_send_dbmail
+                        @profile_name = ''Email'',
+						@recipients = ''' + @mailto + ''',
+						@body_format = ''html'',
+   						@subject = ''' + @titulo + ''',
+						@body = ''' + @msg + ''''
+
+      exec(@sqlEmail)
+
+      print 'Falha ao carregar a tabela ##produtos'
+      
+	  -- FORÃ‡A UM ERRO PARA PARAR O PROCESSAMENTO
+      select * from parada_forcada
+   end
+
+-- gera o arquivo texto dos produtos
+exec master.dbo.xp_cmdshell 'bcp "select texto from ##produtos" queryout "c:\integros\expgz\est.txt" -c -T';
+go
+
+
+-- daqui pra baixo perde a referÃªncia das variÃ¡veis criadas
+
+
+-- valida a quantidade de proudtos exportados, diferenÃ§a deve ser menor do que 1%
+
+declare @q1 float, @q2 float
+declare @SQLemail varchar(max), @msg varchar(max), @mailto varchar(max), @empresa varchar(60), @trabalho varchar(max), @titulo varchar(max)
+
+set @titulo='Falha no Trabalho de IntegraÃ§Ã£o GZ'
+set @mailto='cristiano@integros.com.br'
+set @empresa=(select '<p>Emprensa: ' + rtrim(EMPNOMFAN) from TBS023 with (nolock) where (EMPNOM Like('TANBY%') and EMPCOD=1) or (EMPNOM Like('BEST BAG%') and EMPCOD=2))
+set @trabalho='<p>Nome do trabalho: Carga Geral de Produtos Para Sistema GZ'
+
+select @q1=count(*)
+  from
+     openrowset(
+	    'Microsoft.ACE.OLEDB.12.0'
+		,'Text;Database=c:\integros\expgz;HDR=No;/r'
+		,'select * from [est.txt]'
+	 )
+
+set @q2=(select q from ##q2)
+
+print 'Quantidade de produtos exportados: ' + Ltrim(str(@q1,9,0))
+print 'Quantidade de produtos no cadastro (TBS010): ' + Ltrim(str(@q2,9,0))
+
+if ((1-@q1/@q2) * 100) >= 1
+   begin
+   	  set @msg=@trabalho
+	            + (select '<p>Executado em: ' + convert(varchar(max),getdate()))
+				+ '<p>Mensagem: Falha na exportaÃ§Ã£o dos Produtos. Arquivo c:\integros\expgz\est.txt deletado.'
+				+ @empresa
+
+      set @SQLemail='execute msdb.dbo.sp_send_dbmail
+                        @profile_name = ''Email'',
+						@recipients = ''' + @mailto + ''',
+						@body_format = ''html'',
+   						@subject = ''' + @titulo + ''',
+						@body = ''' + @msg + ''''
+
+      exec(@sqlEmail)
+
+      print 'Falha na exportaÃ§Ã£o dos Produtos. Arquivo c:\integros\expgz\est.txt deletado.'
+      exec xp_cmdshell 'del c:\integros\expgz\est.txt'
+
+      -- FORÃ‡A UM ERRO PARA PARAR O PROCESSAMENTO
+      select * from parada_forcada
+   end
+go
+
+--------------------------------------------
+-- Carga Parcial de Produtos Para Sistema GZ
+
+-- remove/recria a tabela temporÃ¡ria de preÃ§os
+
+if object_id('tempdb.dbo.###precos') is not null
+begin
+	drop table ##precos
+end
+
+declare @q int
+declare @SQLemail varchar(max), @msg varchar(max), @mailto varchar(max), @empresa varchar(60), @trabalho varchar(max), @titulo varchar(max)
+
+set @titulo='Falha no Trabalho de IntegraÃ§Ã£o GZ'
+set @mailto='cristiano@integros.com.br'
+set @empresa=(select '<p>Emprensa: ' + rtrim(EMPNOMFAN) from TBS023 with (nolock) where (EMPNOM Like('TANBY%') and EMPCOD=1) or (EMPNOM Like('BEST BAG%') and EMPCOD=2))
+set @trabalho='<p>Nome do trabalho: Carga Parcial de Produtos Para Sistema GZ'
+
+select * into ##precos from PrecoLojaGeral(0)
+
+set @q=@@ROWCOUNT
+
+if @q=0
+   begin
+	  set @msg=@trabalho
+	            + (select '<p>Executado em: ' + convert(varchar(max),getdate()))
+				+ '<p>Mensagem: NÃ£o foi carregada a tabela ##precos'
+				+ @empresa
+
+      set @SQLemail='execute msdb.dbo.sp_send_dbmail
+                        @profile_name = ''Email'',
+						@recipients = ''' + @mailto + ''', 
+						@body_format = ''html'',
+						@subject = ''' + @titulo + ''',
+						@body = ''' + @msg + ''''
+
+      exec(@sqlEmail)
+
+      print 'NÃ£o foi carregada a tabela ##precos'
+
+      -- forÃ§a um erro para parar o processo
+      select * from parada_forcada
+   end
+
+print 'Quantidade de produtos com preÃ§os: ' + Ltrim(str(@q,9,0))
+
+-- remove/recria a tabela temporÃ¡ria de produtos
+
+if object_id('tempdb.dbo.###produtos') is not null
+begin
+	drop table ##produtos
+end
+
+-- lista de produtos exportados
+
+select right(replicate('0',20) + Ltrim(rtrim(T10.PROCOD)),20)		-- 01 CÃ³digo Interno do Produto (PLU)
+       + right(replicate('0',20) + Ltrim(rtrim(T10.PROCOD)),20)		-- 02 CÃ³digo de Barras - ObservaÃ§Ã£o 1
+	   -- 03 DescriÃ§Ã£o Completa
+	   + replace(Left(replace(iif(T10.PRODESPDV='',T10.PRODES,T10.PRODESPDV) collate sql_latin1_general_cp1251_ci_as,'''',''),40),'''','')
+	   -- 04 DescriÃ§Ã£o Resumida para o PDV
+	   + replace(Left(replace(iif(T10.PRODESPDVRED='',T10.PRODES,T10.PRODESPDVRED) collate sql_latin1_general_cp1251_ci_as,'''',''),24),'''','')
+       + 'N'														-- 05 FÃ³rmula - ObservaÃ§Ã£o 2
+       + T10.PROUM1													-- 06 Unidade de ReferÃªncia - ObservaÃ§Ã£o 3
+	   + replicate('0',4)											-- 07 ArmaÃ§Ã£o / LocalizaÃ§Ã£o
+	   + replicate('0',2)											-- 08 Setor ( BalanÃ§a ) - Produto Pesado
+	   
+	   -- 09 PreÃ§o de Venda PadrÃ£o
+	   + right(replicate('0',9) + Ltrim(str(isnull((select round(preco1,3) from ##precos where codigo=T10.PROCOD),0)*1000,9,0)),9)
+
+	   + replicate('0',9)											-- 10 PreÃ§o de Venda Promocional - ObservaÃ§Ã£o 4
+	   + replicate('0',12)											-- 11 Saldo em Estoque (Quantidade)
+       + 'A'														-- 12 Desconto PadrÃ£o - ObservaÃ§Ã£o 5
+       --+ T10.PROPESAVEL												-- 13 Quantidade VariÃ¡vel / Produto Pesado ? - S,N,E ObservaÃ§Ã£o 27
+	   + iif(T10.PROUM1 in('KG','MT'),'S','N')						-- 13 Quantidade VariÃ¡vel / Produto Pesado ? - S,N,E ObservaÃ§Ã£o 27
+       + 'N'														-- 14 Altera PreÃ§o de Venda no PDV ? - S,N,T ObservaÃ§Ã£o 6
+       + 'N'														-- 15 Bloqueia Multiplicador ? - ObservaÃ§Ã£o 7
+	   + replicate(' ',6)											-- 16 PromoÃ§Ã£o: Leve X Pague Y - ObservaÃ§Ã£o 8
+       + right('00' + Ltrim(str(isnull(T10.TGZCOD,0),2)),2)			-- 17 CÃ³digo da TributaÃ§Ã£o
+	   + ' '														-- 18 Reservado - EspaÃ§o em Branco
+       
+	   -- 19 Quantidade por Embalagem - ObservaÃ§Ã£o 10
+	   + right(replicate('0',7) + Ltrim(str(round(T10.PROUM1QTD,3)*1000,7,0)),7)
+
+       + 'N'														-- 20 Vende Somente Embalagem Fechada ? - ObservaÃ§Ã£o 11
+	   + replicate('0',4)											-- 21 Desconto por Embalagem Fechada - ObservaÃ§Ã£o 12
+	   + 'N'														-- 22 Pede DescriÃ§Ã£o Complementar ? - S,N,P,T Obs. 13
+	   + replicate(' ',80)											-- 23 Reservado - EspaÃ§o em Branco
+	   + replicate('0',9)											-- 24 PreÃ§o de Venda Atacado
+       --+ iif(PROPESAVEL='S','N','S')								-- 25 Bloqueia Venda Fracionada ? - ObservaÃ§Ã£o 14
+	   + iif(T10.PROUM1 in('KG','MT'),'N','S')						-- 25 Bloqueia Venda Fracionada ? - ObservaÃ§Ã£o 14
+	   + replicate(' ',40)											-- 26 Referencia
+       + T10.PROSTBA+T10.PROSTBB									-- 27 SituaÃ§Ã£o TributÃ¡ria - Tabela 2
+       + 'A'														-- 28 Estado do Produto - A - Ativo / I - Inativo
+	   + replicate('0',4)											-- 29 CÃ³digo do Vasilhame - ObservaÃ§Ã£o 15
+	   + replicate(' ',81)											-- 30 Reservado - EspaÃ§o em Branco
+	   + replicate('0',4)											-- 31 Percentual Desconto MÃ¡ximo Permitido - ObservaÃ§Ã£o 16
+	   
+	   --+ str(round(T10.PROUM2QTD,3),7,3)
+       + right(replicate('0',7) + Ltrim( str(round(T10.PROUM2QTD,3)*1000,7,0)),7)		-- 32 Quantidade por Embalagem (Atacado) - ObservaÃ§Ã£o 10
+       
+	   --+ iif(PROPESAVEL='S','N','S')													-- 33 Vende SÃ³ Embal. Fechada ? (Atacado) - ObservaÃ§Ã£o 11
+	   + iif(T10.PROUM1 in('KG','MT'),'N','S')											-- 33 Vende SÃ³ Embal. Fechada ? (Atacado) - ObservaÃ§Ã£o 11
+	   + replicate('0',4)																-- 34 Desconto por Embal. Fechada(Atacado) - ObservaÃ§Ã£o 12
+       
+	   -- 35 ClassificaÃ§Ã£o Fiscal
+	   + iif(Len(Ltrim(T10.PROCLAFIS))=8,rtrim(T10.PROCLAFIS)+'  ', replicate(' ',10))
+
+	   + replicate('0',12)																-- 36 Quantidade Pendente - Venda BalcÃ£o
+	   + replicate(' ',4)																-- 37 Validade da Quantidade Pendente - Venda BalcÃ£o
+	   + replicate('0',9)																-- 38 PreÃ§o de Venda Especial
+	   + replicate('0',7)																-- 39 Quantidade por Embalagem (Especial) - ObservaÃ§Ã£o 10
+	   + 'N'																			-- 40 Vende SÃ³ Embal. Fechada ? (Especial) - ObservaÃ§Ã£o 11
+	   + replicate('0',4)																-- 41 Desconto por Embalagem Fechada (Especial) - ObservaÃ§Ã£o 12
+	   + replicate('0',12)																-- 42 Quantidade MÃ­nima para PreÃ§o Atacado - ObservaÃ§Ã£o 17
+	   + replicate('0',12)																-- 43 Quantidade MÃ­nima para PreÃ§o Especial - ObservaÃ§Ã£o 17
+	   + replicate('0',6)																-- 44 Grupo
+	   + replicate('0',6)																-- 45 Departamento
+	   + right('000000' + Ltrim(str(isnull(T10.MARCOD,0),4)),6)												-- 46 Marca
+	   + replicate('0',8)																-- 47 Pontos Clube Fidelidade - ObservaÃ§Ã£o 18
+	   + replicate(' ',1)																-- 48 Base de CÃ¡lculo Clube Fidelidade - ObservaÃ§Ã£o 19
+	   + replicate('0',20)																-- 49 CÃ³digo Interno do Produto Associado - ObservaÃ§Ã£o 20
+	   + replicate('0',3)																-- 50 Grupo de Finalizadores - ObservaÃ§Ã£o 21
+	   + replicate('0',9)																-- 51 Desconto Finalizadores EspecÃ­ficos - ObservaÃ§Ã£o 22
+	   + replicate(' ',90)																-- 52 Finalizadores para Desconto - ObservaÃ§Ã£o 23
+	   + replicate('0',2)																-- 53 1Âº Micro-Terminal de ImpressÃ£o - ObservaÃ§Ã£o 24
+	   + replicate('0',6)																-- 54 Quantidade MÃ¡xima de Item por Compra
+	   + replicate(' ',1)																-- 55 Cupom Vinculado - ObservaÃ§Ã£o 25
+	   + replicate(' ',1)																-- 56 Bloqueador de Venda - ObservaÃ§Ã£o 26
+	   + '0'																			-- 57 Tipo do Produto - 0 - Produto / 1 ServiÃ§o
+	   + replicate('0',2)																-- 58 2Âº Micro-Terminal de ImpressÃ£o - ObservaÃ§Ã£o 24
+	   + replicate('0',2)																-- 59 3Âº Micro-Terminal de ImpressÃ£o - ObservaÃ§Ã£o 24
+	   + replicate('0',2)																-- 60 4Âº Micro-Terminal de ImpressÃ£o - ObservaÃ§Ã£o 24
+	   + replicate('0',2)																-- 61 5Âº Micro-Terminal de ImpressÃ£o - ObservaÃ§Ã£o 24
+	   + 'N'																			-- 62 Solicita Senha para LiberaÃ§Ã£o de Venda - S - Sim / N - NÃ£o
+	   + replicate('0',3)																-- 63 Grupo de BalcÃ£o - ObservaÃ§Ã£o 28
+	   + 'T'																			-- 64 Indicador de ProduÃ§Ã£o PrÃ³pria ou de Terceiro
+	   + 'A'																			-- 65 Indicador de Arredondamento ou Truncamento - A - Arredondamento T - Truncamento
+	   + replicate('0',9)																-- 66 PreÃ§o MÃ¡ximo de Venda ao Consumidor
+	   + replicate('0',3)																-- 67 Tipo do Produto - ObservaÃ§Ã£o 29
+
+	   -- 68 Carga TributÃ¡ria Federal - ObservaÃ§Ã£o 30
+	   + isnull((select iif(T10.PROSTBA in ('0', '3', '4', '5'), right(replicate('0',4) + Ltrim(rtrim(replace(convert(char(9),round(NCMALINAC*100,0)),'.00',''))),4), right(replicate('0',4) + Ltrim(rtrim(replace(convert(char(9),round(NCMALIIMP*100,0)),'.00',''))),4)) from TBS092 with (nolock) where NCMCOD=T10.PROCLAFIS and NCMEX=''),'0000')
+
+	   + (select iif(EMPCRT=1,T10.PROSTBA+T10.PROCSN, replicate(' ',4)) from TBS023 with (nolock) where EMPCOD = 1)	-- 69 CSOSN
+
+	   + 'N'														-- 70 EntregÃ¡vel - S - Sim / N - NÃ£o - ObservaÃ§Ã£o 31
+	   + replicate('0',4)											-- 71 Carga TributÃ¡ria Estadual - ObservaÃ§Ã£o 30
+
+	   -- 72 Chave Tabela IBPT
+	   + isnull((select NCMCHV from TBS092 with (nolock) where NCMCOD=T10.PROCLAFIS and NCMEX=''),replicate(' ',10))
+
+	   -- 73 CST do PIS
+	   + Ltrim(isnull((select cstpis from PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate(' ',2)))
+
+       -- 74 AlÃ­quota do PIS
+	   + right(replicate('0',9) + Ltrim( str(isnull((select round(aliqpis,2)*100 from PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate('0',9)),9)),9)
+
+	   -- 75 CST do COFINS
+	   + Ltrim(isnull((select cstcofins from PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate(' ',2)))
+
+       -- 76 AlÃ­quota do COFINS
+	   + right(replicate('0',9) + Ltrim( str(isnull((select round(aliqcofins,2)*100 from PisCofins(T10.PROEMPCOD, T10.PROCOD)),replicate('0',9)),9)),9)
+
+	   + iif(Len(Ltrim(T10.PROCEST))=7,T10.PROCEST, replicate(' ',7))						-- 77 CEST - CÃ³digo Especificador da SubstituiÃ§Ã£o TributÃ¡ria - ObservaÃ§Ã£o 32
+
+	   + replicate('0',9)															-- 78 Valor UnitÃ¡rio PIS - SAIDA
+	   + replicate('0',9)															-- 79 Valor UnitÃ¡rio COFINS - SAIDA
+
+       -- 80 PreÃ§o de Custo
+	   + right(replicate('0',9) + Ltrim(str(isnull((select round(custo,3) from ##precos where codigo=T10.PROCOD),0)*1000,9,0)),9) --as texto
+
+	   + replicate('0',8)															-- 81 Data de InÃ­cio de PromoÃ§Ã£o
+	   + replicate('0',8)															-- 82 Data de Fim da PromoÃ§Ã£o
+	   + replicate('0',5)															-- 83 Percentual de comissÃ£o
+	   + replicate(' ',128)															-- 84 Mensagem complementar do Produto
+	   + replicate('0',3)															-- 85 Loja
+	   + replicate('0',9)															-- 86 CÃ³digo de Produto ANP
+	   + replicate('0',9)															-- 87 AlÃ­quota de FCP
+	   + replicate('0',9)															-- 88 AlÃ­quota de FCP ST
+	   + replicate('0',9)															-- 89 AlÃ­quota de FCP Retido
+	   + replicate('0',20)															-- 90 CÃ³digo GTIN
+	   + replicate('0',8)															-- 91 Data de alteraÃ§Ã£o
+	   + replicate('0',3)															-- 92 Dias de validade
+	   + replicate('0',6)															-- 93 CÃ³digo da informaÃ§Ã£o nutricional
+	   
+	   -- 94 CÃ³digo do BenefÃ­cio Fiscal
+	   + iif(T10.PROSTBB in ('20','30','40','41','50','51','70','90'), 'SEM CBENEF', replicate('',10)) as texto
+
+   into ##produtos
+  from TBS010 T10 with (nolock)
+ where T10.PROEMPCOD=0
+	   and T10.TGZCOD > 0
+	   and (select round(preco1,3) from ##precos where codigo=T10.PROCOD) > 0
+	   and (
+	          T10.PRODATCAD >= convert(date,getdate())
+			  or T10.PRODATALT >= convert(date,getdate())
+			  or (select atualizado from ##precos where codigo=T10.PROCOD) >= convert(date,getdate())
+           )
+ order by PROCOD
+
+-- elimina registro nulos
+ 
+delete ##produtos
+ where texto is null
+ 
+-- select para o contador de registros abaixo
+
+select count(*)
+  from ##produtos
+
+-- quantidade de produtos exportados
+
+select convert(float,@@rowcount) as q into ##q2
+
+if (select q from ##q2)=0
+   begin
+	  set @msg=@trabalho
+	            + (select '<p>Executado em: ' + convert(varchar(max),getdate()))
+				+ '<p>Mensagem: NÃ£o foram encontrados Produtos incluÃ­dos/alterados para serem exportados'
+				+ @empresa
+
+      set @SQLemail='execute msdb.dbo.sp_send_dbmail
+                        @profile_name = ''Email'',
+						@recipients = ''' + @mailto + ''',
+						@body_format = ''html'',
+   						@subject = ''' + @titulo + ''',
+						@body = ''' + @msg + ''''
+
+      exec(@sqlEmail)
+
+      print 'NÃ£o foram encontrados Produtos incluÃ­dos/alterados para serem exportados'
+      
+	  -- FORÃ‡A UM ERRO PARA PARAR O PROCESSAMENTO
+      select * from parada_forcada
+   end
+
+-- gera o arquivo texto dos produtos
+exec master.dbo.xp_cmdshell 'bcp "select texto from ##produtos" queryout "c:\integros\expgz\estp.txt" -c -T';
+go
+
+
+-- daqui pra baixo perde a referÃªncia das variÃ¡veis criadas
+
+
+-- valida a quantidade de proudtos exportados, diferenÃ§a deve ser menor do que 1%
+
+declare @q1 float, @q2 float
+declare @SQLemail varchar(max), @msg varchar(max), @mailto varchar(max), @empresa varchar(60), @trabalho varchar(max), @titulo varchar(max)
+
+set @titulo='Falha no Trabalho de IntegraÃ§Ã£o GZ'
+set @mailto='cristiano@integros.com.br'
+set @empresa=(select '<p>Emprensa: ' + rtrim(EMPNOMFAN) from TBS023 with (nolock) where (EMPNOM Like('TANBY%') and EMPCOD=1) or (EMPNOM Like('BEST BAG%') and EMPCOD=2))
+set @trabalho='<p>Nome do trabalho: Carga Geral de Produtos Para Sistema GZ'
+
+-- quantidade de produtos gravados no arquivo
+
+select @q1=count(*)
+  from
+     openrowset(
+	    'Microsoft.ACE.OLEDB.12.0'
+		,'Text;Database=c:\integros\expgz;HDR=No;/r'
+		,'select * from [estp.txt]'
+	 )
+
+-- quantidade de produtos exportados
+
+set @q2=(select q from ##q2)
+
+print 'Quantidade de produtos exportados: ' + Ltrim(str(@q1,9,0))
+print 'Quantidade de produtos no cadastro (TBS010): ' + Ltrim(str(@q2,9,0))
+
+if ((1-@q1/@q2) * 100) >= 1
+--if ((1-@q1/@q2) * 100) <= 100000
+   begin
+   	  set @msg=@trabalho
+	            + (select '<p>Executado em: ' + convert(varchar(max),getdate()))
+				+ '<p>Mensagem: Falha na exportaÃ§Ã£o dos Produtos. Arquivo c:\integros\expgz\estp.txt deletado.'
+				+ @empresa
+
+      set @SQLemail='execute msdb.dbo.sp_send_dbmail
+                        @profile_name = ''Email'',
+						@recipients = ''' + @mailto + ''',
+						@body_format = ''html'',
+   						@subject = ''' + @titulo + ''',
+						@body = ''' + @msg + ''''
+
+      exec(@sqlEmail)
+
+      print 'Falha na exportaÃ§Ã£o dos Produtos. Arquivo c:\integros\expgz\estp.txt deletado.'
+      exec xp_cmdshell 'del c:\integros\expgz\estp.txt'
+
+      -- FORÃ‡A UM ERRO PARA PARAR O PROCESSAMENTO
+      select * from parada_forcada
+   end
+go

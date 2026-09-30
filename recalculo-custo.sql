@@ -154,7 +154,7 @@ exec SP_RecalculoCusto '202003'
 
 declare @datai date, @dataf date, @comando varchar(50)
 
-select @datai='20240901', @dataf='20240901' -- ate o mes fechado
+select @datai='20170101', @dataf='20250801' -- ate o mes fechado
 
 while @datai <= @dataf
    begin
@@ -167,3 +167,153 @@ while @datai <= @dataf
 select min([DATA])
   from SALDOINICIAL with (nolock)
 
+select count(*)
+  from SALDOINICIAL with (nolock)
+ where CUSTO > 0
+
+-- otimização chatGPT
+
+-- O que podemos fazer é eliminar o loop e trabalhar de forma set-based (em lote), usando CROSS APPLY ou OUTER APPLY com uma subquery que busca o custo anterior.
+-- Aqui está uma versão otimizada da sua procedure:
+
+if exists(select name from sysobjects where name='SP_RecalculoCusto' and type='P')
+   drop procedure [dbo].[SP_RecalculoCusto]
+go
+
+create procedure [dbo].[SP_RecalculoCusto] @periodo varchar(6) as
+begin
+    set nocount on;
+
+    ;with CTE_SALDO as (
+        select s.DATA,
+               s.ANOMES,
+               s.CODIGO,
+               s.QTDENTRADA,
+               s.VALENTRADA,
+               s.E1, s.E2, s.E3, s.E4, s.E7, s.E9,
+               s.CUSTO,
+               -- pega o custo anterior (mês anterior válido)
+               ca.CUSTO_ANTERIOR
+        from SALDOINICIAL s with (nolock)
+        outer apply (
+            select top 1 si.CUSTO as CUSTO_ANTERIOR
+            from SALDOINICIAL si with (nolock)
+            where si.CODIGO = s.CODIGO
+              and si.DATA < s.DATA
+              and si.CUSTO > 0
+            order by si.DATA desc
+        ) ca
+        where s.ANOMES = @periodo
+    )
+    update CTE_SALDO
+       set CUSTO =
+            case when QTDENTRADA = 0 then isnull(CUSTO_ANTERIOR, 0)
+                 else round(
+                        (
+                          isnull(CUSTO_ANTERIOR,0) *
+                          (isnull(E1,0)+isnull(E2,0)+isnull(E3,0)+isnull(E4,0)+isnull(E7,0)+isnull(E9,0))
+                          + VALENTRADA
+                        )
+                        / (case when isnull(CUSTO_ANTERIOR,0) > 0
+                                 then (isnull(E1,0)+isnull(E2,0)+isnull(E3,0)+isnull(E4,0)+isnull(E7,0)+isnull(E9,0))
+                                 else 0
+                           end + QTDENTRADA),
+                        6)
+            end
+     where isnull(CUSTO,0) = 0; -- só atualiza os que estão zerados
+     
+    -- agora propaga para o próximo mês os custos zerados
+    update s
+       set CUSTO = si.CUSTO
+    from SALDOINICIAL s
+    inner join SALDOINICIAL si on si.CODIGO = s.CODIGO
+                               and si.ANOMES = @periodo
+                               and si.CUSTO > 0
+    where s.DATA = dateadd(mm, datediff(mm,0,@periodo+'01')+1, 0)
+      and s.QTDENTRADA = 0
+      and isnull(s.CUSTO,0) = 0;
+end
+go
+
+-- Garantir índices adequados
+-- Para evitar bloqueios longos, crie índices que facilitem os acessos:
+
+create index IX_SALDOINICIAL_CODIGO_DATA on SALDOINICIAL(CODIGO, DATA);
+create index IX_SALDOINICIAL_ANOMES_CODIGO on SALDOINICIAL(ANOMES, CODIGO);
+
+-- Versão otimizada (sem WHILE)
+
+if exists(select name from sysobjects where name='SP_RecalculoCusto' and type='P')
+   drop procedure [dbo].[SP_RecalculoCusto]
+go
+
+create procedure [dbo].[SP_RecalculoCusto]
+   @datai date,
+   @dataf date
+as
+begin
+    set nocount on;
+
+    ;with CTE_SALDO as (
+        select s.DATA,
+               s.ANOMES,
+               s.CODIGO,
+               s.QTDENTRADA,
+               s.VALENTRADA,
+               s.E1, s.E2, s.E3, s.E4, s.E7, s.E9,
+               s.CUSTO,
+               ca.CUSTO_ANTERIOR,
+			   s.EMPRESA
+        from SALDOINICIAL s with (nolock)
+        outer apply (
+            select top 1 si.CUSTO as CUSTO_ANTERIOR
+            from SALDOINICIAL si with (nolock)
+            where si.CODIGO = s.CODIGO
+              and si.DATA <= s.DATA
+              and si.CUSTO > 0
+            order by si.DATA desc, si.EMPRESA
+        ) ca
+        where s.DATA between @datai and @dataf -- '20170101' and '20250801'
+        --where s.DATA between '20170101' and '20250801'
+		and s.CUSTO = 0
+		--and s.CODIGO='0051063'
+		
+    )
+    update CTE_SALDO
+       set CUSTO =
+            case when QTDENTRADA = 0 then isnull(CUSTO_ANTERIOR, 0)
+                 else round(
+                        (
+                          isnull(CUSTO_ANTERIOR,0) *
+                          (isnull(E1,0)+isnull(E2,0)+isnull(E3,0)+isnull(E4,0)+isnull(E7,0)+isnull(E9,0))
+                          + VALENTRADA
+                        )
+                        / (case when isnull(CUSTO_ANTERIOR,0) > 0
+                                 then (isnull(E1,0)+isnull(E2,0)+isnull(E3,0)+isnull(E4,0)+isnull(E7,0)+isnull(E9,0))
+                                 else 0
+                           end + QTDENTRADA),
+                        6)
+            end
+     where isnull(CUSTO,0) = 0
+     OPTION (MAXDOP 1); -- evita CXPACKET
+
+    -- propaga custo para o mês seguinte (apenas os zerados e sem entrada)
+    update s
+       set CUSTO = si.CUSTO
+    from SALDOINICIAL s
+    inner join SALDOINICIAL si on si.CODIGO = s.CODIGO
+                               and si.DATA between @datai and @dataf
+                               and si.CUSTO > 0
+    where s.DATA = dateadd(mm, datediff(mm,0,si.DATA)+1, 0)
+      and s.QTDENTRADA = 0
+      and isnull(s.CUSTO,0) = 0
+      OPTION (MAXDOP 1);
+end
+go
+
+exec SP_RecalculoCusto '20250801', '20250901';
+
+select *
+  from SALDOINICIAL with (nolock)
+ where CODIGO = '0051063'
+       and QTDENTRADA = 0

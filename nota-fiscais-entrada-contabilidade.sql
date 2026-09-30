@@ -33,8 +33,8 @@ go
 
 declare @dataDe as datetime, @dataAte as datetime, @empresa as smallint
 
-set @dataDe ='20250701'
-set @dataAte='20250731'
+set @dataDe ='20260801'
+set @dataAte='20260831'
 
 set @empresa=1
 
@@ -74,7 +74,7 @@ select *
 
 declare @datade date, @dataate date
 
-select @datade='20250701', @dataate='20250731'
+select @datade='20260801', @dataate='20260831'
 
 select 'move ' + (select subString(dir,1,4)+'_'+subString(dir,5,2)+'_'+subString(dir,7,2)+subString(dir,9,57)
                     from #arq

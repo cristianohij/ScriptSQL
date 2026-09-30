@@ -15,8 +15,8 @@
 
 declare @data_de char(8), @data_ate char(8), @msg varchar(1000), @hit datetime, @hft datetime 
 
-select  @data_de  = '20250501'
-       ,@data_ate = '20250531'
+select  @data_de  = '20260201'
+       ,@data_ate = '20260228'
 
 -- cria lista de conexões dos PDVs
 
@@ -49,11 +49,11 @@ if @empresa='ND'
    -- tanby matriz
    insert into ##pdv (empresa,pdv,odbc,ativo)
    values --(@empresa,1,'MYSQLGZNDPDV1',1),
-          --(@empresa,2,'MYSQLGZNDPDV2',1),
-	      (@empresa,3,'MYSQLGZNDPDV3',1),
+          (@empresa,2,'MYSQLGZNDPDV2',1),
+	      --(@empresa,3,'MYSQLGZNDPDV3',1),
 	      (@empresa,4,'MYSQLGZNDPDV4',1),
-	      (@empresa,5,'MYSQLGZNDPDV5',1)
-	      --,(@empresa,6,'MYSQLGZNDPDV6',1)
+	      (@empresa,5,'MYSQLGZNDPDV5',1)--,
+	      --(@empresa,6,'MYSQLGZNDPDV6',1)
 
 if @empresa='TT'
    -- tanby taubaté
@@ -68,17 +68,17 @@ if @empresa='TT'
 if @empresa='BB'
    -- best bag
    insert into ##pdv (empresa,pdv,odbc,ativo)
-   values (@empresa,1,'MYSQLGZBBPDV1',1)
-          ,(@empresa,2,'MYSQLGZBBPDV2',1)
-	      ,(@empresa,3,'MYSQLGZBBPDV3',1)
-	      --,(@empresa,4,'MYSQLGZBBPDV4',1)
+   values --(@empresa,1,'MYSQLGZBBPDV1',1)
+          --,(@empresa,2,'MYSQLGZBBPDV2',1)
+	      (@empresa,3,'MYSQLGZBBPDV3',1)
+	      ,(@empresa,4,'MYSQLGZBBPDV4',1)
 	      ,(@empresa,5,'MYSQLGZBBPDV5',1)
 	      ,(@empresa,6,'MYSQLGZBBPDV6',1)
 
 if @empresa='HH'
    -- best bag
    insert into ##pdv (empresa,pdv,odbc,ativo)
-   values (@empresa,1,'MYSQLGZHHPDV1',1),
+   values --(@empresa,1,'MYSQLGZHHPDV1',1)
           (@empresa,2,'MYSQLGZHHPDV2',1)
 
 -- se tabela de PDVs estiver preenchida

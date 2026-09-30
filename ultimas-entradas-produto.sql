@@ -16,7 +16,7 @@ select TBS059.NFEDATEFE
        --and 
        TBS0591.NFETIP<>'D'
        and TBS059.NFECAN<>'S'
-       and TBS0591.PROCOD in('00690212')
+       and TBS0591.PROCOD in('27290006')
        --and NFENCMXML='0018717'
  order by TBS059.NFEDATENT desc
 

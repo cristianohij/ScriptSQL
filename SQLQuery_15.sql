@@ -1,3 +1,5 @@
+drop function dbo.SplitString
+
 CREATE FUNCTION dbo.SplitString
 (
     @string NVARCHAR(MAX),
@@ -54,7 +56,11 @@ select *
 delete TBS154 
 
 select *
+  --into TBS154V77
   from TBS154 with (nolock)
+
+update TBS154
+   set CESTMVAALT='17530101'
 
 select *
   from TBS1541 with (nolock)
@@ -67,7 +73,7 @@ update TBS154
 
 select *
   from TBS1541 with (nolock)
- where CESTMVANCM Like ('90251990')
+ where CESTMVANCM Like ('2803300')
 
 drop table #NCM_unicos
 
@@ -321,7 +327,7 @@ WHERE tbs0921.NCMEX = '';  -- Verifica se o NCMEX de TBS0921 está vazio
 
 select *
   from TBS154 with (nolock)
- where CESTMVACOD='1702200'
+ where CESTMVACOD='2803300'
 
 select top(1) *
   from TBS0921 with (nolock)
@@ -406,6 +412,153 @@ select NCMCOD
   from TBS092 with (nolock)
  group by NCMCOD
 having count(*) > 1
+
+
+-- segmentos CEST
+
+-- Criação da tabela
+CREATE TABLE segmentos_cest (
+    item INT PRIMARY KEY,
+    nome_segmento VARCHAR(255),
+    codigo_segmento VARCHAR(2)
+);
+
+-- Inserção dos dados
+INSERT INTO segmentos_cest (item, nome_segmento, codigo_segmento) VALUES
+(1, 'Autopeças', '01'),
+(2, 'Bebidas alcoólicas, exceto cerveja e chope', '02'),
+(3, 'Cervejas, chopes, refrigerantes, águas e outras bebidas', '03'),
+(4, 'Cigarros e outros produtos derivados do fumo', '04'),
+(5, 'Cimentos', '05'),
+(6, 'Combustíveis e lubrificantes', '06'),
+(7, 'Energia elétrica', '07'),
+(8, 'Ferramentas', '08'),
+(9, 'Lâmpadas, reatores e “starter”', '09'),
+(10, 'Materiais de construção e congêneres', '10'),
+(11, 'Materiais de limpeza', '11'),
+(12, 'Materiais elétricos', '12'),
+(13, 'Medicamentos de uso humano e outros produtos farmacêuticos para uso humano ou veterinário', '13'),
+(14, 'Papéis, plásticos, produtos cerâmicos e vidros', '14'),
+(15, 'Pneumáticos, câmaras de ar e protetores de borracha', '16'),
+(16, 'Produtos alimentícios', '17'),
+(17, 'Produtos de papelaria', '19'),
+(18, 'Produtos de perfumaria e de higiene pessoal e cosméticos', '20'),
+(19, 'Produtos eletrônicos, eletroeletrônicos e eletrodomésticos', '21'),
+(20, 'Rações para animais domésticos', '22'),
+(21, 'Sorvetes e preparados para fabricação de sorvetes em máquinas', '23'),
+(22, 'Tintas e vernizes', '24'),
+(23, 'Veículos automotores', '25'),
+(24, 'Veículos de duas e três rodas motorizados', '26'),
+(25, 'Venda de mercadorias pelo sistema porta a porta', '28');
+
+select *
+  from segmentos_cest with (nolock)
+
+update segmentos_cest
+   set nome_segmento = upper(nome_segmento)
+
+select *
+  from TBS154 with (nolock)
+
+update TBS154
+   set CESTMVASEG=(select nome_segmento from segmentos_cest with (nolock) where codigo_segmento=subString(CESTMVACOD,1,2))
+
+UPDATE T
+SET CESTMVASEG = S.nome_segmento
+FROM TBS154 T
+INNER JOIN segmentos_cest S WITH (NOLOCK)
+    ON S.codigo_segmento = SUBSTRING(T.CESTMVACOD, 1, 2)
+WHERE S.nome_segmento IS NOT NULL;
+
+select NFEDAREVALOR
+	     ,NFEDAREDATVEN
+	     ,NFEDARECB44
+	     ,NFEDARECB48
+	     ,NFEDARENUM
+	     ,NFEDAREPIX
+	     ,NFEDAREDATEMI
+	     ,NFEDAREUSUEMI
+       ,*
+  from TBS059 with (nolock)
+ where NFENUM=194222
+
+select *
+  from TBS156 with (nolock)
+
+begin tran
+delete TBS156
+
+rollback tran
+commit tran
+
+select *
+  from TBS003 with (nolock)
+
+select NFENUM
+       ,NFENOM
+       ,NFEDAREVALOR
+	     ,NFEDAREDATVEN
+	     ,NFEDARECB44
+	     ,NFEDARECB48
+	     ,NFEDARENUM
+	     ,NFEDAREPIX
+	     ,NFEDAREDATEMI
+	     ,NFEDAREUSUEMI
+       ,*
+  from TBS059 with (nolock)
+ where NFEDATEFE >= '20250501'
+       and NFEDARENUM <> ''
+ order by NFEDATEFE
+
+select NFENUM
+       ,NFENOM
+       ,NFEDATEMI
+       ,NFEDAREVALOR
+	     ,NFEDAREDATVEN
+	     ,NFEDARECB44
+	     ,NFEDARECB48
+	     ,NFEDARENUM
+	     ,NFEDAREPIX
+	     ,NFEDAREDATEMI
+	     ,NFEDAREUSUEMI
+       ,*
+  from TBS059 with (nolock)
+ where NFEDATEMI >= '20250501'
+       and NFEDATEFE = '17530101'
+       and NFEESTORI <> 'SP'
+ order by NFEDATEMI
+
+
+
+-- tabela CEST
+
+select *
+  --into TBS154V77
+  from TBS154 with (nolock)
+
+-- backup da tabela
+
+select *
+  into TBS154BKP
+  from TBS154 with (nolock)
+
+-- eliminar registro da tabela para importação via código vscode
+
+delete TBS154 
+
+-- definido valor default para o campo abaixo
+--update TBS154
+   --set CESTMVAALT='17530101'
+
+-- versão está sendo gravada pelo código vscode
+--update TBS154
+   --set CESTMVATABVER=73
+
+-- correlação CEST x NCM
+
+select *
+  from TBS1541 with (nolock)
+
 
 
 

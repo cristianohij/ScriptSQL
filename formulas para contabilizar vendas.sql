@@ -3024,6 +3024,58 @@ create function NFECUSAQU(@empnota smallint, @tipo char(1), @nota decimal(10), @
    end
 go
 
+-- nova versão
+
+drop function NFECUSAQU
+go
+
+create function NFECUSAQU(@empnota smallint, @tipo char(1), @nota decimal(10), @codfornecedor int, @empserie smallint, @serie char(3), @item smallint) returns decimal(16,6) as
+   begin
+      declare @retorno decimal(16,6)
+      set @retorno = (select ( NFETOTOPEITE -
+                                  case
+                                     -- subtrai ICMS se produto sem ST
+                                     when NFEVALICMSST > 0 then 0
+                                     else NFEVALICMS
+                                  end
+                                  /*-
+                                  -- subtrai PIS/COFINS
+                                  ( case
+                                       when PROSTBPIS between '06' and '09' then 0
+                                       --else (NFETOTOPEITE - NFEVALICMSST - NFEVALIPI) * 1.65 /100
+                                       else (NFETOTOPEITE - NFEVALICMSST) * 1.65 /100
+                                    end +
+                                    case
+                                       when PROSTBCOFINS between '06' and '09' then 0
+                                       else (NFETOTOPEITE - NFEVALICMSST) * 7.6 /100
+                                    end
+                                  )*/
+
+                                  - NFEVALPIS
+                                  - NFEVALCOFINS
+
+                                  -- soma frete pago para transportadora (CT-e)
+                                  + NFEVALFREITECTE
+                             )
+
+                             /
+                             case NFEQTD when 0 then 1 else NFEQTD end
+                             /
+                             case NFEQTDEMB when 0 then 1 else NFEQTDEMB end -- atualmente a qtde da embalagem � sempre 1... mantido para nf antigas
+                        from TBS0591 (nolock) inner join TBS010 (nolock) on TBS010.PROEMPCOD=TBS0591.PROEMPCOD and TBS010.PROCOD=TBS0591.PROCOD
+                       where NFEEMPCOD = @empnota and
+                             NFETIP = @tipo and
+                             NFENUM = @nota and
+                             NFECOD = @codfornecedor and
+                             SEREMPCOD = @empserie and
+                             SERCOD = @serie and NFEITE = @item --and
+                             --NFECFOP in('1.102','1.403','1.407','1.556','2.102','2.403','2.407','2.556')
+                     )
+      return @retorno
+   end
+go
+
+
 
 select * from TBS0591 (nolock) where NFENUM=331154
 --and NFEITE in(4,5)
