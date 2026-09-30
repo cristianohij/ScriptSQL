@@ -30,7 +30,7 @@ if object_id('tempdb..#cli_grupo') is not null
 create table #cli_grupo (codigo int)
 
 insert into #cli_grupo
-exec usp_ClientesGrupo 1
+exec usp_Get_CodigosClientesGrupo 1
 
 SELECT
     e.SNESER as serie
@@ -41,7 +41,7 @@ SELECT
     ,e.ENFVALTOT as valor
     ,(select n.NFSTIP from TBS067 n with (nolock) where n.NFSEMPCOD = e.ENFEMPCOD and n.NFSNUM = e.ENFNUM and n.SNEEMPCOD = e.SNEEMPCOD and n.SNESER = e.SNESER) as tipo
 FROM TBS080 e WITH (NOLOCK)
-WHERE e.ENFDATEMI = '20260127'      --between '20260123' and '20260124'
+WHERE e.ENFDATEMI between '20260928' and '20260929'
   AND e.ENFSIT = 6
   and e.ENFFINEMI = 1
   and e.ENFTIPDOC = 1
