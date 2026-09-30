@@ -103,3 +103,9 @@ commit tran
 
 
 select * from TBS051 (nolock) where PROCOD='3800024' order by LMEDATHOR desc
+
+exec sp_help 'TBS092'
+
+
+
+

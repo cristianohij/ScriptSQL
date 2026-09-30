@@ -557,7 +557,7 @@ with ProdutosOrdenados as (
         --AND TRY_CAST(c.NFEDARENUM as float) > 0
         AND c.NFETIP = 'N'
         AND c.NFECAN <> 'S'
-        AND i.NFECFOP IN ('1.102','1.403','1.407','1.551','1.556','1.917','2.102','2.403','2.556')
+        AND i.NFECFOP IN ('1.102','1.403','1.407','1.556','1.917','2.102','2.403','2.556')
         AND c.NFECOD NOT IN (SELECT codigo FROM #grupo)
         AND i.NFEPROFOR <> ''
         --and c.NFENUM=194222
@@ -759,7 +759,8 @@ commit tran
 
 select *
   from TBS0105 with (nolock)
- where VNFFORCNPJ='45341029000175'
+ where VNFFORCNPJ='34178263000298'
+       and VNFPROFOR in ('200692282590','203456274840')
 
 /* ??
 update TBS0105
@@ -811,7 +812,6 @@ select VNFMVAORI
  where VNFMVAORI > 0
        and VNFMVAOPEALT = 0
 
-/* nenhum registro encontrador
 begin tran
 update TBS0105
    set VNFMVAOPEALT=VNFMVAORI
@@ -820,7 +820,7 @@ update TBS0105
 
 rollback tran
 commit tran
-*/
+
 
 -- alíquota icms-st
 
@@ -929,7 +929,7 @@ select --VNFBASICMSST
 
 select *
   from TBS154 with (nolock)
-  where CESTMVACOD='1900400'
+  where CESTMVACOD='1902100'
 
 -- CSTMVAPO = 44.58
 
@@ -1167,7 +1167,7 @@ select 0 as empresa
        ,NFESERDOC
        ,NFEDATEMI
        ,'' as hora_emissao_nf
-       ,DBO.NFETOTOPE(NFEEMPCOD, NFETIP, NFENUM, NFECOD, SEREMPCOD, SERCOD)
+       ,dbo.NFETOTOPE(NFEEMPCOD, NFETIP, NFENUM, NFECOD, SEREMPCOD, SERCOD)
        ,NFEDAREVALOR
        ,cast(NFEDAREDATEMI as date)
        ,convert(char(8), cast(NFEDAREDATEMI as time))
@@ -1202,9 +1202,15 @@ select *
 
 -- contas a pagar
 
+-- tanby matriz/cd 3766
+-- tanby taubaté 1445
+-- best bag 2079
+-- misaspel 2191
+-- papelyna 3725
+
 select *
   from TBS057 with (nolock)
- where FORCOD = 3766
+ where FORCOD = 1445
        and CPADATBAI <> '17530101'
        and dbo.CPAVALSDO(CPAEMPCOD, PFXEMPCOD, FOREMPCOD, PFXCOD, CPATIT, CPAPAR, FORCOD) = 0
 
@@ -1216,7 +1222,7 @@ update TBS156
  inner join TBS057 with (nolock)
     on VICNUMNF=CPATIT
  where CPAEMPCOD=0
-       and FORCOD = 3766
+       and FORCOD = 1445
        and CPADATBAI <> '17530101'
        and dbo.CPAVALSDO(CPAEMPCOD, PFXEMPCOD, FOREMPCOD, PFXCOD, CPATIT, CPAPAR, FORCOD) = 0
 

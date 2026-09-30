@@ -1617,4 +1617,11 @@ select *
        and e.SNESER=3
 
 
+select *
+  from movcaixagz mv with (nolock)
+ where mv.[data] between '20260601' and '20260630'
+       and mv.cupom in (3472,6441,6462)
+
+
+
 

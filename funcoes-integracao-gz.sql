@@ -376,9 +376,354 @@ begin
 end
 go
 
+-- nova otimização
+
+/*
+drop VIEW dbo.vw_TabelaCodigosBarrasGZ
+GO
+
+CREATE VIEW dbo.vw_TabelaCodigosBarrasGZ
+AS
+WITH base AS (
+    SELECT 
+        p.PROEMPCOD AS empresa,
+        p.PROCOD,
+        p.PROUM2QTD,
+        p.PROUM3QTD,
+        p.PROUM4QTD,
+        ISNULL(pl.preco1, 0) AS preco1,
+        ISNULL(pl.preco2, 0) AS preco2,
+        ISNULL(pl.preco3, 0) AS preco3,
+        ISNULL(pl.preco4, 0) AS preco4
+    FROM TBS010 p WITH (NOLOCK)
+    INNER JOIN dbo.vw_PrecoLojaGeral pl 
+        ON pl.codigo = p.PROCOD
+)
+, unificada AS (
+    ----------------------------------------------------------------
+    -- Unidade 1 - Embalagem básica (1)
+    ----------------------------------------------------------------
+    SELECT 
+        b.empresa,
+        RTRIM(c.CBPPROCOD) AS codigo,
+        RTRIM(c.CBPCODBAR) AS barras,
+        c.CBPQTDEMB AS embalagem,
+        --b.preco1 AS preco
+		0 as preco
+    FROM TBS0103 c WITH (NOLOCK)
+    INNER JOIN base b
+        ON b.empresa = c.CBPEMP
+       AND b.PROCOD = c.CBPPROCOD
+    WHERE c.CBPQTDEMB = 1
+      --AND b.preco1 > 0
+
+    UNION ALL
+    ----------------------------------------------------------------
+    -- Unidade 2
+    ----------------------------------------------------------------
+    SELECT 
+        b.empresa,
+        RTRIM(c.CBPPROCOD),
+        RTRIM(c.CBPCODBAR),
+        c.CBPQTDEMB,
+        b.preco2
+    FROM TBS0103 c WITH (NOLOCK)
+    INNER JOIN base b
+        ON b.empresa = c.CBPEMP
+       AND b.PROCOD = c.CBPPROCOD
+    WHERE c.CBPQTDEMB = b.PROUM2QTD
+      AND b.PROUM2QTD NOT IN (1, b.PROUM3QTD, b.PROUM4QTD)
+
+    UNION ALL
+
+    SELECT 
+        b.empresa,
+        RTRIM(b.PROCOD),
+        RTRIM(b.PROCOD) + '2222',
+        b.PROUM2QTD,
+        b.preco2
+    FROM base b
+    WHERE b.PROUM2QTD > 1
+
+    ----------------------------------------------------------------
+    -- Unidade 3
+    ----------------------------------------------------------------
+    UNION ALL
+    SELECT 
+        b.empresa,
+        RTRIM(c.CBPPROCOD),
+        RTRIM(c.CBPCODBAR),
+        c.CBPQTDEMB,
+        b.preco3
+    FROM TBS0103 c WITH (NOLOCK)
+    INNER JOIN base b
+        ON b.empresa = c.CBPEMP
+       AND b.PROCOD = c.CBPPROCOD
+    WHERE c.CBPQTDEMB = b.PROUM3QTD
+      AND b.PROUM3QTD NOT IN (1, b.PROUM2QTD, b.PROUM4QTD)
+
+    UNION ALL
+
+    SELECT 
+        b.empresa,
+        RTRIM(b.PROCOD),
+        RTRIM(b.PROCOD) + '3333',
+        b.PROUM3QTD,
+        b.preco3
+    FROM base b
+    WHERE b.PROUM3QTD > 1
+
+    ----------------------------------------------------------------
+    -- Unidade 4
+    ----------------------------------------------------------------
+    UNION ALL
+    SELECT 
+        b.empresa,
+        RTRIM(c.CBPPROCOD),
+        RTRIM(c.CBPCODBAR),
+        c.CBPQTDEMB,
+        b.preco4
+    FROM TBS0103 c WITH (NOLOCK)
+    INNER JOIN base b
+        ON b.empresa = c.CBPEMP
+       AND b.PROCOD = c.CBPPROCOD
+    WHERE c.CBPQTDEMB = b.PROUM4QTD
+      AND b.PROUM4QTD NOT IN (1, b.PROUM2QTD, b.PROUM3QTD)
+
+    UNION ALL
+
+    SELECT 
+        b.empresa,
+        RTRIM(b.PROCOD),
+        RTRIM(b.PROCOD) + '4444',
+        b.PROUM4QTD,
+        b.preco4
+    FROM base b
+    WHERE b.PROUM4QTD > 1
+)
+SELECT 
+    empresa,
+    codigo,
+    barras,
+    embalagem,
+    preco
+FROM unificada
+WHERE embalagem = 1 
+   OR (embalagem > 1 AND preco > 0);
+GO
+*/
+
+-- 20/05/26
+
+drop view [dbo].[vw_TabelaCodigosBarrasGZ]
+go
+
+CREATE VIEW [dbo].[vw_TabelaCodigosBarrasGZ]
+AS
+WITH base AS (
+    SELECT 
+        p.PROEMPCOD AS empresa,
+        p.PROCOD,
+        p.PROUM2QTD,
+        p.PROUM3QTD,
+        p.PROUM4QTD,
+        ISNULL(pl.preco1, 0) AS preco1,
+        ISNULL(pl.preco2, 0) AS preco2,
+        ISNULL(pl.preco3, 0) AS preco3,
+        ISNULL(pl.preco4, 0) AS preco4
+    FROM TBS010 p WITH (NOLOCK)
+    INNER JOIN dbo.vw_PrecoLojaGeral pl 
+        ON pl.codigo = p.PROCOD
+)
+, unificada AS (
+    ----------------------------------------------------------------
+    -- Unidade 1 - Embalagem básica (1)
+    ----------------------------------------------------------------
+    SELECT 
+        b.empresa,
+        RTRIM(c.CBPPROCOD) AS codigo,
+        RTRIM(c.CBPCODBAR) AS barras,
+        c.CBPQTDEMB AS embalagem,
+        --b.preco1 AS preco
+		0 as preco
+    FROM TBS0103 c WITH (NOLOCK)
+    INNER JOIN base b
+        ON b.empresa = c.CBPEMP
+       AND b.PROCOD = c.CBPPROCOD
+    WHERE c.CBPQTDEMB = 1
+      --AND b.preco1 > 0
+
+    -- caso haja códigos de barras com zeros à esquerda, gera um registro sem zeros à esquerda
+	union
+	SELECT 
+        b.empresa,
+        RTRIM(c.CBPPROCOD) AS codigo,
+		Ltrim(str(CAST(c.CBPCODBAR AS BIGINT), 20)),
+        c.CBPQTDEMB AS embalagem,
+        --b.preco1 AS preco
+		0 as preco
+    FROM TBS0103 c WITH (NOLOCK)
+    INNER JOIN base b
+        ON b.empresa = c.CBPEMP
+       AND b.PROCOD = c.CBPPROCOD
+    WHERE c.CBPQTDEMB = 1
+      --AND b.preco1 > 0
+
+    UNION ALL
+    ----------------------------------------------------------------
+    -- Unidade 2
+    ----------------------------------------------------------------
+    SELECT 
+        b.empresa,
+        RTRIM(c.CBPPROCOD),
+        RTRIM(c.CBPCODBAR),
+        c.CBPQTDEMB,
+        b.preco2
+    FROM TBS0103 c WITH (NOLOCK)
+    INNER JOIN base b
+        ON b.empresa = c.CBPEMP
+       AND b.PROCOD = c.CBPPROCOD
+    WHERE c.CBPQTDEMB = b.PROUM2QTD
+      AND b.PROUM2QTD NOT IN (1, b.PROUM3QTD, b.PROUM4QTD)
+    
+	-- caso haja códigos de barras com zeros à esquerda, gera um registro sem zeros à esquerda
+	union
+    SELECT 
+        b.empresa,
+        RTRIM(c.CBPPROCOD),
+		Ltrim(str(CAST(c.CBPCODBAR AS BIGINT), 20)),
+        c.CBPQTDEMB,
+        b.preco2
+    FROM TBS0103 c WITH (NOLOCK)
+    INNER JOIN base b
+        ON b.empresa = c.CBPEMP
+       AND b.PROCOD = c.CBPPROCOD
+    WHERE c.CBPQTDEMB = b.PROUM2QTD
+      AND b.PROUM2QTD NOT IN (1, b.PROUM3QTD, b.PROUM4QTD)
+
+
+    UNION ALL
+
+    SELECT 
+        b.empresa,
+        RTRIM(b.PROCOD),
+        --RTRIM(b.PROCOD) + '2222',
+		Ltrim(str(CAST(b.PROCOD AS BIGINT))) + '2222',
+        b.PROUM2QTD,
+        b.preco2
+    FROM base b
+    WHERE b.PROUM2QTD > 1
+
+    ----------------------------------------------------------------
+    -- Unidade 3
+    ----------------------------------------------------------------
+    UNION ALL
+    SELECT 
+        b.empresa,
+        RTRIM(c.CBPPROCOD),
+        RTRIM(c.CBPCODBAR),
+        c.CBPQTDEMB,
+        b.preco3
+    FROM TBS0103 c WITH (NOLOCK)
+    INNER JOIN base b
+        ON b.empresa = c.CBPEMP
+       AND b.PROCOD = c.CBPPROCOD
+    WHERE c.CBPQTDEMB = b.PROUM3QTD
+      AND b.PROUM3QTD NOT IN (1, b.PROUM2QTD, b.PROUM4QTD)
+
+    -- caso haja códigos de barras com zeros à esquerda, gera um registro sem zeros à esquerda
+	union
+    SELECT 
+        b.empresa,
+        RTRIM(c.CBPPROCOD),
+		Ltrim(str(CAST(c.CBPCODBAR AS BIGINT), 20)),
+        c.CBPQTDEMB,
+        b.preco3
+    FROM TBS0103 c WITH (NOLOCK)
+    INNER JOIN base b
+        ON b.empresa = c.CBPEMP
+       AND b.PROCOD = c.CBPPROCOD
+    WHERE c.CBPQTDEMB = b.PROUM3QTD
+      AND b.PROUM3QTD NOT IN (1, b.PROUM2QTD, b.PROUM4QTD)	
+	
+	UNION ALL
+
+    SELECT 
+        b.empresa,
+        RTRIM(b.PROCOD),
+        --RTRIM(b.PROCOD) + '3333',
+		Ltrim(str(CAST(b.PROCOD AS BIGINT))) + '3333',
+        b.PROUM3QTD,
+        b.preco3
+    FROM base b
+    WHERE b.PROUM3QTD > 1
+
+    ----------------------------------------------------------------
+    -- Unidade 4
+    ----------------------------------------------------------------
+    UNION ALL
+    SELECT 
+        b.empresa,
+        RTRIM(c.CBPPROCOD),
+        RTRIM(c.CBPCODBAR),
+        c.CBPQTDEMB,
+        b.preco4
+    FROM TBS0103 c WITH (NOLOCK)
+    INNER JOIN base b
+        ON b.empresa = c.CBPEMP
+       AND b.PROCOD = c.CBPPROCOD
+    WHERE c.CBPQTDEMB = b.PROUM4QTD
+      AND b.PROUM4QTD NOT IN (1, b.PROUM2QTD, b.PROUM3QTD)
+
+   -- caso haja códigos de barras com zeros à esquerda, gera um registro sem zeros à esquerda
+   union
+    SELECT 
+        b.empresa,
+        RTRIM(c.CBPPROCOD),
+		Ltrim(str(CAST(c.CBPCODBAR AS BIGINT), 20)),
+        c.CBPQTDEMB,
+        b.preco4
+    FROM TBS0103 c WITH (NOLOCK)
+    INNER JOIN base b
+        ON b.empresa = c.CBPEMP
+       AND b.PROCOD = c.CBPPROCOD
+    WHERE c.CBPQTDEMB = b.PROUM4QTD
+      AND b.PROUM4QTD NOT IN (1, b.PROUM2QTD, b.PROUM3QTD)
+
+   UNION ALL
+
+    SELECT 
+        b.empresa,
+        RTRIM(b.PROCOD),
+        --RTRIM(b.PROCOD) + '4444',
+		Ltrim(str(CAST(b.PROCOD AS BIGINT))) + '4444',
+        b.PROUM4QTD,
+        b.preco4
+    FROM base b
+    WHERE b.PROUM4QTD > 1
+)
+SELECT 
+    empresa,
+    codigo,
+    barras,
+    embalagem,
+    preco
+FROM unificada
+WHERE embalagem = 1 
+   OR (embalagem > 1 AND preco > 0);
+GO
+
+select * 
+  from dbo.vw_TabelaCodigosBarrasGZ
+ where codigo = '9877216'
+
+
+--
+
 -- exemplo de uso
 select *
   from dbo.TabelaCodigosBarrasGZ(0)
+ where codigo = '0040118'
 
 drop table barras
 
@@ -499,11 +844,123 @@ with tab as
 
 select *
   from DWCodigosBarrasGZ
- where codigo='1640054'
+ where --codigo ='1640054'
+       preco = 0
 
 select distinct codigo
   from DWCodigosBarrasGZ
 
+-- otimização
+
+drop view DWCodigosBarrasGZ_2
+go
+
+--CREATE VIEW dbo.DWCodigosBarrasGZ_2 AS
+WITH tab AS (
+    SELECT 
+        CBPEMP AS empresa,
+        CBPPROCOD AS codigo
+    FROM TBS0103 WITH (NOLOCK)
+    INNER JOIN TBS010 WITH (NOLOCK)
+        ON TBS010.PROEMPCOD = TBS0103.CBPEMP
+       AND TBS010.PROCOD = TBS0103.CBPPROCOD
+    GROUP BY CBPEMP, CBPPROCOD
+)
+SELECT
+    bar.CBPPROCOD AS codigo,
+    bar.CBPCODBAR AS barras,
+    bar.CBPQTDEMB AS embalagem,
+    0 AS preco
+FROM TBS0103 bar WITH (NOLOCK)
+inner join tab t
+        on t.empresa = bar.CBPEMP
+		   and t.codigo = bar.CBPPROCOD
+  AND bar.CBPQTDEMB = 1
+
+UNION ALL
+
+		-- unidade 2
+		select bar.CBPPROCOD
+			   ,bar.CBPCODBAR
+			   ,bar.CBPQTDEMB
+			   ,isnull(p.preco2,0) as preco
+		  from TBS0103 bar with (nolock)
+         inner join tab t
+                 on t.empresa = bar.CBPEMP
+		            and t.codigo = bar.CBPPROCOD
+         LEFT JOIN dbo.vw_PrecoLojaGeral p
+                ON p. p.codigo = bar.CBPPROCOD
+			   and CBPPROCOD in(select codigo from tab)
+			   and TBS0103.CBPQTDEMB=TBS010.PROUM2QTD
+			   and isnull((select preco2 from PrecoLoja(TBS010.PROEMPCOD,TBS010.PROCOD)),0) > 0
+			   and TBS010.PROUM2QTD not in(1,TBS010.PROUM3QTD,TBS010.PROUM4QTD)
+
+/*
+-- unidade 2
+SELECT 
+    T10.PROCOD AS codigo,
+    ISNULL(T03.CBPCODBAR, RTRIM(T10.PROCOD) + '2222') AS barras,
+    ISNULL(T03.CBPQTDEMB, T10.PROUM2QTD) AS embalagem,
+    ISNULL(p.preco2, 0) AS preco
+FROM TBS010 T10 WITH (NOLOCK)
+LEFT JOIN TBS0103 T03 WITH (NOLOCK)
+    ON T03.CBPEMP = T10.PROEMPCOD 
+   AND T03.CBPPROCOD = T10.PROCOD
+   AND T03.CBPQTDEMB = T10.PROUM2QTD
+LEFT JOIN dbo.vw_PrecoLojaGeral p
+    ON p.codigo = T10.PROCOD
+WHERE T10.PROEMPCOD = 0
+  AND T10.PROCOD IN (SELECT codigo FROM tab)
+  AND T10.PROUM2QTD > 1
+  AND ISNULL(p.preco2, 0) > 0
+  AND T10.PROUM2QTD NOT IN (1, T10.PROUM3QTD, T10.PROUM4QTD)
+*/
+
+
+UNION ALL
+
+-- unidade 3
+SELECT 
+    T10.PROCOD AS codigo,
+    ISNULL(T03.CBPCODBAR, RTRIM(T10.PROCOD) + '3333') AS barras,
+    ISNULL(T03.CBPQTDEMB, T10.PROUM3QTD) AS embalagem,
+    ISNULL(p.preco3, 0) AS preco
+FROM TBS010 T10 WITH (NOLOCK)
+LEFT JOIN TBS0103 T03 WITH (NOLOCK)
+    ON T03.CBPEMP = T10.PROEMPCOD 
+   AND T03.CBPPROCOD = T10.PROCOD
+   AND T03.CBPQTDEMB = T10.PROUM3QTD
+LEFT JOIN dbo.vw_PrecoLojaGeral p
+    ON p.codigo = T10.PROCOD
+WHERE T10.PROEMPCOD = 0
+  AND T10.PROCOD IN (SELECT codigo FROM tab)
+  AND T10.PROUM3QTD > 1
+  AND ISNULL(p.preco3, 0) > 0
+  AND T10.PROUM3QTD NOT IN (1, T10.PROUM2QTD, T10.PROUM4QTD)
+
+UNION ALL
+
+-- unidade 4
+SELECT 
+    T10.PROCOD AS codigo,
+    ISNULL(T03.CBPCODBAR, RTRIM(T10.PROCOD) + '4444') AS barras,
+    ISNULL(T03.CBPQTDEMB, T10.PROUM4QTD) AS embalagem,
+    ISNULL(p.preco4, 0) AS preco
+FROM TBS010 T10 WITH (NOLOCK)
+LEFT JOIN TBS0103 T03 WITH (NOLOCK)
+    ON T03.CBPEMP = T10.PROEMPCOD 
+   AND T03.CBPPROCOD = T10.PROCOD
+   AND T03.CBPQTDEMB = T10.PROUM4QTD
+LEFT JOIN dbo.vw_PrecoLojaGeral p
+    ON p.codigo = T10.PROCOD
+WHERE T10.PROEMPCOD = 0
+  AND T10.PROCOD IN (SELECT codigo FROM tab)
+  AND T10.PROUM4QTD > 1
+  AND ISNULL(p.preco4, 0) > 0
+  AND T10.PROUM4QTD NOT IN (1, T10.PROUM2QTD, T10.PROUM3QTD);
+
+select *
+  from DWCodigosBarrasGZ_2
 
 
 ------------------------------------------------------
@@ -645,6 +1102,47 @@ go
 select *
   from DWPrecosLoja
 
+-- em forma de view
+
+drop view dbo.vw_PrecoLojaGeral
+
+CREATE VIEW dbo.vw_PrecoLojaGeral
+AS
+WITH Precos AS (
+    SELECT
+        TDPPROCOD AS codigo,
+        TDPPREPRO1, TDPPREPRO2, TDPPREPRO3, TDPPREPRO4,
+        TDPPRELOJ1, TDPPRELOJ2, TDPPRELOJ3, TDPPRELOJ4,
+        TDPCUSBAS,
+        CONVERT(date, TDPDATATU) AS atualizado,
+        CASE 
+            WHEN GETDATE() BETWEEN TDPVALPROI AND TDPVALPROF
+                 AND TDPPROLOJ = 'S' 
+                 THEN 1 
+            ELSE 0 
+        END AS tem_promocao
+    FROM SIBD.dbo.TBS031 with (nolock)
+    WHERE 
+            TDPPREPRO1 > 0 OR TDPPREPRO2 > 0 OR 
+            TDPPREPRO3 > 0 OR TDPPREPRO4 > 0 OR 
+            TDPCUSBAS  > 0
+)
+SELECT
+    codigo,
+    CASE WHEN tem_promocao = 1 THEN TDPPREPRO1 ELSE TDPPRELOJ1 END AS preco1,
+    CASE WHEN tem_promocao = 1 THEN TDPPREPRO2 ELSE TDPPRELOJ2 END AS preco2,
+    CASE WHEN tem_promocao = 1 THEN TDPPREPRO3 ELSE TDPPRELOJ3 END AS preco3,
+    CASE WHEN tem_promocao = 1 THEN TDPPREPRO4 ELSE TDPPRELOJ4 END AS preco4,
+    TDPCUSBAS AS custo,
+    atualizado
+FROM Precos;
+GO
+
+SELECT *
+  FROM dbo.vw_PrecoLojaGeral
+ where codigo = '01811901'
+
+--
 
 ------------------------------------------------------------------
 -- retorna uma tabela com CST/al�quota do PIS/COFINS de um produto
@@ -1266,3 +1764,33 @@ select *
  where Left(cdprod,2)='99'
        and Len(cdprod) > 8
        and [data] >= '20230101'
+
+-- ajustes de códigos de barras
+
+select *
+  from TBS0103 with (nolock)
+ where CBPPROCOD = '0320056'
+
+--  '0320056'
+
+select *
+  from TBS0103 with (nolock)
+ where rtrim(CBPPROCOD) = Left(CBPCODBAR,Len(Ltrim(CBPPROCOD)))
+       and right(rtrim(CBPCODBAR),4) = '4444'
+ 
+begin tran
+delete TBS0103
+ where rtrim(CBPPROCOD) = Left(CBPCODBAR,Len(Ltrim(CBPPROCOD)))
+       and right(rtrim(CBPCODBAR),4) = '3333'
+
+rollback tran
+commit tran
+
+
+
+
+
+
+
+
+
